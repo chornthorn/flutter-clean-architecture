@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/app/app.dart';
 import 'package:flutter_x/provider.dart';
-import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   setUp(() async {
@@ -34,6 +34,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'sku-42'), findsOneWidget);
     expect(find.text('12.50'), findsOneWidget);
+
+    // The write side, through the container's own dispatcher: the button sends
+    // the command, and the line under it is the cart query's answer.
+    expect(find.text('0 in cart'), findsOneWidget);
+    await tester.tap(find.text('Add to cart'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 in cart'), findsOneWidget);
+
+    // The cart screen reads the same cart back, through its own query and the
+    // view model the container builds for it.
+    await tester.tap(find.byTooltip('Cart'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'Cart'), findsOneWidget);
+    expect(find.text('Espresso cup'), findsOneWidget);
+    expect(find.text('Total'), findsOneWidget);
+
+    // A back gesture at this depth unwinds one step of the feature's own stack.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('1 in cart'), findsOneWidget);
 
     // A back gesture at this depth unwinds the feature, not the host stack.
     await tester.pageBack();

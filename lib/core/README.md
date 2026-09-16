@@ -26,6 +26,9 @@ final theme = context.theme;
 Container(color: theme.colors.surface.card, padding: EdgeInsets.all(theme.sizes.padding.md));
 ```
 
+`shop_cart_view.dart` follows this; `shop_product_view.dart`, `home_view.dart`, and
+`settings_home_view.dart` still hardcode their spacing and need a sweep.
+
 Flow:
 
 1. Edit `app.tokens.json` (both `light` and `dark`). A new **group** also needs

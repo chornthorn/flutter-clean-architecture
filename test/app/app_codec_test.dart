@@ -1,8 +1,8 @@
+import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/app/app_codec.dart';
 import 'package:flutter_x/app/app_route.dart';
 import 'package:flutter_x/features/settings/settings_module.dart';
 import 'package:flutter_x/features/shop/shop_module.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:kaisel/kaisel.dart';
 
 void main() {
@@ -36,6 +36,18 @@ void main() {
       );
     });
 
+    test('should map the cart URL to the cart above the module root', () {
+      expect(
+        appCodec.decode(Uri.parse('/shop/cart')),
+        KaiselConfig<AppRoute>(
+          mainStack: const [ShopMount()],
+          nestedState: KaiselModuleConfig(
+            stack: const [ShopHome(), ShopCart()],
+          ),
+        ),
+      );
+    });
+
     test('should map a second module independently of the first', () {
       expect(
         appCodec.decode(Uri.parse('/settings/about')),
@@ -64,6 +76,7 @@ void main() {
       '/',
       '/shop',
       '/shop/products/sku-42',
+      '/shop/cart',
       '/settings',
       '/settings/about',
     ];

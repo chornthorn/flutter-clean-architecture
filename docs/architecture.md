@@ -246,18 +246,23 @@ class AddProductToCartCommandHandler
 }
 ```
 
-Two details that differ from the read side:
+Three details that differ from the read side:
 
 - **A publishing handler takes the `CqrsDispatcher`, and the dispatcher is the
   publisher.** `CqrsDispatcher implements EventPublisher` and the app binds it
   once, so a command publishes through the same object that routed the command to
   it — no second registration, no narrower wrapper type. In a test, hand it a real
   dispatcher with only the handler you want to observe registered, as
-  `add_to_cart_command_test.dart` does.
+  `add_product_to_cart_command_test.dart` does.
 - **Events fan out, the other messages do not.** The dispatcher resolves a *list*
   of handlers per event type and runs them together, so a second reaction is a new
   file and a regenerate — nothing else moves. Command and query handlers are
   one-per-message by contrast: the dispatcher resolves a single handler for each.
+- **A view model that sends a command reads back rather than assuming.**
+  `ShopProductViewModel.addToCart` sends the command and then re-reads the cart
+  through `GetCartQuery`; the count on screen is the query's answer, never a local
+  `_cartCount++`. Write and read stay separate all the way up, so a command that
+  silently failed shows a stale count instead of a lying one.
 
 The dispatcher is the app's one non-feature container binding — an
 `@ExternalModule` in `provider.dart`, beside the container that resolves it:

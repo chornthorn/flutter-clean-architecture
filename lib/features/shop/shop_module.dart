@@ -4,8 +4,10 @@ import 'package:kaisel/kaisel.dart';
 import 'package:provider/provider.dart';
 
 import '../../provider.dart';
+import 'presentation/view_models/shop_cart_view_model.dart';
 import 'presentation/view_models/shop_home_view_model.dart';
 import 'presentation/view_models/shop_product_view_model.dart';
+import 'presentation/views/shop_cart_view.dart';
 import 'presentation/views/shop_home_view.dart';
 import 'presentation/views/shop_product_view.dart';
 
@@ -21,6 +23,10 @@ sealed class ShopRoute extends KaiselRoute {
 
 final class ShopHome extends ShopRoute {
   const ShopHome();
+}
+
+final class ShopCart extends ShopRoute {
+  const ShopCart();
 }
 
 final class ShopProduct extends ShopRoute {
@@ -52,6 +58,10 @@ class ShopRouterModule extends RouteModule<ShopRoute> {
       create: (_) => getIt<ShopProductViewModel>()..load(id),
       child: ShopProductView(id: id),
     ),
+    ShopCart() => ChangeNotifierProvider<ShopCartViewModel>(
+      create: (_) => getIt<ShopCartViewModel>()..load(),
+      child: const ShopCartView(),
+    ),
   };
 
   @override
@@ -74,12 +84,14 @@ class ShopRouteCodec extends ModuleStackCodec<ShopRoute> {
   List<String> encode(List<ShopRoute> stack) => switch (stack.last) {
     ShopHome() => const [],
     ShopProduct(:final id) => ['products', id],
+    ShopCart() => const ['cart'],
   };
 
   @override
   List<ShopRoute>? decode(List<String> segments) => switch (segments) {
     [] => const [ShopHome()],
     ['products', final id] => [const ShopHome(), ShopProduct(id)],
+    ['cart'] => const [ShopHome(), ShopCart()],
     _ => null,
   };
 }

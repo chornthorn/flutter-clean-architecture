@@ -24,7 +24,7 @@ in the mirrored folder of whatever it stands in for:
 | `features/shop/domain/repositories/mock_cart_repository.dart` | `CartRepository` |
 | `features/shop/domain/repositories/mock_audit_log.dart` | `AuditLog` |
 | `features/shop/shop_dispatcher_fixture.dart` | the shop's message path: a real dispatcher over the generated handler module |
-| `features/shop/presentation/views/view_host.dart` | mounts a page under a provider |
+| `features/shop/presentation/views/view_host.dart` | mounts a page under a provider, in the app's token theme |
 
 Mocks come from `mocktail`, and they mock the **domain contract**, never the
 adapter: a test that stubs `ProductRepository` keeps passing when

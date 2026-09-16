@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../view_models/shop_product_view_model.dart';
+import '../widgets/cart_button.dart';
 
 // One product, looked up by the id carried on `ShopProduct`.
 //
@@ -17,7 +18,7 @@ class ShopProductView extends StatelessWidget {
     final viewModel = context.watch<ShopProductViewModel>();
 
     return Scaffold(
-      appBar: AppBar(title: Text(id)),
+      appBar: AppBar(title: Text(id), actions: const [CartButton()]),
       body: _buildBody(context, viewModel),
     );
   }
@@ -27,13 +28,16 @@ class ShopProductView extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (viewModel.error != null) {
-      return const Center(child: Text('Could not load the product.'));
-    }
-
     final product = viewModel.product;
     if (product == null) {
-      return const Center(child: Text('Product not found.'));
+      // A failure and a missing id both leave no product; only one is an error.
+      return Center(
+        child: Text(
+          viewModel.error == null
+              ? 'Product not found.'
+              : 'Could not load the product.',
+        ),
+      );
     }
 
     return Center(
@@ -43,6 +47,20 @@ class ShopProductView extends StatelessWidget {
           Text(product.name, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           Text(product.price.toStringAsFixed(2)),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: viewModel.addToCart,
+            icon: const Icon(Icons.add_shopping_cart),
+            label: const Text('Add to cart'),
+          ),
+          const SizedBox(height: 8),
+          // The product is on screen, so an error here is the add's, not the
+          // load's.
+          Text(
+            viewModel.error == null
+                ? '${viewModel.cartCount} in cart'
+                : 'Could not add to cart.',
+          ),
         ],
       ),
     );

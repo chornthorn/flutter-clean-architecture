@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../app/app_route.dart';
 import '../../shop_module.dart';
 import '../view_models/shop_home_view_model.dart';
+import '../widgets/cart_button.dart';
 import '../widgets/product_tile.dart';
 
 // The feature's list screen.
@@ -22,6 +23,7 @@ class ShopHomeView extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Shop'),
         actions: [
+          const CartButton(),
           // The feature's inner navigator has nothing to pop here, so this
           // leaves the feature.
           IconButton(

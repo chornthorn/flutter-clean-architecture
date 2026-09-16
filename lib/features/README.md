@@ -60,8 +60,8 @@ container.
   plain class.
 - `infrastructure/` implements the contracts; it is the layer allowed to know
   about networks, disk, and DTOs.
-- `presentation/` sends queries through the injected `CqrsDispatcher`; it never
-  sees a handler or a concrete repository.
+- `presentation/` sends queries and commands through the injected
+  `CqrsDispatcher`; it never sees a handler or a concrete repository.
 - The container names a concrete implementation only through the `@Injectable`
   annotation on the class; the router resolves the graph, one line per route.
 - A page reads its view model from the `ChangeNotifierProvider` the router mounts
@@ -96,9 +96,11 @@ container.
 - `home/` — the app's landing screen. `presentation/` only, with a
   deliberately codec-less router: one screen has no sub-URLs, so the root path
   belongs to `BaseAppCodec` in `lib/app/`.
-- `shop/` — the reference feature; every folder is in use. Read side: two
-  queries. Write side: an add-to-cart command whose handler raises
-  `ProductAddedToCart`, and an event handler that appends to an audit log.
+- `shop/` — the reference feature; every folder is in use. Read side: the catalog,
+  one product, the cart, and the products in the cart. Write side: an
+  `AddProductToCartCommand` whose handler raises `ProductAddedToCartEvent`, and a
+  role-named handler that appends to an audit log. Routes: the list, a product,
+  and the cart, which is also reachable by URL at `/shop/cart`.
 - `settings/` — `presentation/` only. Its screens read no state, so `domain/`
   and `infrastructure/` would be empty ceremony; add them when the feature has
   something to load.
