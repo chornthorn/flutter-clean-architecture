@@ -8,7 +8,6 @@ import '../../domain/entities/post.dart';
 import '../../domain/usecases/delete_post_command.dart';
 import '../../domain/usecases/get_post_query.dart';
 import '../../domain/usecases/update_post_command.dart';
-import '../posts_revision.dart';
 
 // State for one post. Same scope and lifecycle rules as the other view models.
 //
@@ -20,10 +19,9 @@ import '../posts_revision.dart';
 // read into an error state. See `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
 class PostDetailViewModel implements ViewModel {
-  PostDetailViewModel(this._dispatcher, this._revision);
+  PostDetailViewModel(this._dispatcher);
 
   final CqrsDispatcher _dispatcher;
-  final PostsRevision _revision;
 
   // See `PostsHomeViewModel`: cancelling in `dispose` is the page walking away
   // from whatever read is still in flight.
@@ -74,20 +72,18 @@ class PostDetailViewModel implements ViewModel {
   // Sends the edit, then re-reads the post rather than patching a local copy.
   // Answers whether it worked, so the form knows whether to close.
   Future<bool> updatePost({required String title, required String body}) async {
-    final post = _settledPost;
-    if (post == null) return false;
+    final id = _postOnScreenId;
+    if (id == null) return false;
 
     _update.setLoading();
 
     try {
       await _dispatcher.command(
-        UpdatePostCommand(id: post.id, title: title, body: body),
+        UpdatePostCommand(id: id, title: title, body: body),
       );
       final updated = await _dispatcher.query(
-        GetPostQuery(post.id, cancellation: _cancellation.token),
+        GetPostQuery(id, cancellation: _cancellation.token),
       );
-      // The list below is now wrong about this post.
-      _revision.markStale();
       // The write landed either way, so this answers true; the signal is what
       // stays silent once the page is gone.
       if (_isDisposed) return true;
@@ -106,15 +102,13 @@ class PostDetailViewModel implements ViewModel {
   // Sends the delete. Answers whether it worked, so the page knows whether to
   // leave a screen that no longer has a post to show.
   Future<bool> deletePost() async {
-    final post = _settledPost;
-    if (post == null) return false;
+    final id = _postOnScreenId;
+    if (id == null) return false;
 
     _delete.setLoading();
 
     try {
-      await _dispatcher.command(DeletePostCommand(post.id));
-      // The list below still has it.
-      _revision.markStale();
+      await _dispatcher.command(DeletePostCommand(id));
       if (_isDisposed) return true;
       _delete.setValue(null);
       return true;
@@ -141,11 +135,8 @@ class PostDetailViewModel implements ViewModel {
     _delete.dispose();
   }
 
-  // The post the read has settled on, or `null` while it is loading, after a
-  // failure, and for an id that resolved to nothing. `hasValue` also covers the
-  // reloading and refreshing states, where the post on screen is the old one.
-  Post? get _settledPost {
-    final state = _post.value;
-    return state.hasValue ? state.value : null;
-  }
+  // The id the two writes go to. Null while the read is in flight, after a
+  // failure, and for an id that resolved to nothing — which is all the writes
+  // need to know: the page tells those three apart from `post` itself.
+  int? get _postOnScreenId => _post.value.value?.id;
 }

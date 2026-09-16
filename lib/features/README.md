@@ -124,6 +124,6 @@ container.
 
   Two things about the demo API: jsonplaceholder echoes writes back without
   storing them, so under `prod` only the in-memory adapter shows the loop closing;
-  and because kaisel keeps the list mounted under the detail,
-  `presentation/posts_revision.dart` is the signal that tells it to read again
-  after an edit or delete.
+  and because kaisel keeps the list mounted under the detail, the list is what reads
+  again when that page comes back — it opens the detail with `pushForResult` and
+  reloads once the future settles.

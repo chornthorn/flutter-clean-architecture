@@ -78,7 +78,7 @@ class PostsHomeView extends StatelessWidget {
             post: post,
             // `PostDetail` belongs to `PostsRoute`, so this pushes inside the
             // feature rather than on the host stack.
-            onTap: () => context.push(PostDetail(post.id)),
+            onTap: () => _open(context, viewModel, post.id),
           );
         },
       ),
@@ -94,6 +94,25 @@ class PostsHomeView extends StatelessWidget {
         child: CircularProgressIndicator(color: theme.colors.brand.primary),
       ),
     };
+  }
+
+  // Opens the post, then reads the list again once that page comes back. kaisel
+  // keeps this page mounted underneath, so a write made up there leaves it
+  // showing what it showed before — nothing remounts, nothing asks again. The
+  // pop is the ask, and `push` settles when the navigation is applied rather
+  // than on the way back, so waiting for one takes `pushForResult`.
+  Future<void> _open(
+    BuildContext context,
+    PostsHomeViewModel viewModel,
+    int id,
+  ) async {
+    await context.pushForResult<void>(PostDetail(id));
+
+    // The feature can be left with the detail still up, which takes this page
+    // with it.
+    if (!context.mounted) return;
+
+    await viewModel.load();
   }
 
   Future<void> _compose(BuildContext context, PostsHomeViewModel viewModel) =>

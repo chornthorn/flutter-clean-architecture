@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
-import 'package:flutter_x/features/posts/presentation/posts_revision.dart';
 import 'package:flutter_x/features/posts/presentation/view_models/posts_home_view_model.dart';
 import 'package:flutter_x/features/posts/presentation/views/posts_home_view.dart';
 import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
@@ -23,16 +22,11 @@ void main() {
       when(
         () => repository.allPosts(cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) => Completer<List<Post>>().future);
-      final viewModel = PostsHomeViewModel(
-        postsDispatcher(repository),
-        PostsRevision(),
-      );
+      final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
 
-      await tester.pumpWidget(
-        hostSignalPage(viewModel, const PostsHomeView()),
-      );
+      await tester.pumpWidget(hostSignalPage(viewModel, const PostsHomeView()));
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
@@ -42,16 +36,11 @@ void main() {
       when(
         () => repository.allPosts(cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => const [post]);
-      final viewModel = PostsHomeViewModel(
-        postsDispatcher(repository),
-        PostsRevision(),
-      );
+      final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(
-        hostSignalPage(viewModel, const PostsHomeView()),
-      );
+      await tester.pumpWidget(hostSignalPage(viewModel, const PostsHomeView()));
 
       expect(find.text('First post'), findsOneWidget);
       expect(find.text('by user 1'), findsOneWidget);
@@ -62,16 +51,11 @@ void main() {
       when(
         () => repository.allPosts(cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => throw Exception('offline'));
-      final viewModel = PostsHomeViewModel(
-        postsDispatcher(repository),
-        PostsRevision(),
-      );
+      final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(
-        hostSignalPage(viewModel, const PostsHomeView()),
-      );
+      await tester.pumpWidget(hostSignalPage(viewModel, const PostsHomeView()));
 
       expect(find.text('Could not load posts.'), findsOneWidget);
     });
@@ -81,16 +65,11 @@ void main() {
       when(
         () => repository.allPosts(cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => const []);
-      final viewModel = PostsHomeViewModel(
-        postsDispatcher(repository),
-        PostsRevision(),
-      );
+      final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(
-        hostSignalPage(viewModel, const PostsHomeView()),
-      );
+      await tester.pumpWidget(hostSignalPage(viewModel, const PostsHomeView()));
 
       expect(find.text('No posts yet.'), findsOneWidget);
       expect(find.byType(PostTile), findsNothing);
@@ -109,16 +88,11 @@ void main() {
         if (attempts == 1) throw Exception('offline');
         return const [post];
       });
-      final viewModel = PostsHomeViewModel(
-        postsDispatcher(repository),
-        PostsRevision(),
-      );
+      final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(
-        hostSignalPage(viewModel, const PostsHomeView()),
-      );
+      await tester.pumpWidget(hostSignalPage(viewModel, const PostsHomeView()));
       expect(find.text('Could not load posts.'), findsOneWidget);
 
       await tester.tap(find.text('Try again'));
@@ -133,14 +107,11 @@ void main() {
       // to the view model, the command wrote it, and the reload read it back.
       final viewModel = PostsHomeViewModel(
         postsDispatcher(InMemoryPostRepository()),
-        PostsRevision(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(
-        hostSignalPage(viewModel, const PostsHomeView()),
-      );
+      await tester.pumpWidget(hostSignalPage(viewModel, const PostsHomeView()));
 
       await tester.tap(find.byTooltip('New post'));
       await tester.pumpAndSettle();

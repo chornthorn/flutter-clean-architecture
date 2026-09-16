@@ -325,16 +325,15 @@ Four details that differ from the read side:
   through `GetCartQuery`; the count on screen is the query's answer, never a local
   `_cartCount++`. Write and read stay separate all the way up, so a command that
   silently failed shows a stale count instead of a lying one.
-- **A write on one page has to reach the readers on another.** Kaisel keeps a page
-  mounted while another is pushed over it, so returning to it remounts nothing and
-  re-runs nothing — a list edited from a detail page above it would keep showing
-  the old title. `PostsRevision` is that feature's signal: it counts the writes that
-  have landed, the writer bumps it after a successful write, and the reader
-  subscribes and reads again. It is registered once in the feature, so both sides
-  share the instance without either knowing the other. A `RouteObserver` +
-  `RouteAware.didPopNext` would also work and needs no feature plumbing, but it
-  fires on *every* pop and only for pushes it can see; the counter says what
-  actually happened.
+- **The page below reads again when the one above comes back.** Kaisel keeps a page
+  mounted while another is pushed over it, so a list edited from a detail page above
+  it would otherwise keep showing the old title — nothing remounts, so nothing asks
+  again. `posts`' list asks on the way back: it opens the detail with
+  `pushForResult<void>` and reads once that future settles, which is the pop (`push`
+  settles when the navigation is applied, not on the way back). Nothing is shared
+  between the two view models, and the page that writes takes no part in it. The gap
+  that leaves: a detail page reached *without* a push from the list — a cold deep
+  link to `/posts/<id>`, or a browser refresh on it — has no caller to read back to.
 
 The dispatcher is the app's one non-feature container binding — an
 `@ExternalModule` in `provider.dart`, beside the container that resolves it:

@@ -67,17 +67,20 @@ void main() {
       expect(viewModel.product.value.hasValue, isFalse);
     });
 
-    test('should start the add settled, so the page does not read it in flight', () {
-      final viewModel = ShopProductViewModel(
-        shopDispatcher(MockProductRepository()),
-      );
-      addTearDown(viewModel.dispose);
+    test(
+      'should start the add settled, so the page does not read it in flight',
+      () {
+        final viewModel = ShopProductViewModel(
+          shopDispatcher(MockProductRepository()),
+        );
+        addTearDown(viewModel.dispose);
 
-      expect(viewModel.add.value.isLoading, isFalse);
-      // The purchase is the one that starts in flight, which is what the page
-      // renders first.
-      expect(viewModel.product.value.isLoading, isTrue);
-    });
+        expect(viewModel.add.value.isLoading, isFalse);
+        // The purchase is the one that starts in flight, which is what the page
+        // renders first.
+        expect(viewModel.product.value.isLoading, isTrue);
+      },
+    );
 
     test('should read the cart alongside the product', () async {
       final repository = MockProductRepository();

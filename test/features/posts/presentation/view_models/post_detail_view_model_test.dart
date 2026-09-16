@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/async/cancellation.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
-import 'package:flutter_x/features/posts/presentation/posts_revision.dart';
 import 'package:flutter_x/features/posts/presentation/view_models/post_detail_view_model.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:signals/signals_flutter.dart';
@@ -21,10 +20,7 @@ void main() {
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => post);
 
-      final viewModel = PostDetailViewModel(
-        postsDispatcher(repository),
-        PostsRevision(),
-      );
+      final viewModel = PostDetailViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
 
       await viewModel.load(1);
@@ -41,10 +37,7 @@ void main() {
             repository.postById(999, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => null);
 
-      final viewModel = PostDetailViewModel(
-        postsDispatcher(repository),
-        PostsRevision(),
-      );
+      final viewModel = PostDetailViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
 
       await viewModel.load(999);
@@ -62,10 +55,7 @@ void main() {
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = PostDetailViewModel(
-        postsDispatcher(repository),
-        PostsRevision(),
-      );
+      final viewModel = PostDetailViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
 
       await expectLater(viewModel.load(1), completes);
@@ -78,7 +68,6 @@ void main() {
     test('should start both writes settled, so neither reads as in flight', () {
       final viewModel = PostDetailViewModel(
         postsDispatcher(MockPostRepository()),
-        PostsRevision(),
       );
       addTearDown(viewModel.dispose);
 
@@ -93,10 +82,7 @@ void main() {
       // A real store: the new title shows up only if the command wrote it and the
       // reload read it back.
       final store = InMemoryPostRepository();
-      final viewModel = PostDetailViewModel(
-        postsDispatcher(store),
-        PostsRevision(),
-      );
+      final viewModel = PostDetailViewModel(postsDispatcher(store));
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
@@ -128,10 +114,7 @@ void main() {
           ),
         ).thenAnswer((_) async => throw Exception('offline'));
 
-        final viewModel = PostDetailViewModel(
-          postsDispatcher(store),
-          PostsRevision(),
-        );
+        final viewModel = PostDetailViewModel(postsDispatcher(store));
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
 
@@ -151,10 +134,7 @@ void main() {
 
     test('should delete through the command and answer true', () async {
       final store = InMemoryPostRepository();
-      final viewModel = PostDetailViewModel(
-        postsDispatcher(store),
-        PostsRevision(),
-      );
+      final viewModel = PostDetailViewModel(postsDispatcher(store));
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
@@ -173,10 +153,7 @@ void main() {
           () => store.deletePost(any()),
         ).thenAnswer((_) async => throw Exception('offline'));
 
-        final viewModel = PostDetailViewModel(
-          postsDispatcher(store),
-          PostsRevision(),
-        );
+        final viewModel = PostDetailViewModel(postsDispatcher(store));
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
 
@@ -197,10 +174,7 @@ void main() {
         final inFlight = Completer<void>();
         when(() => store.deletePost(any())).thenAnswer((_) => inFlight.future);
 
-        final viewModel = PostDetailViewModel(
-          postsDispatcher(store),
-          PostsRevision(),
-        );
+        final viewModel = PostDetailViewModel(postsDispatcher(store));
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
 
@@ -220,57 +194,6 @@ void main() {
       },
     );
 
-    test('should tell the feature its list is stale after an edit', () async {
-      final store = InMemoryPostRepository();
-      final revision = PostsRevision();
-      final viewModel = PostDetailViewModel(postsDispatcher(store), revision);
-      addTearDown(viewModel.dispose);
-      await viewModel.load(1);
-      final markedAt = revision.revision.peek();
-
-      await viewModel.updatePost(title: 'Edited title', body: 'Edited body');
-
-      // One bump: the list below is now wrong about this post.
-      expect(revision.revision.peek() - markedAt, 1);
-    });
-
-    test('should tell the feature its list is stale after a delete', () async {
-      final store = InMemoryPostRepository();
-      final revision = PostsRevision();
-      final viewModel = PostDetailViewModel(postsDispatcher(store), revision);
-      addTearDown(viewModel.dispose);
-      await viewModel.load(1);
-      final markedAt = revision.revision.peek();
-
-      await viewModel.deletePost();
-
-      expect(revision.revision.peek() - markedAt, 1);
-    });
-
-    test('should say nothing when an edit fails', () async {
-      final store = MockPostRepository();
-      when(
-        () => store.postById(1, cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async => post);
-      when(
-        () => store.updatePost(
-          id: any(named: 'id'),
-          title: any(named: 'title'),
-          body: any(named: 'body'),
-        ),
-      ).thenAnswer((_) async => throw Exception('offline'));
-      final revision = PostsRevision();
-      final viewModel = PostDetailViewModel(postsDispatcher(store), revision);
-      addTearDown(viewModel.dispose);
-      await viewModel.load(1);
-      final markedAt = revision.revision.peek();
-
-      await viewModel.updatePost(title: 'Edited title', body: 'Edited body');
-
-      // Nothing was written, so nothing below needs re-reading.
-      expect(revision.revision.peek(), markedAt);
-    });
-
     test('should let go of a read its page walked away from', () async {
       final repository = MockPostRepository();
       Cancellation? walkedAway;
@@ -283,10 +206,7 @@ void main() {
         return walkedAway!.then((_) => throw Exception('dropped'));
       });
 
-      final viewModel = PostDetailViewModel(
-        postsDispatcher(repository),
-        PostsRevision(),
-      );
+      final viewModel = PostDetailViewModel(postsDispatcher(repository));
       // Everything the read pushed, so this can be checked after the signals it
       // pushed to have been disposed with the page.
       final pushed = <AsyncState<Post?>>[];

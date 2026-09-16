@@ -7,7 +7,6 @@ import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/create_post_command.dart';
 import '../../domain/usecases/get_posts_query.dart';
-import '../posts_revision.dart';
 
 // State for the posts list. Factory-scoped: one per page, disposed by the
 // `Provider` that created it.
@@ -16,26 +15,12 @@ import '../posts_revision.dart';
 // `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
 class PostsHomeViewModel implements ViewModel {
-  PostsHomeViewModel(this._dispatcher, this._revision) {
-    // `subscribe` calls back once, straight away, with the revision this page
-    // mounted at. That call is the mount and not a write above it — the read it
-    // would repeat is the one `create:` starts — so only the bumps after it read
-    // again.
-    var readAt = _revision.revision.peek();
-    _revisionSubscription = _revision.revision.subscribe((revision) {
-      if (revision == readAt) return;
-      readAt = revision;
-      load();
-    });
-  }
+  PostsHomeViewModel(this._dispatcher);
 
   // The demo has no signed-in user, and jsonplaceholder only echoes this back.
   static const _authorId = 1;
 
   final CqrsDispatcher _dispatcher;
-  final PostsRevision _revision;
-
-  late final void Function() _revisionSubscription;
 
   // The page's way out of its own reads. Disposal *is* the page going away —
   // the provider disposes this view model when it unmounts — so a read still in
@@ -114,14 +99,13 @@ class PostsHomeViewModel implements ViewModel {
 
   // Walking away: the provider above the page calls this when the route unmounts.
   //
-  // The flag comes first and the subscription goes before the cancellation, so a
-  // revision bumped on the way out cannot start a read. A signal that has been
-  // disposed *throws* on a write, which is why every write above checks the flag
-  // first.
+  // The flag comes first and the cancellation second, so a read the cancellation
+  // drops finds the view model already closed and writes nothing back. A signal
+  // that has been disposed *throws* on a write, which is why every write above
+  // checks the flag first.
   @override
   void dispose() {
     _isDisposed = true;
-    _revisionSubscription();
     _cancellation.cancel();
     _posts.dispose();
     _create.dispose();
