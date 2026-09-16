@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -34,6 +35,37 @@ class _FakeAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+// Holds a request open until it is dropped, the way a socket does — so a test
+// can watch a cancellation arrive instead of racing it.
+class _PendingAdapter implements HttpClientAdapter {
+  Future<void>? cancelFuture;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    this.cancelFuture = cancelFuture;
+    final pending = Completer<ResponseBody>();
+
+    // What a real adapter does with a dropped request: raises it as cancelled
+    // rather than answering.
+    cancelFuture?.whenComplete(
+      () => pending.completeError(
+        DioException.requestCancelled(
+          requestOptions: options,
+          reason: 'the caller walked away',
+        ),
+      ),
+    );
+    return pending.future;
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 ResponseBody _json(Object payload, {int status = 200}) =>
     ResponseBody.fromString(
       jsonEncode(payload),
@@ -57,7 +89,7 @@ void main() {
 
   RemotePostRepository repositoryReturning(
     ResponseBody Function(RequestOptions options) respond, {
-    _FakeAdapter? adapter,
+    HttpClientAdapter? adapter,
   }) {
     final dio = createNetworkClient(
       baseUrl: 'https://posts.test',
@@ -89,6 +121,60 @@ void main() {
         Post(id: 1, userId: 1, title: 'First post', body: 'Body one'),
         Post(id: 2, userId: 2, title: 'Second post', body: 'Body two'),
       ]);
+    });
+
+    test('should drop the read when the caller walks away', () async {
+      final adapter = _PendingAdapter();
+      final repository = repositoryReturning(
+        (_) => _json(listPayload),
+        adapter: adapter,
+      );
+      final walkedAway = Completer<void>();
+
+      final read = repository.allPosts(cancellation: walkedAway.future);
+      // Let the request reach the transport before pulling the plug.
+      await pumpEventQueue();
+      expect(adapter.cancelFuture, isNotNull);
+
+      walkedAway.complete();
+
+      // The read reports a cancellation, which is how the page that asked can
+      // tell it apart from a failure, and the transport stops reading.
+      await expectLater(
+        read,
+        throwsA(
+          isA<DioException>().having(
+            (error) => error.type,
+            'type',
+            DioExceptionType.cancel,
+          ),
+        ),
+      );
+    });
+
+    // Every endpoint carries the token, writes included, so the transport can
+    // drop whatever it is given. Whether a write *should* be dropped is the
+    // caller's call — see `core/README.md`.
+    test('should drop the write when the caller walks away', () async {
+      final adapter = _PendingAdapter();
+      final repository = repositoryReturning(
+        (_) => _json(createdPayload, status: 201),
+        adapter: adapter,
+      );
+      final walkedAway = Completer<void>();
+
+      final write = repository.createPost(
+        userId: 1,
+        title: 'A new post',
+        body: 'A new body',
+        cancellation: walkedAway.future,
+      );
+      await pumpEventQueue();
+      expect(adapter.cancelFuture, isNotNull);
+
+      walkedAway.complete();
+
+      await expectLater(write, throwsA(isA<DioException>()));
     });
 
     test('should read one post by id', () async {

@@ -63,7 +63,7 @@ lib/
 | Folder | May import | Must not import |
 |:-------|:-----------|:----------------|
 | `core/` | Flutter, packages | `features/` |
-| `features/*/domain/` | Plain Dart, `injectify` and `cqrs` annotations | Flutter, `get_it`, `provider.dart`, `infrastructure/`, `presentation/` |
+| `features/*/domain/` | Plain Dart, `injectify` and `cqrs` annotations, `core/async/cancellation.dart` | Flutter, `get_it`, `provider.dart`, `infrastructure/`, `presentation/`, any other `core/` file |
 | `features/*/infrastructure/` | `domain/`, `core/`, DI annotations, IO packages | `presentation/` |
 | `features/*/presentation/` | `domain/entities/`, `core/`, `cqrs`, Flutter, `injectify` annotations | `get_it`, `provider.dart`, `infrastructure/`, `domain/repositories/` |
 
@@ -431,6 +431,12 @@ Things that look like improvements and are not:
   `pumpWidget(ShopHomeView())` throws `ProviderNotFoundException`. Wrap it, as
   `test/app/view_host.dart` does — that wrapper is the cost of this shape, and it
   is shared by every feature rather than copied per feature.
+- **Cancelling a write because the dialog closed.** Every endpoint can be dropped
+  — the token is on all of them — but the shipped callers hand one to reads only.
+  Once a create, an edit or a delete is on the wire the outcome belongs to the
+  server: dropping it leaves the app and the server disagreeing about what
+  happened, with nobody left to tell. See `core/README.md` for the mechanism, and
+  `RemotePostRepository._tokenFor` for where it reaches the transport.
 - **Reading `context.theme` in a page pumped bare.** The token extension asserts
   when the theme has no `AppTheme`, so a page test that skips `hostPage`/`hostShell`
   fails with a null-check inside the design system rather than a clear message.

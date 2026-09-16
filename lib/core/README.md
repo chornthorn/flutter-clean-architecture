@@ -16,6 +16,9 @@ lib/core/
     app.tokens.json         the token values, per mode — edit here
     app_theme.g.dart        generated — AppTheme and its provider
     components/             the shared controls every screen builds from
+  async/
+    cancellation.dart       the signal a screen hands down with its reads, so a
+                            request is dropped when the screen goes away
   storage/                  arrives with the first persisted data: the database or
                             key-value stack features' repositories sit on
 ```
@@ -47,6 +50,54 @@ Flow:
 container: a mode change has to rebuild `MaterialApp`, and only the widget tree
 can do that. Screens call `context.themeNotifier.toggleMode()`.
 
+## Cancellation
+
+A `Future` cannot be cancelled — awaiting one only waits. So a read started by a
+page that is then popped keeps running: the socket is read, the payload decoded,
+the result handed to a view model nobody is watching. `dispose` stops the
+*notification*, not the work.
+
+`async/cancellation.dart` is what stops the work. A screen holds one source, hands
+its token down with every read it starts, and cancels where its scope ends — a
+view model's `dispose`, a dialog's `State.dispose`:
+
+```dart
+final _cancellation = CancellationSource();
+
+try {
+  _posts = await _dispatcher.query(
+    GetPostsQuery(cancellation: _cancellation.token),
+  );
+} catch (error) {
+  // A dropped read is not a failure: there is nobody left to report it to.
+  if (_cancellation.isCancelled) return;
+  _error = error;
+}
+```
+
+The source is the end that cancels; `Cancellation` — a typedef for `Future<void>`
+— is the end that travels, and the token is what goes down. A feature's `domain/`
+contract takes `{Cancellation? cancellation}` and stays plain Dart. Domain reaches
+into `core/` for that one file, which is the exception the rules at the bottom
+record; the test enforces it. The adapter is where the signal becomes
+transport-shaped — `RemotePostRepository._tokenFor` turns it into a Dio
+`CancelToken`, and `@CancelRequest()` on the endpoint parameter is what makes the
+generated client pass that token on. Without the annotation retrofit takes the
+parameter and quietly drops it.
+
+What it buys: a JSON payload is not decoded into a screen that is gone, and a
+request nobody wants stops occupying a connection.
+
+Every path takes a token — `PostApi`'s five endpoints and every method on
+`PostRepository` — because any request can be dropped at the transport. Whether a
+caller *should* drop one is the caller's decision, and the shipped callers draw the
+line at reads: a read dropped on the way out only wastes an answer nobody would
+have seen, while a write dropped mid-flight may still land on the server, leaving
+the app and the server disagreeing about what happened with nobody left to tell.
+The post form keeps its submit button disabled until the call answers for the same
+reason. A caller that knows what a half-applied write means for its own data can
+hand a token to a write; nothing else has to change.
+
 ## Components
 
 A control two or more features need lives in `design_system/components/`; one a
@@ -73,5 +124,9 @@ Two rules:
 - `core/` must not import `features/`. It is the foundation — features depend on
   it, never the other way round. `test/architecture_test.dart` enforces this.
 - Features reach into `core/` from their `infrastructure/` layer, never from
-  `domain/`. A use case that imports an HTTP client has stopped being plain Dart.
-  Presentation may import `core/` for the design system.
+  `domain/` — with one exception: `async/cancellation.dart`. That file is plain
+  Dart over `dart:async` and nothing else, and the rule it would otherwise break
+  exists to keep IO and Flutter out of Domain, which a `Future` is not.
+  `test/architecture_test.dart` enforces the boundary: Domain may import that
+  file and no other `core/` file.
+- Presentation may import `core/` for the design system and for cancellation.

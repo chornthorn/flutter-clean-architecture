@@ -45,6 +45,33 @@ void main() {
       'features/',
     ], describedAs: 'lib/core/');
   });
+
+  test('should keep features/*/domain/ to the one core file it may reach', () {
+    // Domain is plain Dart, and `core/` is where the app's IO lives — so the one
+    // file it may reach for is the one that is plain Dart too: the cancellation
+    // signal a read is handed. See `core/README.md`.
+    const allowed = 'core/async/cancellation.dart';
+    final offenders = <String>[];
+    var scanned = 0;
+
+    for (final file in _featureFilesIn('domain')) {
+      scanned++;
+      for (final uri in _importsOf(file)) {
+        if (uri.contains('core/') && !uri.endsWith(allowed)) {
+          offenders.add('${file.path} imports $uri');
+        }
+      }
+    }
+
+    // Guards against the check silently passing because it looked at nothing.
+    expect(
+      scanned,
+      greaterThan(0),
+      reason:
+          'No files found under features/*/domain/ — are these paths right?',
+    );
+    expect(offenders, isEmpty, reason: 'Offending imports: $offenders');
+  });
 }
 
 void _expectNoForbiddenImports(

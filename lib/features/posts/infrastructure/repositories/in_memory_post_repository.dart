@@ -1,5 +1,6 @@
 import 'package:injectify/injectify.dart';
 
+import '../../../../core/async/cancellation.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/post_repository.dart';
 
@@ -34,11 +35,14 @@ class InMemoryPostRepository implements PostRepository {
     ),
   ];
 
+  // The fixture is already in memory, so nothing is ever in flight to drop.
+  // Every method takes the contract's `cancellation` to honour it, and ignores it.
   @override
-  Future<List<Post>> allPosts() async => List.unmodifiable(_posts);
+  Future<List<Post>> allPosts({Cancellation? cancellation}) async =>
+      List.unmodifiable(_posts);
 
   @override
-  Future<Post?> postById(int id) async {
+  Future<Post?> postById(int id, {Cancellation? cancellation}) async {
     for (final post in _posts) {
       if (post.id == id) return post;
     }
@@ -50,6 +54,7 @@ class InMemoryPostRepository implements PostRepository {
     required int userId,
     required String title,
     required String body,
+    Cancellation? cancellation,
   }) async {
     // The store assigns the id, as a real one would.
     final created = Post(
@@ -75,6 +80,7 @@ class InMemoryPostRepository implements PostRepository {
     required int id,
     required String title,
     required String body,
+    Cancellation? cancellation,
   }) async {
     final index = _posts.indexWhere((post) => post.id == id);
 
@@ -95,7 +101,7 @@ class InMemoryPostRepository implements PostRepository {
   }
 
   @override
-  Future<void> deletePost(int id) async {
+  Future<void> deletePost(int id, {Cancellation? cancellation}) async {
     // Idempotent, as the contract says.
     _posts.removeWhere((post) => post.id == id);
   }

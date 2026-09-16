@@ -14,18 +14,31 @@ abstract class PostApi {
   factory PostApi(Dio dio, {String baseUrl}) = _PostApi;
 
   @GET('/posts')
-  Future<List<PostDto>> allPosts();
+  Future<List<PostDto>> allPosts({@CancelRequest() CancelToken? cancelToken});
 
   @GET('/posts/{id}')
-  Future<PostDto> postById(@Path('id') int id);
+  Future<PostDto> postById(
+    @Path('id') int id, {
+    @CancelRequest() CancelToken? cancelToken,
+  });
 
   @POST('/posts')
-  Future<PostDto> createPost(@Body() CreatePostDto post);
+  Future<PostDto> createPost(
+    @Body() CreatePostDto post, {
+    @CancelRequest() CancelToken? cancelToken,
+  });
 
   // PATCH, not PUT: an edit sends the fields it changes and leaves the rest alone.
   @PATCH('/posts/{id}')
-  Future<PostDto> updatePost(@Path('id') int id, @Body() UpdatePostDto post);
+  Future<PostDto> updatePost(
+    @Path('id') int id,
+    @Body() UpdatePostDto post, {
+    @CancelRequest() CancelToken? cancelToken,
+  });
 
   @DELETE('/posts/{id}')
-  Future<void> deletePost(@Path('id') int id);
+  Future<void> deletePost(
+    @Path('id') int id, {
+    @CancelRequest() CancelToken? cancelToken,
+  });
 }

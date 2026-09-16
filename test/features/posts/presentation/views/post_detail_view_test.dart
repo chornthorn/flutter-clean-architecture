@@ -16,7 +16,9 @@ void main() {
   group('PostDetailView', () {
     testWidgets('should render the post the view model holds', (tester) async {
       final repository = MockPostRepository();
-      when(() => repository.postById(1)).thenAnswer((_) async => post);
+      when(
+        () => repository.postById(1, cancellation: any(named: 'cancellation')),
+      ).thenAnswer((_) async => post);
 
       final viewModel = PostDetailViewModel(
         postsDispatcher(repository),
@@ -34,7 +36,10 @@ void main() {
 
     testWidgets('should render the not-found state', (tester) async {
       final repository = MockPostRepository();
-      when(() => repository.postById(999)).thenAnswer((_) async => null);
+      when(
+        () =>
+            repository.postById(999, cancellation: any(named: 'cancellation')),
+      ).thenAnswer((_) async => null);
 
       final viewModel = PostDetailViewModel(
         postsDispatcher(repository),
@@ -55,7 +60,7 @@ void main() {
     ) async {
       final repository = MockPostRepository();
       when(
-        () => repository.postById(1),
+        () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => throw Exception('offline'));
 
       final viewModel = PostDetailViewModel(

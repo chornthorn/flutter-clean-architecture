@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/core/async/cancellation.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
 import 'package:flutter_x/features/posts/presentation/posts_watch.dart';
@@ -13,7 +14,9 @@ void main() {
   group('PostsHomeViewModel', () {
     test('should report loading until the list arrives', () async {
       final repository = MockPostRepository();
-      when(() => repository.allPosts()).thenAnswer((_) async => const [post]);
+      when(
+        () => repository.allPosts(cancellation: any(named: 'cancellation')),
+      ).thenAnswer((_) async => const [post]);
 
       final viewModel = PostsHomeViewModel(
         postsDispatcher(repository),
@@ -33,7 +36,7 @@ void main() {
     test('should hold a failure in error instead of throwing', () async {
       final repository = MockPostRepository();
       when(
-        () => repository.allPosts(),
+        () => repository.allPosts(cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => throw Exception('offline'));
 
       final viewModel = PostsHomeViewModel(
@@ -78,7 +81,9 @@ void main() {
       'should keep the failure and answer false when a create fails',
       () async {
         final store = MockPostRepository();
-        when(() => store.allPosts()).thenAnswer((_) async => const [post]);
+        when(
+          () => store.allPosts(cancellation: any(named: 'cancellation')),
+        ).thenAnswer((_) async => const [post]);
         when(
           () => store.createPost(
             userId: any(named: 'userId'),
@@ -108,7 +113,9 @@ void main() {
 
     test('should re-read when another page says the list is stale', () async {
       final store = MockPostRepository();
-      when(() => store.allPosts()).thenAnswer((_) async => const [post]);
+      when(
+        () => store.allPosts(cancellation: any(named: 'cancellation')),
+      ).thenAnswer((_) async => const [post]);
       final watch = PostsWatch();
       final viewModel = PostsHomeViewModel(postsDispatcher(store), watch);
       addTearDown(viewModel.dispose);
@@ -120,8 +127,39 @@ void main() {
       watch.markStale();
       await pumpEventQueue();
 
-      verify(() => store.allPosts()).called(2);
+      verify(
+        () => store.allPosts(cancellation: any(named: 'cancellation')),
+      ).called(2);
       expect(viewModel.posts, const [post]);
+    });
+
+    test('should let go of a read its page walked away from', () async {
+      final repository = MockPostRepository();
+      Cancellation? walkedAway;
+      when(
+        () => repository.allPosts(cancellation: any(named: 'cancellation')),
+      ).thenAnswer((invocation) {
+        walkedAway = invocation.namedArguments[#cancellation] as Cancellation?;
+        // Stands in for the transport: the read answers only once the page has
+        // gone, and it answers with a dropped request rather than with data.
+        return walkedAway!.then((_) => throw Exception('dropped'));
+      });
+
+      final viewModel = PostsHomeViewModel(
+        postsDispatcher(repository),
+        PostsWatch(),
+      );
+      final load = viewModel.load();
+      expect(walkedAway, isNotNull);
+
+      // Navigating away is the provider disposing this view model.
+      viewModel.dispose();
+      await load;
+
+      // A dropped read is not a failure, and there is nobody left to tell.
+      expect(viewModel.error, isNull);
+      expect(viewModel.isLoading, isFalse);
+      expect(viewModel.posts, isNull);
     });
   });
 }

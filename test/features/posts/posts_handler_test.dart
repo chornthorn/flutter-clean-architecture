@@ -18,8 +18,12 @@ void main() {
 
     setUp(() {
       repository = MockPostRepository();
-      when(() => repository.allPosts()).thenAnswer((_) async => const [post]);
-      when(() => repository.postById(1)).thenAnswer((_) async => post);
+      when(
+        () => repository.allPosts(cancellation: any(named: 'cancellation')),
+      ).thenAnswer((_) async => const [post]);
+      when(
+        () => repository.postById(1, cancellation: any(named: 'cancellation')),
+      ).thenAnswer((_) async => post);
     });
 
     test('should dispatch every message the feature declares', () async {

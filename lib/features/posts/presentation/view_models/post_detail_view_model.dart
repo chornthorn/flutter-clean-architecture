@@ -2,6 +2,7 @@ import 'package:cqrs/cqrs.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectify/injectify.dart';
 
+import '../../../../core/async/cancellation.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/delete_post_command.dart';
 import '../../domain/usecases/get_post_query.dart';
@@ -18,6 +19,10 @@ class PostDetailViewModel extends ChangeNotifier {
 
   final CqrsDispatcher _dispatcher;
   final PostsWatch _watch;
+
+  // See `PostsHomeViewModel`: cancelling in `dispose` is the page walking away
+  // from whatever read is still in flight.
+  final _cancellation = CancellationSource();
 
   Post? _post;
   Object? _error;
@@ -38,8 +43,12 @@ class PostDetailViewModel extends ChangeNotifier {
     _notify();
 
     try {
-      _post = await _dispatcher.query(GetPostQuery(id));
+      _post = await _dispatcher.query(
+        GetPostQuery(id, cancellation: _cancellation.token),
+      );
     } catch (error) {
+      // A dropped read is not a failure: there is nobody left to report it to.
+      if (_cancellation.isCancelled) return;
       _error = error;
     } finally {
       _isLoading = false;
@@ -59,11 +68,16 @@ class PostDetailViewModel extends ChangeNotifier {
       await _dispatcher.command(
         UpdatePostCommand(id: post.id, title: title, body: body),
       );
-      _post = await _dispatcher.query(GetPostQuery(post.id));
+      _post = await _dispatcher.query(
+        GetPostQuery(post.id, cancellation: _cancellation.token),
+      );
       // The list below is now wrong about this post.
       _watch.markStale();
       return true;
     } catch (error) {
+      // The re-read can be dropped on the way out; the edit itself already
+      // landed. See `PostsHomeViewModel.createPost` for why this answers false.
+      if (_cancellation.isCancelled) return false;
       _error = error;
       return false;
     } finally {
@@ -94,6 +108,7 @@ class PostDetailViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _cancellation.cancel();
     _isDisposed = true;
     super.dispose();
   }
