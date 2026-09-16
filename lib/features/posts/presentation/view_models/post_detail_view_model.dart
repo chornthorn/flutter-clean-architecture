@@ -1,6 +1,6 @@
 import 'package:cqrs/cqrs.dart';
-import 'package:flutter/foundation.dart';
 import 'package:injectify/injectify.dart';
+import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/async/cancellation.dart';
 import '../../domain/entities/post.dart';
@@ -13,8 +13,12 @@ import '../posts_watch.dart';
 //
 // The id is a `load` argument rather than a field: it comes from the route, and
 // the page that owns it passes it in.
+//
+// One `AsyncSignal` per use case, each published as a `ReadonlySignal`. Reading,
+// editing and deleting have separate lifecycles, so a failed save cannot put the
+// read into an error state. See `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
-class PostDetailViewModel extends ChangeNotifier {
+class PostDetailViewModel {
   PostDetailViewModel(this._dispatcher, this._watch);
 
   final CqrsDispatcher _dispatcher;
@@ -24,96 +28,122 @@ class PostDetailViewModel extends ChangeNotifier {
   // from whatever read is still in flight.
   final _cancellation = CancellationSource();
 
-  Post? _post;
-  Object? _error;
-  bool _isLoading = false;
   bool _isDisposed = false;
 
-  // `null` while loading, and `null` once a missing id has resolved —
-  // [isLoading] tells the two apart.
-  Post? get post => _post;
+  // `GetPostQuery`. Loading until the read settles, and the post after that — or
+  // `AsyncData(null)` for an id that has none, which is a value and not a
+  // failure, and is what tells "not found" apart from "could not load".
+  final _post = asyncSignal<Post?>(AsyncState.loading());
 
-  Object? get error => _error;
+  // `UpdatePostCommand`. Carries no payload: reaching `AsyncData` is the edit
+  // landing and `AsyncError` is it failing. Settled rather than loading, because
+  // no write has run yet.
+  final _update = asyncSignal<void>(AsyncState.data(null));
 
-  bool get isLoading => _isLoading;
+  // `DeletePostCommand`. Shaped like [_update].
+  final _delete = asyncSignal<void>(AsyncState.data(null));
+
+  // What the screen is showing: a post, a missing post, a load in flight, or a
+  // load that failed.
+  ReadonlySignal<AsyncState<Post?>> get post => _post;
+
+  // The last edit's attempt, for as long as it is worth reporting.
+  ReadonlySignal<AsyncState<void>> get update => _update;
+
+  // The last delete's attempt.
+  ReadonlySignal<AsyncState<void>> get delete => _delete;
 
   Future<void> load(int id) async {
-    _isLoading = true;
-    _error = null;
-    _notify();
+    _post.setLoading();
 
     try {
-      _post = await _dispatcher.query(
+      final post = await _dispatcher.query(
         GetPostQuery(id, cancellation: _cancellation.token),
       );
-    } catch (error) {
+      if (_isDisposed) return;
+      _post.setValue(post);
+    } catch (error, stackTrace) {
       // A dropped read is not a failure: there is nobody left to report it to.
-      if (_cancellation.isCancelled) return;
-      _error = error;
-    } finally {
-      _isLoading = false;
-      _notify();
+      // Everything else is.
+      if (_isDisposed) return;
+      _post.setError(error, stackTrace);
     }
   }
 
   // Sends the edit, then re-reads the post rather than patching a local copy.
   // Answers whether it worked, so the form knows whether to close.
   Future<bool> updatePost({required String title, required String body}) async {
-    final post = _post;
+    final post = _settledPost;
     if (post == null) return false;
 
-    _error = null;
+    _update.setLoading();
 
     try {
       await _dispatcher.command(
         UpdatePostCommand(id: post.id, title: title, body: body),
       );
-      _post = await _dispatcher.query(
+      final updated = await _dispatcher.query(
         GetPostQuery(post.id, cancellation: _cancellation.token),
       );
       // The list below is now wrong about this post.
       _watch.markStale();
+      // The write landed either way, so this answers true; the signal is what
+      // stays silent once the page is gone.
+      if (_isDisposed) return true;
+      _post.setValue(updated);
+      _update.setValue(null);
       return true;
-    } catch (error) {
+    } catch (error, stackTrace) {
       // The re-read can be dropped on the way out; the edit itself already
       // landed. See `PostsHomeViewModel.createPost` for why this answers false.
-      if (_cancellation.isCancelled) return false;
-      _error = error;
+      if (_isDisposed) return false;
+      _update.setError(error, stackTrace);
       return false;
-    } finally {
-      _notify();
     }
   }
 
   // Sends the delete. Answers whether it worked, so the page knows whether to
   // leave a screen that no longer has a post to show.
   Future<bool> deletePost() async {
-    final post = _post;
+    final post = _settledPost;
     if (post == null) return false;
 
-    _error = null;
+    _delete.setLoading();
 
     try {
       await _dispatcher.command(DeletePostCommand(post.id));
       // The list below still has it.
       _watch.markStale();
+      if (_isDisposed) return true;
+      _delete.setValue(null);
       return true;
-    } catch (error) {
-      _error = error;
+    } catch (error, stackTrace) {
+      if (_isDisposed) return false;
+      _delete.setError(error, stackTrace);
       return false;
-    } finally {
-      _notify();
     }
   }
 
-  @override
+  // Walking away: the provider above the page calls this when the route
+  // unmounts.
+  //
+  // The flag comes first and the cancellation second, so a read the cancellation
+  // drops finds the view model already closed and writes nothing back. A signal
+  // that has been disposed *throws* on a write, which is why every write above
+  // checks the flag first.
   void dispose() {
-    _cancellation.cancel();
     _isDisposed = true;
-    super.dispose();
+    _cancellation.cancel();
+    _post.dispose();
+    _update.dispose();
+    _delete.dispose();
   }
 
-  void _notify() {
-    if (!_isDisposed) notifyListeners();
+  // The post the read has settled on, or `null` while it is loading, after a
+  // failure, and for an id that resolved to nothing. `hasValue` also covers the
+  // reloading and refreshing states, where the post on screen is the old one.
+  Post? get _settledPost {
+    final state = _post.value;
+    return state.hasValue ? state.value : null;
   }
 }

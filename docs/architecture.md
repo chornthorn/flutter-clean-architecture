@@ -50,7 +50,7 @@ lib/
 | `Core/Networking/` | `lib/core/networking/` | `network_client.dart` builds the one `Dio` every feature's endpoints share, with its timeouts, base URL, and `interceptors.dart` (logging today; the place for auth or retry). Bound in `provider.dart`, so features take it from the container rather than importing this. |
 | `Core/Storage/` | `lib/core/storage/` | Not created — nothing is persisted yet. |
 | `Features/Leads/Presentation/Views/` | `features/<name>/presentation/views/` | `LeadListView.swift` → `shop_home_view.dart`. |
-| `.../Presentation/ViewModels/` | `presentation/view_models/` | `ChangeNotifier`s, one per view. |
+| `.../Presentation/ViewModels/` | `presentation/view_models/` | One per view: a `ChangeNotifier`, or `AsyncSignal`s — see [Screen state](#screen-state). |
 | `.../Domain/Entities/` | `domain/entities/` | |
 | `.../Domain/UseCases/` | `domain/usecases/` | A use case is a query (or command) plus its handler, in one file. Both live in Domain — there is no separate application layer. |
 | `.../Domain/Repositories/` | `domain/repositories/` | The interface definition; the concrete type goes in Infrastructure. |
@@ -132,13 +132,15 @@ Three rules keep DI from dissolving the layering:
   `@Injectable(as: <domain contract>)`, so the container names the concrete class
   and no other file does. Nothing outside the feature's module refers to
   `InMemoryProductRepository`.
-- **A page reads its view model from the provider.** The router wraps each route
-  in a `ChangeNotifierProvider`; the page calls `context.watch<T>()`. A page
-  never imports the container, and a test pumps it under
+- **A page reads its view model from the provider.** The router mounts one above
+  each route and the page reads it out of the widget tree — `context.watch<T>()`
+  where the view model notifies, `context.read<T>()` where it publishes signals.
+  A page never imports the container, and a test pumps it under
   `ChangeNotifierProvider.value(value: fake, child: page)` — `.value` has no
   dispose callback, so the test keeps ownership of the fake.
-- **`watch`, not `read`.** `read` does not subscribe, so a page would never leave
-  its loading state. `test/features/shop/presentation/views/` asserts the rebuild.
+- **`watch`, not `read`**, for a view model that notifies. `read` does not
+  subscribe, so a page would never leave its loading state.
+  `test/features/shop/presentation/views/` asserts the rebuild.
 - **`create:` is a closure, never an inline construction.** Kaisel calls
   `buildPage` on every navigation-driven rebuild (measured: three times for one
   visit), so a view model built at the call site would be rebuilt — and reloaded —
@@ -148,6 +150,47 @@ Three rules keep DI from dissolving the layering:
   to `load(id)` rather than into the container. The view model holds no id of its
   own; the `ShopProduct` route stays the only source of it, and the page requires
   it again so its constructor says which product it renders.
+
+### Screen state
+
+A view model is created by the route's provider and disposed with the page. What
+it holds is one of two shapes:
+
+- **A `ChangeNotifier`, one per view** — `shop`, `home`, `settings`, and `posts`'
+  list. The page calls `context.watch<T>()`, and the view model has to stay silent
+  once disposed — notifying a disposed `ChangeNotifier` throws. See the `_notify`
+  guard in `shop/presentation/view_models/`.
+- **One `AsyncSignal` per use case** — `posts`' detail, and the shape to reach for
+  when a screen has more than one thing to report on. Each use case gets a signal
+  of its own, published as a `ReadonlySignal` so only the view model can push
+  state into it, and the page rebuilds through `SignalBuilder` from the ones it
+  reads. A read, a save and a delete then carry separate lifecycles: a failed save
+  cannot put the read into an error state. Two consequences worth knowing: a write
+  to a disposed signal *throws*, so the disposed flag has to guard every write and
+  the signals go down with the view model; and a write that has not run yet starts
+  settled (`AsyncState.data(null)`) rather than loading, or the page reads it as
+  in flight.
+
+The route owns the view model either way — the container's factory scope does not
+dispose what it builds:
+
+```dart
+// Notifies.
+ChangeNotifierProvider<PostsHomeViewModel>(
+  create: (_) => getIt<PostsHomeViewModel>()..load(),
+  child: const PostsHomeView(),
+),
+// Publishes signals: a plain `Provider`, because what it needs is an owner for
+// its lifetime rather than a listener.
+Provider<PostDetailViewModel>(
+  create: (_) => getIt<PostDetailViewModel>()..load(id),
+  dispose: (_, viewModel) => viewModel.dispose(),
+  child: PostDetailView(id: id),
+),
+```
+
+`test/app/view_host.dart` has a host for each: `hostPage` for the notifier,
+`hostSignalPage` for the other.
 
 Regenerate after adding or changing an annotation — see
 [Generated sources](#generated-sources).
@@ -385,10 +428,11 @@ Also enforced, elsewhere:
   the adapter. Swapping `InMemoryProductRepository` for a real one must not touch
   a single test.
 - **The feature stays `const`.** See the shared-container note above.
-- **Provider owns the view model**: `ChangeNotifierProvider` creates it once per
-  mount and disposes it on unmount. Factory scope means the container will not
-  dispose it, and kaisel's repeated `buildPage` calls mean it must not be created
-  at the call site.
+- **Provider owns the view model**: the route's provider creates it once per
+  mount and disposes it on unmount — `ChangeNotifierProvider`, or `Provider` with
+  an explicit `dispose:` for one that publishes signals. Factory scope means the
+  container will not dispose it, and kaisel's repeated `buildPage` calls mean it
+  must not be created at the call site.
 - **URLs round-trip.** `test/app_codec_test.dart` covers encode/decode for every
   mount.
 
@@ -441,8 +485,8 @@ Things that look like improvements and are not:
   when the theme has no `AppTheme`, so a page test that skips `hostPage`/`hostShell`
   fails with a null-check inside the design system rather than a clear message.
 - **Registering a view model as a singleton.** It would be shared across mounts
-  and outlive the page that owns it. `Scope.factory` plus `ChangeNotifierProvider`
-  disposal is the rule — the container does not dispose factories.
+  and outlive the page that owns it. `Scope.factory` plus the provider's disposal
+  is the rule — the container does not dispose factories.
 - **Constructing a view model where `buildPage` returns.** It looks like the
   natural wiring point and it is not: that method runs once per navigation
   rebuild, so the page reloads and the extra instances go undisposed. Hand

@@ -15,6 +15,13 @@ final _theme = AppThemeNotifier(initialMode: AppThemeMode.light);
 Widget hostPage<T extends ChangeNotifier>(T viewModel, Widget page) =>
     ChangeNotifierProvider<T>.value(value: viewModel, child: hostShell(page));
 
+// The same host for a view model that is not a `ChangeNotifier` — one that
+// publishes signals instead. `Provider.value` does not listen, so the page
+// rebuilds off whatever the view model publishes rather than off notifications,
+// and the test still owns the dispose.
+Widget hostSignalPage<T>(T viewModel, Widget page) =>
+    Provider<T>.value(value: viewModel, child: hostShell(page));
+
 // The same shell for a widget that needs the app's theme and a navigator but no
 // view model — a dialog, say. A page that reads `context.theme` throws without
 // this, so anything pumped bare belongs here.

@@ -24,7 +24,7 @@ lib/features/<name>/
     repositories/
   presentation/               Flutter UI
     views/                    one view per route
-    view_models/              ChangeNotifier state, one per view
+    view_models/              screen state, one per view (notifying or signals)
     widgets/                  reusable pieces of those views
 ```
 
@@ -66,13 +66,16 @@ container.
   `CqrsDispatcher`; it never sees a handler or a concrete repository.
 - The container names a concrete implementation only through the `@Injectable`
   annotation on the class; the router resolves the graph, one line per route.
-- A page reads its view model from the `ChangeNotifierProvider` the router mounts
-  above it, with `context.watch`. The page imports no container and no repository;
+- A page reads its view model from the provider the router mounts above it:
+  `context.watch` for a `ChangeNotifier`, `context.read` plus `SignalBuilder` for
+  one that publishes signals. The page imports no container and no repository;
   provider creates the view model once per mount and disposes it (factory scope —
-  the container does not).
+  the container does not; a signals-based one needs an explicit `dispose:`).
 - A view model that finishes loading after its view is gone must stay silent:
-  notifying a disposed `ChangeNotifier` throws. See the `_notify` guard in
-  `shop/presentation/view_models/`.
+  notifying a disposed `ChangeNotifier` throws, and writing to a disposed signal
+  throws. See the `_notify` guard in `shop/presentation/view_models/` and the
+  disposed flag in `posts/presentation/view_models/post_detail_view_model.dart`.
+- Which shape a screen uses, and why: [Screen state](../../docs/architecture.md#screen-state).
 - Keep the feature `const`. `KaiselModuleMount` rebuilds its router when the
   module instance changes, so a fresh instance per build would silently drop the
   feature's navigation state.

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
@@ -27,7 +29,9 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
-      await tester.pumpWidget(hostPage(viewModel, const PostDetailView(id: 1)));
+      await tester.pumpWidget(
+        hostSignalPage(viewModel, const PostDetailView(id: 1)),
+      );
 
       expect(find.widgetWithText(AppBar, 'Post 1'), findsOneWidget);
       expect(find.text('First post'), findsOneWidget);
@@ -49,7 +53,7 @@ void main() {
       await viewModel.load(999);
 
       await tester.pumpWidget(
-        hostPage(viewModel, const PostDetailView(id: 999)),
+        hostSignalPage(viewModel, const PostDetailView(id: 999)),
       );
 
       expect(find.text('Post not found.'), findsOneWidget);
@@ -70,7 +74,9 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
-      await tester.pumpWidget(hostPage(viewModel, const PostDetailView(id: 1)));
+      await tester.pumpWidget(
+        hostSignalPage(viewModel, const PostDetailView(id: 1)),
+      );
 
       expect(find.text('Could not load post.'), findsOneWidget);
       expect(find.text('Post not found.'), findsNothing);
@@ -84,7 +90,9 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
-      await tester.pumpWidget(hostPage(viewModel, const PostDetailView(id: 1)));
+      await tester.pumpWidget(
+        hostSignalPage(viewModel, const PostDetailView(id: 1)),
+      );
 
       await tester.tap(find.byTooltip('Edit post'));
       await tester.pumpAndSettle();
@@ -115,7 +123,9 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
-      await tester.pumpWidget(hostPage(viewModel, const PostDetailView(id: 1)));
+      await tester.pumpWidget(
+        hostSignalPage(viewModel, const PostDetailView(id: 1)),
+      );
 
       await tester.tap(find.byTooltip('Delete post'));
       await tester.pumpAndSettle();
@@ -127,6 +137,53 @@ void main() {
       // Backing out leaves the post where it was.
       expect(await store.postById(1), isNotNull);
       expect(find.byType(PostDetailView), findsOneWidget);
+    });
+
+    testWidgets('should hold both actions while a write is on the wire', (
+      tester,
+    ) async {
+      final store = MockPostRepository();
+      when(
+        () => store.postById(1, cancellation: any(named: 'cancellation')),
+      ).thenAnswer((_) async => post);
+      // The delete never answers, so the page stays on the in-flight state.
+      final inFlight = Completer<void>();
+      when(() => store.deletePost(any())).thenAnswer((_) => inFlight.future);
+
+      final viewModel = PostDetailViewModel(
+        postsDispatcher(store),
+        PostsWatch(),
+      );
+      addTearDown(viewModel.dispose);
+      await viewModel.load(1);
+
+      await tester.pumpWidget(
+        hostSignalPage(viewModel, const PostDetailView(id: 1)),
+      );
+
+      await tester.tap(find.byTooltip('Delete post'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      // The page reads the write's own state, so neither action starts a second
+      // one while the first is unanswered.
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.delete_outline),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.edit_outlined),
+            )
+            .onPressed,
+        isNull,
+      );
     });
   });
 }

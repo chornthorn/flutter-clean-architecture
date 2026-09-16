@@ -47,9 +47,13 @@ class PostsRouterModule extends RouteModule<PostsRoute> {
       create: (_) => getIt<PostsHomeViewModel>()..load(),
       child: const PostsHomeView(),
     ),
-    // Load in `create:` — a notify during mount trips a provider assertion.
-    PostDetail(:final id) => ChangeNotifierProvider<PostDetailViewModel>(
+    // `Provider`, not `ChangeNotifierProvider`: the view model publishes signals
+    // rather than notifying, so what it needs from here is an owner for its
+    // lifetime and not a listener. `dispose:` is how the page leaving reaches
+    // it — the container's factory scope does not dispose what it builds.
+    PostDetail(:final id) => Provider<PostDetailViewModel>(
       create: (_) => getIt<PostDetailViewModel>()..load(id),
+      dispose: (_, viewModel) => viewModel.dispose(),
       child: PostDetailView(id: id),
     ),
   };

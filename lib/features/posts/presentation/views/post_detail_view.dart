@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_card.dart';
 import '../../../../core/design_system/components/app_notice.dart';
 import '../../../../core/design_system/components/app_scaffold.dart';
+import '../../domain/entities/post.dart';
 import '../view_models/post_detail_view_model.dart';
 import '../widgets/post_byline.dart';
 import '../widgets/post_form_dialog.dart';
@@ -21,59 +23,93 @@ class PostDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<PostDetailViewModel>();
+    // Read once, subscribe never: what changes lives in the view model's
+    // signals, and `SignalBuilder` is what rebuilds this page off the ones read
+    // below. It spans the whole screen because the app bar and the body answer
+    // to the same state.
+    final viewModel = context.read<PostDetailViewModel>();
 
-    return AppScaffold(
-      title: Text('Post $id'),
-      actions: [
-        // Nothing to edit or delete until there is a post on screen.
-        if (viewModel.post != null) ...[
-          IconButton(
-            onPressed: () => _edit(context, viewModel),
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: 'Edit post',
-          ),
-          IconButton(
-            onPressed: () => _delete(context, viewModel),
-            icon: const Icon(Icons.delete_outline),
-            tooltip: 'Delete post',
-          ),
-        ],
-      ],
-      body: _buildBody(context, viewModel),
+    return SignalBuilder(
+      builder: (context) {
+        final post = viewModel.post.value;
+
+        return AppScaffold(
+          title: Text('Post $id'),
+          actions: _buildActions(context, viewModel, post),
+          body: _buildBody(context, viewModel, post),
+        );
+      },
     );
   }
 
-  Widget _buildBody(BuildContext context, PostDetailViewModel viewModel) {
+  List<Widget> _buildActions(
+    BuildContext context,
+    PostDetailViewModel viewModel,
+    AsyncState<Post?> state,
+  ) {
+    // Nothing to edit or delete until there is a post on screen. The state's
+    // value is null while the read is in flight, after a failure, and for an id
+    // that resolved to nothing.
+    final post = state.value;
+    if (post == null) return const [];
+
+    // One write at a time from this screen, and each use case says whether it is
+    // the one in flight.
+    final isWriting =
+        viewModel.update.value.isLoading || viewModel.delete.value.isLoading;
+
+    return [
+      IconButton(
+        onPressed: isWriting ? null : () => _edit(context, viewModel, post),
+        icon: const Icon(Icons.edit_outlined),
+        tooltip: 'Edit post',
+      ),
+      IconButton(
+        onPressed: isWriting ? null : () => _delete(context, viewModel),
+        icon: const Icon(Icons.delete_outline),
+        tooltip: 'Delete post',
+      ),
+    ];
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    PostDetailViewModel viewModel,
+    AsyncState<Post?> state,
+  ) {
     final theme = context.theme;
 
-    if (viewModel.isLoading) {
-      return Center(
-        child: CircularProgressIndicator(color: theme.colors.brand.primary),
-      );
-    }
-
-    final post = viewModel.post;
-    if (post == null) {
+    // `AsyncDataReloading` and `AsyncDataRefreshing` implement `AsyncLoading`, so
+    // the arms that carry a value or a failure have to come before the loading
+    // one — matching the loading arm first would swallow them.
+    return switch (state) {
+      AsyncData<Post?>(:final value) when value != null => _buildPost(
+        context,
+        value,
+      ),
+      AsyncError<Post?>() => AppNotice(
+        icon: Icons.cloud_off_outlined,
+        message: 'Could not load post.',
+        isFailure: true,
+        action: AppFilledButton(
+          label: 'Try again',
+          onPressed: () => viewModel.load(id),
+        ),
+      ),
       // A failure and a missing id both leave no post; only one is an error,
       // and only one of them is worth asking the far side again.
-      if (viewModel.error != null) {
-        return AppNotice(
-          icon: Icons.cloud_off_outlined,
-          message: 'Could not load post.',
-          isFailure: true,
-          action: AppFilledButton(
-            label: 'Try again',
-            onPressed: () => viewModel.load(id),
-          ),
-        );
-      }
-
-      return const AppNotice(
+      AsyncData<Post?>() => const AppNotice(
         icon: Icons.search_off_outlined,
         message: 'Post not found.',
-      );
-    }
+      ),
+      AsyncLoading<Post?>() => Center(
+        child: CircularProgressIndicator(color: theme.colors.brand.primary),
+      ),
+    };
+  }
+
+  Widget _buildPost(BuildContext context, Post post) {
+    final theme = context.theme;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(theme.sizes.padding.md),
@@ -96,10 +132,8 @@ class PostDetailView extends StatelessWidget {
   Future<void> _edit(
     BuildContext context,
     PostDetailViewModel viewModel,
+    Post post,
   ) async {
-    final post = viewModel.post;
-    if (post == null) return;
-
     await showDialog<void>(
       context: context,
       builder: (_) => PostFormDialog(

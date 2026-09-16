@@ -29,6 +29,9 @@ dependencies:
   provider: ^6.1.5+1
   retrofit: ^4.10.0
   dio: ^5.11.1
+  # View-model state: one `AsyncSignal` per use case, exposed as a
+  # `ReadonlySignal` so only the view model can push state into it.
+  signals: ^7.1.0
 
 dev_dependencies:
   flutter_test:
