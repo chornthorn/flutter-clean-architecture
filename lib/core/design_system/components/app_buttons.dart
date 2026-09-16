@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../app_theme.g.dart';
 
-// The app's three button weights, all painted from tokens.
-//
-// Material fills them from the generated scheme otherwise, so a `FilledButton`
-// on its own would come out in a purple the token set never names — and would
-// keep that colour through a mode change.
+// The app's three button weights, all painted from tokens: Material would fill
+// them from the generated scheme otherwise, and keep that colour through a mode
+// change.
 
 class AppFilledButton extends StatelessWidget {
   const AppFilledButton({
@@ -19,14 +17,12 @@ class AppFilledButton extends StatelessWidget {
 
   final String label;
 
-  // Null means "no action wired yet"; [isEnabled] is the caller saying the
-  // action exists but the data is not ready for it.
+  // Null means no action is wired; [isEnabled] means it exists but the data is
+  // not ready for it.
   final VoidCallback? onPressed;
 
   final bool isEnabled;
 
-  // A leading glyph, for a button whose action an icon states faster than the
-  // label does.
   final IconData? icon;
 
   @override
@@ -62,8 +58,7 @@ class AppOutlinedButton extends StatelessWidget {
     final theme = context.theme;
 
     // Brand on both the outline and the label: the label is what identifies the
-    // control, and the brand pair is the app's only colour with the contrast to
-    // carry it.
+    // control, and the brand pair is the app's only colour with the contrast.
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(

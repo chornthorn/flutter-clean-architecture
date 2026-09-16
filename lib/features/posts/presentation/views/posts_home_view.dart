@@ -20,7 +20,7 @@ class PostsHomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Read once, subscribe never: `SignalBuilder` rebuilds this page off the signals read below.
+    // Read once, subscribe never: `SignalBuilder` below does the rebuilding.
     final viewModel = context.read<PostsHomeViewModel>();
     final theme = context.theme;
 
@@ -54,7 +54,7 @@ class PostsHomeView extends StatelessWidget {
   Widget _buildBody(BuildContext context, PostsHomeViewModel viewModel) {
     final theme = context.theme;
 
-    // `AsyncData*` first: the reloading and refreshing states implement `AsyncLoading`.
+    // Data and error arms first: both reloading variants are `AsyncLoading`.
     return switch (viewModel.posts.value) {
       AsyncData<List<Post>>(:final value) when value.isEmpty => const AppNotice(
         icon: Icons.article_outlined,

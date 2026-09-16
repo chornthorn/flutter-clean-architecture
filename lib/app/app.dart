@@ -21,7 +21,6 @@ class KaiselApp extends StatefulWidget {
 }
 
 class _KaiselAppState extends State<KaiselApp> {
-  // Owned here, not by the container: a mode change has to rebuild `MaterialApp`.
   final _theme = AppThemeNotifier(initialMode: AppThemeMode.light);
 
   @override

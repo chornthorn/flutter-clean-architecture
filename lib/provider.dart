@@ -11,8 +11,7 @@ import 'provider.cqrs.dart';
 // The app's container. See `docs/architecture.md` for the DI rules.
 final getIt = GetIt.instance;
 
-// Registers everything the app needs, before the first frame. `environment` is
-// required: an unset one registers every variant and GetIt rejects the duplicate.
+// Required: when unset, every variant registers and GetIt rejects the duplicate.
 @InjectableInit(
   initializerName: 'init',
   preferRelativeImports: true,
@@ -32,8 +31,7 @@ Future<void> configureDependencies({required String environment}) async {
 )
 void configureCqrs() {}
 
-// App-level bindings — no feature owns them, so they are provided through an
-// `@ExternalModule` beside the container.
+// App-level bindings no feature owns, so they sit behind an `@ExternalModule`.
 @ExternalModule()
 abstract class AppModule {
   @Injectable(scope: Scope.lazySingleton)

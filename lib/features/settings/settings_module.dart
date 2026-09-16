@@ -17,8 +17,7 @@ final class SettingsAbout extends SettingsRoute {
   const SettingsAbout();
 }
 
-// The settings feature as a kaisel module. Keep it `const`: a new instance would
-// drop the module's navigation state.
+// Keep it `const`: a new instance would drop the module's navigation state.
 class SettingsRouterModule extends RouteModule<SettingsRoute> {
   const SettingsRouterModule();
 

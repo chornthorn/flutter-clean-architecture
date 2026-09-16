@@ -74,8 +74,8 @@ void main() {
         addTearDown(viewModel.dispose);
 
         expect(viewModel.add.value.isLoading, isFalse);
-        // The purchase is the one that starts in flight, which is what the page
-        // renders first.
+        // The read is the one that starts in flight: it is what the page renders
+        // first.
         expect(viewModel.product.value.isLoading, isTrue);
       },
     );

@@ -6,7 +6,6 @@ import 'package:injectify/injectify.dart';
 
 void main() {
   setUp(() async {
-    // `Environment.test` is what keeps this suite off the network.
     await getIt.reset();
     await configureDependencies(environment: Environment.test);
   });

@@ -33,8 +33,7 @@ class BaseAppCodec extends KaiselConfigCodec<AppRoute> {
   }
 }
 
-// The app-wide codec: host routes, plus each module's own URL namespace. The host
-// stack decodes to a single mount, so a deep link has no history behind it.
+// The host stack decodes to a single mount, so a deep link has no history behind it.
 const appCodec = ConfigCodecWithModules<AppRoute>(
   baseCodec: BaseAppCodec(),
   modules: [

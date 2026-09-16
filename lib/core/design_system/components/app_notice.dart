@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../app_theme.g.dart';
 
 // A screen with nothing to show, and why: nothing there yet, nothing found, or
-// nothing reachable. One shape for all three keeps the states consistent — only
-// the icon, the sentence and the colour differ.
+// nothing reachable. One shape for all three keeps the states consistent.
 class AppNotice extends StatelessWidget {
   const AppNotice({
     super.key,
@@ -20,16 +19,14 @@ class AppNotice extends StatelessWidget {
   // A failure is worth the danger colour; an empty list is not a failure.
   final bool isFailure;
 
-  // The way out of the state — retry, or write the first thing.
   final Widget? action;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
 
-    // The danger token is sized for fills, not for text: on the light card it
-    // lands around 3.8:1, under the 4.5:1 text needs. Here it colours the icon
-    // only, where 3:1 is the bar it clears.
+    // The danger token is sized for fills, not text: ~3.8:1 on the light card,
+    // under the 4.5:1 text needs. The icon's bar is 3:1.
     final iconColor = isFailure
         ? theme.colors.feedback.danger
         : theme.colors.foreground.subtle;
@@ -38,8 +35,7 @@ class AppNotice extends StatelessWidget {
       builder: (context, constraints) => SingleChildScrollView(
         child: ConstrainedBox(
           // Centred while it fits and scrollable once it does not: a large text
-          // scale on a short screen is the case that would overflow. A parent
-          // that offers no height to fill leaves the notice at its own size.
+          // scale on a short screen is the case that would overflow.
           constraints: BoxConstraints(
             minHeight: constraints.hasBoundedHeight ? constraints.maxHeight : 0,
           ),

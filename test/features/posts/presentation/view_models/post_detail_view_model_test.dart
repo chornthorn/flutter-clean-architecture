@@ -96,37 +96,34 @@ void main() {
       expect(viewModel.post.value.value?.userId, 1);
     });
 
-    test(
-      'should keep the failure and answer false when an edit fails',
-      () async {
-        final store = MockPostRepository();
-        when(
-          () => store.postById(1, cancellation: any(named: 'cancellation')),
-        ).thenAnswer((_) async => post);
-        when(
-          () => store.updatePost(
-            id: any(named: 'id'),
-            title: any(named: 'title'),
-            body: any(named: 'body'),
-          ),
-        ).thenAnswer((_) async => throw Exception('offline'));
+    test('should keep the failure and answer false when an edit fails', () async {
+      final store = MockPostRepository();
+      when(
+        () => store.postById(1, cancellation: any(named: 'cancellation')),
+      ).thenAnswer((_) async => post);
+      when(
+        () => store.updatePost(
+          id: any(named: 'id'),
+          title: any(named: 'title'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer((_) async => throw Exception('offline'));
 
-        final viewModel = PostDetailViewModel(postsDispatcher(store));
-        addTearDown(viewModel.dispose);
-        await viewModel.load(1);
+      final viewModel = PostDetailViewModel(postsDispatcher(store));
+      addTearDown(viewModel.dispose);
+      await viewModel.load(1);
 
-        final saved = await viewModel.updatePost(
-          title: 'Edited title',
-          body: 'Edited body',
-        );
+      final saved = await viewModel.updatePost(
+        title: 'Edited title',
+        body: 'Edited body',
+      );
 
-        expect(saved, isFalse);
-        expect(viewModel.update.value.hasError, isTrue);
-        // What was on screen is untouched, and so is the read's state: another use case failed.
-        expect(viewModel.post.value.value, post);
-        expect(viewModel.post.value.hasError, isFalse);
-      },
-    );
+      expect(saved, isFalse);
+      expect(viewModel.update.value.hasError, isTrue);
+      // What was on screen is untouched, and so is the read's state: another use case failed.
+      expect(viewModel.post.value.value, post);
+      expect(viewModel.post.value.hasError, isFalse);
+    });
 
     test('should delete through the command and answer true', () async {
       final store = InMemoryPostRepository();
@@ -160,34 +157,31 @@ void main() {
       },
     );
 
-    test(
-      'should report a delete in flight over its own use case only',
-      () async {
-        final store = MockPostRepository();
-        when(
-          () => store.postById(1, cancellation: any(named: 'cancellation')),
-        ).thenAnswer((_) async => post);
-        final inFlight = Completer<void>();
-        when(() => store.deletePost(any())).thenAnswer((_) => inFlight.future);
+    test('should report a delete in flight over its own use case only', () async {
+      final store = MockPostRepository();
+      when(
+        () => store.postById(1, cancellation: any(named: 'cancellation')),
+      ).thenAnswer((_) async => post);
+      final inFlight = Completer<void>();
+      when(() => store.deletePost(any())).thenAnswer((_) => inFlight.future);
 
-        final viewModel = PostDetailViewModel(postsDispatcher(store));
-        addTearDown(viewModel.dispose);
-        await viewModel.load(1);
+      final viewModel = PostDetailViewModel(postsDispatcher(store));
+      addTearDown(viewModel.dispose);
+      await viewModel.load(1);
 
-        final deleting = viewModel.deletePost();
+      final deleting = viewModel.deletePost();
 
-        // Which write is on the wire is read off its own use case, and no other state reports it.
-        expect(viewModel.delete.value.isLoading, isTrue);
-        expect(viewModel.update.value.isLoading, isFalse);
-        expect(viewModel.post.value.isLoading, isFalse);
+      // Which write is on the wire is read off its own use case, and no other state reports it.
+      expect(viewModel.delete.value.isLoading, isTrue);
+      expect(viewModel.update.value.isLoading, isFalse);
+      expect(viewModel.post.value.isLoading, isFalse);
 
-        inFlight.complete();
+      inFlight.complete();
 
-        expect(await deleting, isTrue);
-        expect(viewModel.delete.value.isLoading, isFalse);
-        expect(viewModel.delete.value.hasError, isFalse);
-      },
-    );
+      expect(await deleting, isTrue);
+      expect(viewModel.delete.value.isLoading, isFalse);
+      expect(viewModel.delete.value.hasError, isFalse);
+    });
 
     test('should let go of a read its page walked away from', () async {
       final repository = MockPostRepository();

@@ -2,17 +2,16 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-// `lib/provider.dart`, written as the two forms an import can take. The bare
-// basename cannot be used: `package:provider/provider.dart` is a legitimate
-// import in `presentation/`, and a substring test would flag it.
+// `lib/provider.dart`, written as the two forms an import can take: the bare
+// basename cannot be used, because `package:provider/provider.dart` is a
+// legitimate import in `presentation/`.
 const container = ['package:flutter_x/provider.dart', '../provider.dart'];
 
-// Layer rules as import constraints, so the structure cannot rot quietly.
-// See docs/architecture.md.
+// Layer rules as import constraints, so the structure cannot rot quietly. See
+// `docs/architecture.md`.
 void main() {
   const featureRules = <String, List<String>>{
-    // Domain: entities, use cases, and the contracts they need. Plain Dart apart
-    // from injectify's `@Injectable`, which is itself pure Dart.
+    // Plain Dart apart from injectify's `@Injectable`, which is itself plain.
     'domain': [
       'package:flutter',
       'package:get_it',
@@ -20,8 +19,8 @@ void main() {
       'infrastructure/',
       'presentation/',
     ],
-    // The UI is constructor-injected by a provider in the router, so it never
-    // reaches for the container, an adapter, or a repository contract.
+    // Injected by the router's provider, so it never reaches for the container,
+    // an adapter, or a repository contract.
     'presentation': [
       'package:get_it',
       ...container,
@@ -47,9 +46,8 @@ void main() {
   });
 
   test('should keep features/*/domain/ to the one core file it may reach', () {
-    // Domain is plain Dart, and `core/` is where the app's IO lives — so the one
-    // file it may reach for is the one that is plain Dart too: the cancellation
-    // signal a read is handed. See `core/README.md`.
+    // Domain is plain Dart, and the one file in `core/` that is plain Dart too —
+    // with no IO in it — is the cancellation signal a read is handed.
     const allowed = 'core/async/cancellation.dart';
     final offenders = <String>[];
     var scanned = 0;
