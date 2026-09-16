@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
-import 'package:flutter_x/features/posts/presentation/posts_watch.dart';
+import 'package:flutter_x/features/posts/presentation/posts_revision.dart';
 import 'package:flutter_x/features/posts/presentation/view_models/post_detail_view_model.dart';
 import 'package:flutter_x/features/posts/presentation/views/post_detail_view.dart';
 import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
@@ -24,7 +24,7 @@ void main() {
 
       final viewModel = PostDetailViewModel(
         postsDispatcher(repository),
-        PostsWatch(),
+        PostsRevision(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
@@ -47,7 +47,7 @@ void main() {
 
       final viewModel = PostDetailViewModel(
         postsDispatcher(repository),
-        PostsWatch(),
+        PostsRevision(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load(999);
@@ -69,7 +69,7 @@ void main() {
 
       final viewModel = PostDetailViewModel(
         postsDispatcher(repository),
-        PostsWatch(),
+        PostsRevision(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
@@ -85,7 +85,7 @@ void main() {
     testWidgets('should edit the post through the dialog', (tester) async {
       final viewModel = PostDetailViewModel(
         postsDispatcher(InMemoryPostRepository()),
-        PostsWatch(),
+        PostsRevision(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
@@ -118,7 +118,7 @@ void main() {
       final store = InMemoryPostRepository();
       final viewModel = PostDetailViewModel(
         postsDispatcher(store),
-        PostsWatch(),
+        PostsRevision(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
@@ -152,7 +152,7 @@ void main() {
 
       final viewModel = PostDetailViewModel(
         postsDispatcher(store),
-        PostsWatch(),
+        PostsRevision(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load(1);

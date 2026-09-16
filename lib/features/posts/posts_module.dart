@@ -43,14 +43,15 @@ class PostsRouterModule extends RouteModule<PostsRoute> {
 
   @override
   Widget buildPage(BuildContext context, PostsRoute route) => switch (route) {
-    PostsHome() => ChangeNotifierProvider<PostsHomeViewModel>(
-      create: (_) => getIt<PostsHomeViewModel>()..load(),
-      child: const PostsHomeView(),
-    ),
     // `Provider`, not `ChangeNotifierProvider`: the view model publishes signals
     // rather than notifying, so what it needs from here is an owner for its
     // lifetime and not a listener. `dispose:` is how the page leaving reaches
     // it — the container's factory scope does not dispose what it builds.
+    PostsHome() => Provider<PostsHomeViewModel>(
+      create: (_) => getIt<PostsHomeViewModel>()..load(),
+      dispose: (_, viewModel) => viewModel.dispose(),
+      child: const PostsHomeView(),
+    ),
     PostDetail(:final id) => Provider<PostDetailViewModel>(
       create: (_) => getIt<PostDetailViewModel>()..load(id),
       dispose: (_, viewModel) => viewModel.dispose(),

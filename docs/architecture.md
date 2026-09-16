@@ -50,7 +50,7 @@ lib/
 | `Core/Networking/` | `lib/core/networking/` | `network_client.dart` builds the one `Dio` every feature's endpoints share, with its timeouts, base URL, and `interceptors.dart` (logging today; the place for auth or retry). Bound in `provider.dart`, so features take it from the container rather than importing this. |
 | `Core/Storage/` | `lib/core/storage/` | Not created — nothing is persisted yet. |
 | `Features/Leads/Presentation/Views/` | `features/<name>/presentation/views/` | `LeadListView.swift` → `shop_home_view.dart`. |
-| `.../Presentation/ViewModels/` | `presentation/view_models/` | One per view: a `ChangeNotifier`, or `AsyncSignal`s — see [Screen state](#screen-state). |
+| `.../Presentation/ViewModels/` | `presentation/view_models/` | One per view, holding one `AsyncSignal` per use case — see [Screen state](#screen-state). |
 | `.../Domain/Entities/` | `domain/entities/` | |
 | `.../Domain/UseCases/` | `domain/usecases/` | A use case is a query (or command) plus its handler, in one file. Both live in Domain — there is no separate application layer. |
 | `.../Domain/Repositories/` | `domain/repositories/` | The interface definition; the concrete type goes in Infrastructure. |
@@ -133,14 +133,14 @@ Three rules keep DI from dissolving the layering:
   and no other file does. Nothing outside the feature's module refers to
   `InMemoryProductRepository`.
 - **A page reads its view model from the provider.** The router mounts one above
-  each route and the page reads it out of the widget tree — `context.watch<T>()`
-  where the view model notifies, `context.read<T>()` where it publishes signals.
-  A page never imports the container, and a test pumps it under
-  `ChangeNotifierProvider.value(value: fake, child: page)` — `.value` has no
-  dispose callback, so the test keeps ownership of the fake.
-- **`watch`, not `read`**, for a view model that notifies. `read` does not
-  subscribe, so a page would never leave its loading state.
-  `test/features/shop/presentation/views/` asserts the rebuild.
+  each route and the page reads it once with `context.read<T>()`; what changes is
+  inside the view model's signals, and the page's `SignalBuilder` is what rebuilds
+  it. A page never imports the container, and a test pumps it under
+  `Provider.value(value: fake, child: page)` — `.value` has no dispose callback, so
+  the test keeps ownership of the fake.
+- **`read`, not `watch`**, now that the view model does not notify: subscribing to
+  the provider would rebuild the page on nothing, and the signals are what say
+  when. `test/features/shop/presentation/views/` asserts the rebuild.
 - **`create:` is a closure, never an inline construction.** Kaisel calls
   `buildPage` on every navigation-driven rebuild (measured: three times for one
   visit), so a view model built at the call site would be rebuilt — and reloaded —
@@ -153,35 +153,36 @@ Three rules keep DI from dissolving the layering:
 
 ### Screen state
 
-A view model is created by the route's provider and disposed with the page. What
-it holds is one of two shapes:
+A view model is created by the route's provider and disposed with the page, and it
+holds **one `AsyncSignal` per use case**, each published as a `ReadonlySignal` so
+only the view model can push state into it. The page resolves it once with
+`context.read<T>()` and rebuilds through `SignalBuilder` from the signals it reads.
 
-- **A `ChangeNotifier`, one per view** — `shop`, `home`, `settings`, and `posts`'
-  list. The page calls `context.watch<T>()`, and the view model has to stay silent
-  once disposed — notifying a disposed `ChangeNotifier` throws. See the `_notify`
-  guard in `shop/presentation/view_models/`.
-- **One `AsyncSignal` per use case** — `posts`' detail, and the shape to reach for
-  when a screen has more than one thing to report on. Each use case gets a signal
-  of its own, published as a `ReadonlySignal` so only the view model can push
-  state into it, and the page rebuilds through `SignalBuilder` from the ones it
-  reads. A read, a save and a delete then carry separate lifecycles: a failed save
-  cannot put the read into an error state. Two consequences worth knowing: a write
-  to a disposed signal *throws*, so the disposed flag has to guard every write and
-  the signals go down with the view model; and a write that has not run yet starts
-  settled (`AsyncState.data(null)`) rather than loading, or the page reads it as
-  in flight.
+A use case's lifecycle then belongs to that use case alone: on the post detail, a
+save that failed cannot put the read into an error state, and a delete on the wire
+is not read as a load. Four things follow, and each one is a way to get this wrong:
 
-The route owns the view model either way — the container's factory scope does not
-dispose what it builds:
+- **A write to a disposed signal throws** (`SignalsWriteAfterDisposeError`). Set the
+  disposed flag first in `dispose()`, guard every write with it, and dispose the
+  signals there too. This is what replaced the `_notify()` guard the
+  `ChangeNotifier` view models carried: the same hazard, except a signal throws
+  whether or not you remembered to check.
+- **A write that has not run yet starts settled** — `AsyncState.data(null)`, not
+  loading — or the page reads it as in flight before anything has happened.
+- **`AsyncDataReloading` and `AsyncDataRefreshing` implement `AsyncLoading`**, so in
+  a `switch` over the state the `AsyncData` and `AsyncError` arms come before the
+  loading one. Matching loading first swallows them.
+- **`setLoading()` drops the value it replaces.** A page that wants to keep the old
+  data on screen while a re-read is in flight has to say so with
+  `setLoading(AsyncState.dataRefreshing(previous))` — and then note that
+  `AsyncDataRefreshing(x) == AsyncData(x)`, so a re-read that answers with an equal
+  value never settles. No page does this today; a plain `setLoading()` shows the
+  spinner instead.
+
+The route owns the view model — the container's factory scope does not dispose what
+it builds:
 
 ```dart
-// Notifies.
-ChangeNotifierProvider<PostsHomeViewModel>(
-  create: (_) => getIt<PostsHomeViewModel>()..load(),
-  child: const PostsHomeView(),
-),
-// Publishes signals: a plain `Provider`, because what it needs is an owner for
-// its lifetime rather than a listener.
 Provider<PostDetailViewModel>(
   create: (_) => getIt<PostDetailViewModel>()..load(id),
   dispose: (_, viewModel) => viewModel.dispose(),
@@ -189,8 +190,8 @@ Provider<PostDetailViewModel>(
 ),
 ```
 
-`test/app/view_host.dart` has a host for each: `hostPage` for the notifier,
-`hostSignalPage` for the other.
+`hostSignalPage` in `test/app/view_host.dart` pumps a page under it. `home/` and
+`settings/` read no state, so they have no view model at all.
 
 Regenerate after adding or changing an annotation — see
 [Generated sources](#generated-sources).
@@ -322,12 +323,13 @@ Four details that differ from the read side:
 - **A write on one page has to reach the readers on another.** Kaisel keeps a page
   mounted while another is pushed over it, so returning to it remounts nothing and
   re-runs nothing — a list edited from a detail page above it would keep showing
-  the old title. `PostsWatch` is that feature's signal: the writer pings it after a
-  successful write, the reader listens and re-reads. It is registered once in the
-  feature, so both sides share the instance without either knowing the other. A
-  `RouteObserver` + `RouteAware.didPopNext` would also work and needs no feature
-  plumbing, but it fires on *every* pop and only for pushes it can see; the
-  signal says what actually happened.
+  the old title. `PostsRevision` is that feature's signal: it counts the writes that
+  have landed, the writer bumps it after a successful write, and the reader
+  subscribes and reads again. It is registered once in the feature, so both sides
+  share the instance without either knowing the other. A `RouteObserver` +
+  `RouteAware.didPopNext` would also work and needs no feature plumbing, but it
+  fires on *every* pop and only for pushes it can see; the counter says what
+  actually happened.
 
 The dispatcher is the app's one non-feature container binding — an
 `@ExternalModule` in `provider.dart`, beside the container that resolves it:
@@ -428,11 +430,10 @@ Also enforced, elsewhere:
   the adapter. Swapping `InMemoryProductRepository` for a real one must not touch
   a single test.
 - **The feature stays `const`.** See the shared-container note above.
-- **Provider owns the view model**: the route's provider creates it once per
-  mount and disposes it on unmount — `ChangeNotifierProvider`, or `Provider` with
-  an explicit `dispose:` for one that publishes signals. Factory scope means the
-  container will not dispose it, and kaisel's repeated `buildPage` calls mean it
-  must not be created at the call site.
+- **Provider owns the view model**: the route's `Provider` creates it once per
+  mount and disposes it on unmount through its `dispose:` callback. Factory scope
+  means the container will not dispose it, and kaisel's repeated `buildPage` calls
+  mean it must not be created at the call site.
 - **URLs round-trip.** `test/app_codec_test.dart` covers encode/decode for every
   mount.
 
@@ -482,8 +483,9 @@ Things that look like improvements and are not:
   happened, with nobody left to tell. See `core/README.md` for the mechanism, and
   `RemotePostRepository._tokenFor` for where it reaches the transport.
 - **Reading `context.theme` in a page pumped bare.** The token extension asserts
-  when the theme has no `AppTheme`, so a page test that skips `hostPage`/`hostShell`
-  fails with a null-check inside the design system rather than a clear message.
+  when the theme has no `AppTheme`, so a page test that skips
+  `hostSignalPage`/`hostShell` fails with a null-check inside the design system
+  rather than a clear message.
 - **Registering a view model as a singleton.** It would be shared across mounts
   and outlive the page that owns it. `Scope.factory` plus the provider's disposal
   is the rule — the container does not dispose factories.

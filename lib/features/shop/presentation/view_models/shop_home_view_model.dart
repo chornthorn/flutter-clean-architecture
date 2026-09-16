@@ -1,54 +1,54 @@
 import 'package:cqrs/cqrs.dart';
-import 'package:flutter/foundation.dart';
 import 'package:injectify/injectify.dart';
+import 'package:signals/signals_flutter.dart';
 
 import '../../domain/entities/product.dart';
 import '../../domain/usecases/get_products_query.dart';
 
 // State for the shop list screen. Factory-scoped: one per page, disposed by the
-// `ChangeNotifierProvider` that created it.
+// provider that created it.
+//
+// One `AsyncSignal` per use case — the catalog read is the only one — each
+// published as a `ReadonlySignal`. See `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
-class ShopHomeViewModel extends ChangeNotifier {
+class ShopHomeViewModel {
   ShopHomeViewModel(this._dispatcher);
 
   final CqrsDispatcher _dispatcher;
 
-  List<Product>? _products;
-  Object? _error;
-  bool _isLoading = false;
   bool _isDisposed = false;
 
-  // `null` before the first load completes.
-  List<Product>? get products => _products;
+  // `GetProductsQuery`. Loading until the read settles, and the catalog after
+  // that.
+  final _products = asyncSignal<List<Product>>(AsyncState.loading());
 
-  Object? get error => _error;
+  // What the screen is showing: the catalog, a load in flight, or a load that
+  // failed.
+  ReadonlySignal<AsyncState<List<Product>>> get products => _products;
 
-  bool get isLoading => _isLoading;
-
-  // Failures land in [error] rather than escaping to the framework.
   Future<void> load() async {
-    _isLoading = true;
-    _error = null;
-    _notify();
+    _products.setLoading();
 
     try {
-      _products = await _dispatcher.query(const GetProductsQuery());
-    } catch (error) {
-      _error = error;
-    } finally {
-      _isLoading = false;
-      _notify();
+      final products = await _dispatcher.query(const GetProductsQuery());
+      if (_isDisposed) return;
+      _products.setValue(products);
+    } catch (error, stackTrace) {
+      // The page can be gone by the time the read answers. There is nobody left
+      // to report the failure to, and a disposed signal *throws* on a write.
+      if (_isDisposed) return;
+      _products.setError(error, stackTrace);
     }
   }
 
-  @override
+  // Walking away: the provider above the page calls this when the route
+  // unmounts.
+  //
+  // The flag comes first, so a read still in flight finds the view model already
+  // closed and writes nothing back. A signal that has been disposed *throws* on
+  // a write, which is why every write above checks the flag first.
   void dispose() {
     _isDisposed = true;
-    super.dispose();
-  }
-
-  // A load can outlive the page; notifying a disposed ChangeNotifier throws.
-  void _notify() {
-    if (!_isDisposed) notifyListeners();
+    _products.dispose();
   }
 }

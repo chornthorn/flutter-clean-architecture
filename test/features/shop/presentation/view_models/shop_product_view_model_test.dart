@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/features/shop/domain/entities/cart.dart';
+import 'package:flutter_x/features/shop/domain/entities/product.dart';
 import 'package:flutter_x/features/shop/presentation/view_models/shop_product_view_model.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:signals/signals_flutter.dart';
 
 import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_cart_repository.dart';
@@ -24,9 +26,9 @@ void main() {
 
       await viewModel.load('sku-42');
 
-      expect(viewModel.product, product);
-      expect(viewModel.error, isNull);
-      expect(viewModel.isLoading, isFalse);
+      expect(viewModel.product.value, AsyncState<Product?>.data(product));
+      expect(viewModel.product.value.hasError, isFalse);
+      expect(viewModel.product.value.isLoading, isFalse);
     });
 
     test(
@@ -42,9 +44,11 @@ void main() {
 
         await viewModel.load('no-such-sku');
 
-        expect(viewModel.product, isNull);
-        expect(viewModel.error, isNull);
-        expect(viewModel.isLoading, isFalse);
+        // A value that is null is a value: the page tells a missing product from
+        // a failed read by the state, not by the error.
+        expect(viewModel.product.value, AsyncState<Product?>.data(null));
+        expect(viewModel.product.value.hasError, isFalse);
+        expect(viewModel.product.value.isLoading, isFalse);
       },
     );
 
@@ -59,8 +63,20 @@ void main() {
 
       await expectLater(viewModel.load('sku-42'), completes);
 
-      expect(viewModel.error, isA<Exception>());
-      expect(viewModel.product, isNull);
+      expect(viewModel.product.value.hasError, isTrue);
+      expect(viewModel.product.value.hasValue, isFalse);
+    });
+
+    test('should start the add settled, so the page does not read it in flight', () {
+      final viewModel = ShopProductViewModel(
+        shopDispatcher(MockProductRepository()),
+      );
+      addTearDown(viewModel.dispose);
+
+      expect(viewModel.add.value.isLoading, isFalse);
+      // The purchase is the one that starts in flight, which is what the page
+      // renders first.
+      expect(viewModel.product.value.isLoading, isTrue);
     });
 
     test('should read the cart alongside the product', () async {
@@ -80,7 +96,7 @@ void main() {
 
       await viewModel.load('sku-42');
 
-      expect(viewModel.cartCount, 2);
+      expect(viewModel.cartCount.value, 2);
     });
 
     test('should send the command and count what the cart holds', () async {
@@ -96,13 +112,14 @@ void main() {
       await viewModel.load('sku-42');
 
       await viewModel.addToCart();
-      expect(viewModel.cartCount, 1);
+      expect(viewModel.cartCount.value, 1);
 
       await viewModel.addToCart();
-      expect(viewModel.cartCount, 2);
+      expect(viewModel.cartCount.value, 2);
 
-      expect(viewModel.product, product);
-      expect(viewModel.error, isNull);
+      expect(viewModel.product.value.value, product);
+      expect(viewModel.add.value.hasError, isFalse);
+      expect(viewModel.add.value.isLoading, isFalse);
     });
 
     test('should hold an add failure in error, keeping the product', () async {
@@ -122,9 +139,12 @@ void main() {
 
       await expectLater(viewModel.addToCart(), completes);
 
-      expect(viewModel.error, isA<Exception>());
-      expect(viewModel.product, product);
-      expect(viewModel.cartCount, 0);
+      expect(viewModel.add.value.hasError, isTrue);
+      expect(viewModel.cartCount.value, 0);
+      // What was on screen is untouched — and the read it came from is not the
+      // use case that failed, so its state is untouched too.
+      expect(viewModel.product.value.value, product);
+      expect(viewModel.product.value.hasError, isFalse);
     });
   });
 }

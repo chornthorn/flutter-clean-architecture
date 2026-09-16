@@ -6,19 +6,13 @@ import 'package:provider/provider.dart';
 // token maps, so sharing it costs nothing.
 final _theme = AppThemeNotifier(initialMode: AppThemeMode.light);
 
-// Pumps a page the way the app runs it, for every feature's view tests. It stands
-// in for `lib/app/app.dart` (the shell that carries the theme) plus the feature
-// module's provider, minus the router.
+// Pumps a page the way the app runs it, for every feature's view tests: the app's
+// theme, and the route's provider above the page.
 //
-// `.value` hands over a view model the test owns — `ChangeNotifierProvider.value`
-// has no dispose callback, so the provider will not dispose it.
-Widget hostPage<T extends ChangeNotifier>(T viewModel, Widget page) =>
-    ChangeNotifierProvider<T>.value(value: viewModel, child: hostShell(page));
-
-// The same host for a view model that is not a `ChangeNotifier` — one that
-// publishes signals instead. `Provider.value` does not listen, so the page
-// rebuilds off whatever the view model publishes rather than off notifications,
-// and the test still owns the dispose.
+// `.value` hands over a view model the test owns — `Provider.value` has no dispose
+// callback, so the provider will not dispose it, and the test keeps ownership.
+// What changes inside is a signal, which the page picks up through its own
+// `SignalBuilder` rather than through a notification.
 Widget hostSignalPage<T>(T viewModel, Widget page) =>
     Provider<T>.value(value: viewModel, child: hostShell(page));
 

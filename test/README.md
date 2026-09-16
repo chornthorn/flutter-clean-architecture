@@ -65,10 +65,12 @@ Two test styles, by layer:
 
 - **Domain and view models** are plain Dart: build the class, call it, assert.
   No widgets, no container.
-- **Views** are pumped under `hostPage(...)` from `app/view_host.dart`, which
+- **Views** are pumped under `hostSignalPage(...)` from `app/view_host.dart`, which
   mounts a provider the way a feature's module does and carries the app's token
-  theme. No container there either — pass the view model you built. A widget that
-  needs the theme but no view model (a dialog) goes under `hostShell(...)`.
+  theme. No container there either — pass the view model you built. It does not
+  listen to that provider, so a page that does not rebuild off its own signals
+  shows what it shows. A widget that needs the theme but no view model (a dialog)
+  goes under `hostShell(...)`.
 
 **The container is built in `test`, never `prod`.** `configureDependencies`
 requires an environment, and `Environment.test` is the one that binds the

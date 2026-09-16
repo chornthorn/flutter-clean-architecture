@@ -1,26 +1,40 @@
 import 'package:cqrs/cqrs.dart';
-import 'package:flutter/foundation.dart';
 import 'package:injectify/injectify.dart';
+import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/async/cancellation.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/create_post_command.dart';
 import '../../domain/usecases/get_posts_query.dart';
-import '../posts_watch.dart';
+import '../posts_revision.dart';
 
 // State for the posts list. Factory-scoped: one per page, disposed by the
-// `ChangeNotifierProvider` that created it.
+// `Provider` that created it.
+//
+// One `AsyncSignal` per use case, each published as a `ReadonlySignal`. See
+// `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
-class PostsHomeViewModel extends ChangeNotifier {
-  PostsHomeViewModel(this._dispatcher, this._watch) {
-    _watch.addListener(_onStale);
+class PostsHomeViewModel {
+  PostsHomeViewModel(this._dispatcher, this._revision) {
+    // `subscribe` calls back once, straight away, with the revision this page
+    // mounted at. That call is the mount and not a write above it — the read it
+    // would repeat is the one `create:` starts — so only the bumps after it read
+    // again.
+    var readAt = _revision.revision.peek();
+    _revisionSubscription = _revision.revision.subscribe((revision) {
+      if (revision == readAt) return;
+      readAt = revision;
+      load();
+    });
   }
 
   // The demo has no signed-in user, and jsonplaceholder only echoes this back.
   static const _authorId = 1;
 
   final CqrsDispatcher _dispatcher;
-  final PostsWatch _watch;
+  final PostsRevision _revision;
+
+  late final void Function() _revisionSubscription;
 
   // The page's way out of its own reads. Disposal *is* the page going away —
   // the provider disposes this view model when it unmounts — so a read still in
@@ -28,35 +42,37 @@ class PostsHomeViewModel extends ChangeNotifier {
   // watching.
   final _cancellation = CancellationSource();
 
-  List<Post>? _posts;
-  Object? _error;
-  bool _isLoading = false;
   bool _isDisposed = false;
 
-  // `null` before the first load completes.
-  List<Post>? get posts => _posts;
+  // `GetPostsQuery`. Loading until the read settles, and the list after that.
+  final _posts = asyncSignal<List<Post>>(AsyncState.loading());
 
-  Object? get error => _error;
+  // `CreatePostCommand`. Carries no payload: reaching `AsyncData` is the write
+  // landing and `AsyncError` is it failing. Settled rather than loading, because
+  // no write has run yet.
+  final _create = asyncSignal<void>(AsyncState.data(null));
 
-  bool get isLoading => _isLoading;
+  // What the screen is showing: the list, a list that has not arrived, or a read
+  // that failed.
+  ReadonlySignal<AsyncState<List<Post>>> get posts => _posts;
+
+  // The last create's attempt, for as long as it is worth reporting.
+  ReadonlySignal<AsyncState<void>> get create => _create;
 
   Future<void> load() async {
-    _isLoading = true;
-    _error = null;
-    _notify();
+    _posts.setLoading();
 
     try {
-      _posts = await _dispatcher.query(
+      final posts = await _dispatcher.query(
         GetPostsQuery(cancellation: _cancellation.token),
       );
-    } catch (error) {
+      if (_isDisposed) return;
+      _posts.setValue(posts);
+    } catch (error, stackTrace) {
       // A dropped read is not a failure: there is nobody left to report it to.
       // Everything else is.
-      if (_cancellation.isCancelled) return;
-      _error = error;
-    } finally {
-      _isLoading = false;
-      _notify();
+      if (_isDisposed) return;
+      _posts.setError(error, stackTrace);
     }
   }
 
@@ -68,42 +84,44 @@ class PostsHomeViewModel extends ChangeNotifier {
   // dropping it would leave the app and the server disagreeing. The re-read that
   // follows does take the token — it is the read this page can afford to lose.
   Future<bool> createPost({required String title, required String body}) async {
-    _error = null;
+    _create.setLoading();
 
     try {
       await _dispatcher.command(
         CreatePostCommand(userId: _authorId, title: title, body: body),
       );
-      _posts = await _dispatcher.query(
+      final posts = await _dispatcher.query(
         GetPostsQuery(cancellation: _cancellation.token),
       );
+      // The write landed either way, so this answers true; the signal is what
+      // stays silent once the page is gone.
+      if (_isDisposed) return true;
+      _posts.setValue(posts);
+      _create.setValue(null);
       return true;
-    } catch (error) {
+    } catch (error, stackTrace) {
       // The re-read can be dropped on the way out. The write itself already
       // landed, and there is nobody left to be told either way — so this
       // answers the conservative thing rather than the true one.
-      if (_cancellation.isCancelled) return false;
-      _error = error;
+      if (_isDisposed) return false;
+      // The failure is the write's, so it stays off the list's own state: a
+      // create that failed leaves what is on screen alone.
+      _create.setError(error, stackTrace);
       return false;
-    } finally {
-      _notify();
     }
   }
 
-  @override
+  // Walking away: the provider above the page calls this when the route unmounts.
+  //
+  // The flag comes first and the subscription goes before the cancellation, so a
+  // revision bumped on the way out cannot start a read. A signal that has been
+  // disposed *throws* on a write, which is why every write above checks the flag
+  // first.
   void dispose() {
-    // Stop taking new work before dropping what is in flight, so a notification
-    // already in the queue cannot start a read on the way out.
-    _watch.removeListener(_onStale);
-    _cancellation.cancel();
     _isDisposed = true;
-    super.dispose();
-  }
-
-  // A page above this one wrote, so what this page holds no longer matches.
-  void _onStale() => load();
-
-  void _notify() {
-    if (!_isDisposed) notifyListeners();
+    _revisionSubscription();
+    _cancellation.cancel();
+    _posts.dispose();
+    _create.dispose();
   }
 }

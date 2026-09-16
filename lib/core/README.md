@@ -65,15 +65,23 @@ view model's `dispose`, a dialog's `State.dispose`:
 final _cancellation = CancellationSource();
 
 try {
-  _posts = await _dispatcher.query(
+  final posts = await _dispatcher.query(
     GetPostsQuery(cancellation: _cancellation.token),
   );
-} catch (error) {
+  if (_isDisposed) return;
+  _posts.setValue(posts);
+} catch (error, stackTrace) {
   // A dropped read is not a failure: there is nobody left to report it to.
-  if (_cancellation.isCancelled) return;
-  _error = error;
+  // Everything else is.
+  if (_isDisposed) return;
+  _posts.setError(error, stackTrace);
 }
 ```
+
+`_posts` is the read's own signal and `_isDisposed` is the view model's flag, set
+in `dispose` just before it cancels — so the check that drops the read and the
+check that keeps a write off a disposed signal are the same one. See
+`docs/architecture.md` for the rest of the shape.
 
 The source is the end that cancels; `Cancellation` — a typedef for `Future<void>`
 — is the end that travels, and the token is what goes down. A feature's `domain/`

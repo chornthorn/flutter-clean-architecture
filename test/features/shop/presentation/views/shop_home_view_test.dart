@@ -26,14 +26,14 @@ void main() {
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
 
-      await tester.pumpWidget(hostPage(viewModel, const ShopHomeView()));
+      await tester.pumpWidget(hostSignalPage(viewModel, const ShopHomeView()));
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('should rebuild when the view model notifies', (tester) async {
-      // Guards `context.watch`: with `read` the page would never leave the
-      // spinner, because `read` does not subscribe.
+    testWidgets('should rebuild when the read settles', (tester) async {
+      // Guards the `SignalBuilder`: a page that only read the signal, without
+      // subscribing to it, would never leave the spinner.
       final completer = Completer<List<Product>>();
       final repository = MockProductRepository();
       when(() => repository.allProducts()).thenAnswer((_) => completer.future);
@@ -41,7 +41,7 @@ void main() {
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
 
-      await tester.pumpWidget(hostPage(viewModel, const ShopHomeView()));
+      await tester.pumpWidget(hostSignalPage(viewModel, const ShopHomeView()));
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
       completer.complete(const [product]);
@@ -60,7 +60,7 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(hostPage(viewModel, const ShopHomeView()));
+      await tester.pumpWidget(hostSignalPage(viewModel, const ShopHomeView()));
 
       expect(find.text('Could not load products.'), findsOneWidget);
     });
@@ -72,7 +72,7 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(hostPage(viewModel, const ShopHomeView()));
+      await tester.pumpWidget(hostSignalPage(viewModel, const ShopHomeView()));
 
       expect(find.text('No products yet.'), findsOneWidget);
       expect(find.byType(ProductTile), findsNothing);
@@ -93,7 +93,7 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(hostPage(viewModel, const ShopHomeView()));
+      await tester.pumpWidget(hostSignalPage(viewModel, const ShopHomeView()));
       expect(find.text('Could not load products.'), findsOneWidget);
 
       await tester.tap(find.text('Try again'));

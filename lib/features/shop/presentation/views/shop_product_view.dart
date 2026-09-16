@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
@@ -7,6 +8,7 @@ import '../../../../core/design_system/components/app_card.dart';
 import '../../../../core/design_system/components/app_failure_line.dart';
 import '../../../../core/design_system/components/app_notice.dart';
 import '../../../../core/design_system/components/app_scaffold.dart';
+import '../../domain/entities/product.dart';
 import '../view_models/shop_product_view_model.dart';
 import '../widgets/cart_button.dart';
 
@@ -21,45 +23,59 @@ class ShopProductView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<ShopProductViewModel>();
+    // Read once, subscribe never: what changes lives in the view model's
+    // signals, and `SignalBuilder` is what rebuilds this page off the ones read
+    // below.
+    final viewModel = context.read<ShopProductViewModel>();
 
-    return AppScaffold(
-      title: Text(id),
-      actions: const [CartButton()],
-      body: _buildBody(context, viewModel),
+    return SignalBuilder(
+      builder: (context) => AppScaffold(
+        title: Text(id),
+        actions: const [CartButton()],
+        body: _buildBody(context, viewModel),
+      ),
     );
   }
 
   Widget _buildBody(BuildContext context, ShopProductViewModel viewModel) {
     final theme = context.theme;
 
-    if (viewModel.isLoading) {
-      return Center(
-        child: CircularProgressIndicator(color: theme.colors.brand.primary),
-      );
-    }
-
-    final product = viewModel.product;
-    if (product == null) {
+    // `AsyncDataReloading` and `AsyncDataRefreshing` implement `AsyncLoading`, so
+    // the arms that carry a value or a failure have to come before the loading
+    // one — matching the loading arm first would swallow them.
+    return switch (viewModel.product.value) {
+      AsyncData<Product?>(:final value) when value != null => _buildProduct(
+        context,
+        viewModel,
+        value,
+      ),
+      AsyncError<Product?>() => AppNotice(
+        icon: Icons.cloud_off_outlined,
+        message: 'Could not load the product.',
+        isFailure: true,
+        action: AppFilledButton(
+          label: 'Try again',
+          onPressed: () => viewModel.load(id),
+        ),
+      ),
       // A failure and a missing id both leave no product; only one is an error,
       // and only one of them is worth asking the far side again.
-      if (viewModel.error != null) {
-        return AppNotice(
-          icon: Icons.cloud_off_outlined,
-          message: 'Could not load the product.',
-          isFailure: true,
-          action: AppFilledButton(
-            label: 'Try again',
-            onPressed: () => viewModel.load(id),
-          ),
-        );
-      }
-
-      return const AppNotice(
+      AsyncData<Product?>() => const AppNotice(
         icon: Icons.search_off_outlined,
         message: 'Product not found.',
-      );
-    }
+      ),
+      AsyncLoading<Product?>() => Center(
+        child: CircularProgressIndicator(color: theme.colors.brand.primary),
+      ),
+    };
+  }
+
+  Widget _buildProduct(
+    BuildContext context,
+    ShopProductViewModel viewModel,
+    Product product,
+  ) {
+    final theme = context.theme;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(theme.sizes.padding.md),
@@ -90,13 +106,14 @@ class ShopProductView extends StatelessWidget {
             onPressed: viewModel.addToCart,
           ),
           SizedBox(height: theme.sizes.spacing.md),
-          // The product is on screen, so an error here is the add's, not the
-          // load's.
-          if (viewModel.error != null)
+          // The add's own state, not an error shared with the load: a write that
+          // failed leaves the product above it alone, and a load that failed is
+          // the body's to report.
+          if (viewModel.add.value.hasError)
             const AppFailureLine(message: 'Could not add to cart.')
           else
             Text(
-              '${viewModel.cartCount} in cart',
+              '${viewModel.cartCount.value} in cart',
               style: theme.typography.label.regular,
             ),
         ],

@@ -49,17 +49,23 @@ class ShopRouterModule extends RouteModule<ShopRoute> {
 
   @override
   Widget buildPage(BuildContext context, ShopRoute route) => switch (route) {
-    ShopHome() => ChangeNotifierProvider<ShopHomeViewModel>(
+    // `Provider`, not `ChangeNotifierProvider`: these view models publish signals
+    // rather than notifying, so what they need from here is an owner for their
+    // lifetime and not a listener. `dispose:` is how the page leaving reaches
+    // them — the container's factory scope does not dispose what it builds.
+    ShopHome() => Provider<ShopHomeViewModel>(
       create: (_) => getIt<ShopHomeViewModel>()..load(),
+      dispose: (_, viewModel) => viewModel.dispose(),
       child: const ShopHomeView(),
     ),
-    // Load in `create:` — a notify during mount trips a provider assertion.
-    ShopProduct(:final id) => ChangeNotifierProvider<ShopProductViewModel>(
+    ShopProduct(:final id) => Provider<ShopProductViewModel>(
       create: (_) => getIt<ShopProductViewModel>()..load(id),
+      dispose: (_, viewModel) => viewModel.dispose(),
       child: ShopProductView(id: id),
     ),
-    ShopCart() => ChangeNotifierProvider<ShopCartViewModel>(
+    ShopCart() => Provider<ShopCartViewModel>(
       create: (_) => getIt<ShopCartViewModel>()..load(),
+      dispose: (_, viewModel) => viewModel.dispose(),
       child: const ShopCartView(),
     ),
   };

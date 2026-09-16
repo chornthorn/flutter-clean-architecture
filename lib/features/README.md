@@ -24,7 +24,7 @@ lib/features/<name>/
     repositories/
   presentation/               Flutter UI
     views/                    one view per route
-    view_models/              screen state, one per view (notifying or signals)
+    view_models/              one `AsyncSignal` per use case, one view model per view
     widgets/                  reusable pieces of those views
 ```
 
@@ -67,15 +67,15 @@ container.
 - The container names a concrete implementation only through the `@Injectable`
   annotation on the class; the router resolves the graph, one line per route.
 - A page reads its view model from the provider the router mounts above it:
-  `context.watch` for a `ChangeNotifier`, `context.read` plus `SignalBuilder` for
-  one that publishes signals. The page imports no container and no repository;
-  provider creates the view model once per mount and disposes it (factory scope —
-  the container does not; a signals-based one needs an explicit `dispose:`).
+  `context.read` once, plus `SignalBuilder` to rebuild off the signals it reads.
+  The page imports no container and no repository; provider creates the view model
+  once per mount and disposes it through its `dispose:` callback (factory scope —
+  the container does not).
 - A view model that finishes loading after its view is gone must stay silent:
-  notifying a disposed `ChangeNotifier` throws, and writing to a disposed signal
-  throws. See the `_notify` guard in `shop/presentation/view_models/` and the
-  disposed flag in `posts/presentation/view_models/post_detail_view_model.dart`.
-- Which shape a screen uses, and why: [Screen state](../../docs/architecture.md#screen-state).
+  writing to a disposed signal throws, so the disposed flag guards every write and
+  the signals go down with the view model. See the disposed flag in
+  `posts/presentation/view_models/post_detail_view_model.dart`.
+- How the state is shaped, and the traps in it: [Screen state](../../docs/architecture.md#screen-state).
 - Keep the feature `const`. `KaiselModuleMount` rebuilds its router when the
   module instance changes, so a fresh instance per build would silently drop the
   feature's navigation state.
@@ -124,5 +124,6 @@ container.
 
   Two things about the demo API: jsonplaceholder echoes writes back without
   storing them, so under `prod` only the in-memory adapter shows the loop closing;
-  and because kaisel keeps the list mounted under the detail, `presentation/posts_watch.dart`
-  is what tells it to re-read after an edit or delete.
+  and because kaisel keeps the list mounted under the detail,
+  `presentation/posts_revision.dart` is the signal that tells it to read again
+  after an edit or delete.

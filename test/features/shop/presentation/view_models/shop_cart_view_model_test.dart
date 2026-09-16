@@ -23,13 +23,17 @@ void main() {
 
       final load = viewModel.load();
 
-      expect(viewModel.isLoading, isTrue);
-      expect(viewModel.products, isNull);
+      // The read starts in flight, which is what the page renders first.
+      expect(viewModel.products.value.isLoading, isTrue);
+      expect(viewModel.products.value.hasValue, isFalse);
 
       await load;
 
-      expect(viewModel.isLoading, isFalse);
-      expect(viewModel.products, const [product]);
+      // The rows are built by the query handler, one list per read, so this
+      // compares the payload rather than the whole state: `AsyncData`'s `==`
+      // compares its list by identity, and every read makes a new one.
+      expect(viewModel.products.value.value, const [product]);
+      expect(viewModel.products.value.isLoading, isFalse);
     });
 
     test('should add the items up without storing a second total', () async {
@@ -48,8 +52,8 @@ void main() {
 
       await viewModel.load();
 
-      expect(viewModel.products, hasLength(2));
-      expect(viewModel.total, product.price * 2);
+      expect(viewModel.products.value.value, hasLength(2));
+      expect(viewModel.total.value, product.price * 2);
     });
 
     test('should resolve an empty cart to no items, not an error', () async {
@@ -63,9 +67,9 @@ void main() {
 
       await viewModel.load();
 
-      expect(viewModel.products, isEmpty);
-      expect(viewModel.total, 0);
-      expect(viewModel.error, isNull);
+      expect(viewModel.products.value.value, isEmpty);
+      expect(viewModel.total.value, 0);
+      expect(viewModel.products.value.hasError, isFalse);
     });
 
     test('should hold a failure in error instead of throwing', () async {
@@ -81,8 +85,35 @@ void main() {
 
       await expectLater(viewModel.load(), completes);
 
-      expect(viewModel.error, isA<Exception>());
-      expect(viewModel.products, isNull);
+      expect(viewModel.products.value.hasError, isTrue);
+      expect(viewModel.products.value.error, isA<Exception>());
+      expect(viewModel.products.value.hasValue, isFalse);
+      // Nothing was read, so the derived total has nothing to add up.
+      expect(viewModel.total.value, 0);
+    });
+
+    test('should re-derive the total when the cart is read again', () async {
+      final cart = MockCartRepository();
+      var ids = const ['sku-42'];
+      when(() => cart.cart()).thenAnswer((_) async => Cart(ids));
+      final products = MockProductRepository();
+      when(
+        () => products.productById('sku-42'),
+      ).thenAnswer((_) async => product);
+
+      final viewModel = ShopCartViewModel(shopDispatcher(products, cart: cart));
+      addTearDown(viewModel.dispose);
+
+      await viewModel.load();
+      expect(viewModel.total.value, product.price);
+
+      // The cart grows: the total follows the rows rather than staying at what
+      // they added up to when it was first read.
+      ids = const ['sku-42', 'sku-42'];
+      await viewModel.load();
+
+      expect(viewModel.products.value.value, hasLength(2));
+      expect(viewModel.total.value, product.price * 2);
     });
   });
 }

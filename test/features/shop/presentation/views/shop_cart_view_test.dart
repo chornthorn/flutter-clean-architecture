@@ -28,7 +28,7 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(hostPage(viewModel, const ShopCartView()));
+      await tester.pumpWidget(hostSignalPage(viewModel, const ShopCartView()));
 
       expect(find.text('Espresso cup'), findsNWidgets(2));
       expect(find.text('Total'), findsOneWidget);
@@ -45,7 +45,7 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(hostPage(viewModel, const ShopCartView()));
+      await tester.pumpWidget(hostSignalPage(viewModel, const ShopCartView()));
 
       expect(find.text('Your cart is empty.'), findsOneWidget);
       expect(find.text('Total'), findsNothing);
@@ -63,7 +63,7 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(hostPage(viewModel, const ShopCartView()));
+      await tester.pumpWidget(hostSignalPage(viewModel, const ShopCartView()));
 
       expect(find.text('Could not load the cart.'), findsOneWidget);
     });
@@ -88,7 +88,7 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(hostPage(viewModel, const ShopCartView()));
+      await tester.pumpWidget(hostSignalPage(viewModel, const ShopCartView()));
       expect(find.text('Could not load the cart.'), findsOneWidget);
 
       await tester.tap(find.text('Try again'));

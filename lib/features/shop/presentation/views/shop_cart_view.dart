@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:kaisel/kaisel.dart';
 import 'package:provider/provider.dart';
+import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_card.dart';
 import '../../../../core/design_system/components/app_notice.dart';
 import '../../../../core/design_system/components/app_scaffold.dart';
+import '../../domain/entities/product.dart';
 import '../../shop_module.dart';
 import '../view_models/shop_cart_view_model.dart';
 import '../widgets/product_tile.dart';
@@ -17,41 +19,60 @@ class ShopCartView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<ShopCartViewModel>();
+    // Read once, subscribe never: what changes lives in the view model's
+    // signals, and `SignalBuilder` is what rebuilds this page off the ones read
+    // below.
+    final viewModel = context.read<ShopCartViewModel>();
 
-    return AppScaffold(
-      title: const Text('Cart'),
-      body: _buildBody(context, viewModel),
+    return SignalBuilder(
+      builder: (context) => AppScaffold(
+        title: const Text('Cart'),
+        body: _buildBody(context, viewModel, viewModel.products.value),
+      ),
     );
   }
 
-  Widget _buildBody(BuildContext context, ShopCartViewModel viewModel) {
+  Widget _buildBody(
+    BuildContext context,
+    ShopCartViewModel viewModel,
+    AsyncState<List<Product>> state,
+  ) {
     final theme = context.theme;
 
-    // Gated on `products == null` so a reload keeps the rows on screen instead
-    // of flashing a spinner.
-    if (viewModel.isLoading && viewModel.products == null) {
-      return Center(
-        child: CircularProgressIndicator(color: theme.colors.brand.primary),
-      );
-    }
-
-    if (viewModel.error != null) {
-      return AppNotice(
+    // `AsyncDataReloading` and `AsyncDataRefreshing` implement `AsyncLoading`, so
+    // the arms that carry a value or a failure have to come before the loading
+    // one — matching the loading arm first would swallow them.
+    return switch (state) {
+      // An empty cart is a value and not a failure: the read worked, and nothing
+      // has been added yet.
+      AsyncData<List<Product>>(:final value) when value.isEmpty =>
+        const AppNotice(
+          icon: Icons.shopping_cart_outlined,
+          message: 'Your cart is empty.',
+        ),
+      AsyncData<List<Product>>(:final value) => _buildCart(
+        context,
+        viewModel,
+        value,
+      ),
+      AsyncError<List<Product>>() => AppNotice(
         icon: Icons.cloud_off_outlined,
         message: 'Could not load the cart.',
         isFailure: true,
         action: AppFilledButton(label: 'Try again', onPressed: viewModel.load),
-      );
-    }
+      ),
+      AsyncLoading<List<Product>>() => Center(
+        child: CircularProgressIndicator(color: theme.colors.brand.primary),
+      ),
+    };
+  }
 
-    final products = viewModel.products ?? const [];
-    if (products.isEmpty) {
-      return const AppNotice(
-        icon: Icons.shopping_cart_outlined,
-        message: 'Your cart is empty.',
-      );
-    }
+  Widget _buildCart(
+    BuildContext context,
+    ShopCartViewModel viewModel,
+    List<Product> products,
+  ) {
+    final theme = context.theme;
 
     return Column(
       children: [
@@ -83,8 +104,10 @@ class ShopCartView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Total', style: theme.typography.label.regular),
+                // The total the view model derives from the rows above, read
+                // through the same builder.
                 Text(
-                  viewModel.total.toStringAsFixed(2),
+                  viewModel.total.value.toStringAsFixed(2),
                   style: theme.typography.title.semiBold,
                 ),
               ],

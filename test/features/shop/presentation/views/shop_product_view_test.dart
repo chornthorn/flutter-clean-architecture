@@ -29,7 +29,7 @@ void main() {
       await viewModel.load('sku-42');
 
       await tester.pumpWidget(
-        hostPage(viewModel, const ShopProductView(id: 'sku-42')),
+        hostSignalPage(viewModel, const ShopProductView(id: 'sku-42')),
       );
 
       expect(find.widgetWithText(AppBar, 'sku-42'), findsOneWidget);
@@ -46,7 +46,7 @@ void main() {
       await viewModel.load('nope');
 
       await tester.pumpWidget(
-        hostPage(viewModel, const ShopProductView(id: 'nope')),
+        hostSignalPage(viewModel, const ShopProductView(id: 'nope')),
       );
 
       expect(find.text('Product not found.'), findsOneWidget);
@@ -67,7 +67,7 @@ void main() {
       await viewModel.load('sku-42');
 
       await tester.pumpWidget(
-        hostPage(viewModel, const ShopProductView(id: 'sku-42')),
+        hostSignalPage(viewModel, const ShopProductView(id: 'sku-42')),
       );
       expect(find.text('0 in cart'), findsOneWidget);
 
@@ -93,7 +93,7 @@ void main() {
       await viewModel.load('sku-42');
 
       await tester.pumpWidget(
-        hostPage(viewModel, const ShopProductView(id: 'sku-42')),
+        hostSignalPage(viewModel, const ShopProductView(id: 'sku-42')),
       );
 
       await tester.tap(find.text('Add to cart'));

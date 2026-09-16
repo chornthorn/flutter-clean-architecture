@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/features/shop/domain/entities/product.dart';
 import 'package:flutter_x/features/shop/presentation/view_models/shop_home_view_model.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:signals/signals_flutter.dart';
 
 import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_product_repository.dart';
@@ -21,15 +22,19 @@ void main() {
 
       final load = viewModel.load();
 
-      expect(viewModel.isLoading, isTrue);
-      expect(viewModel.products, isNull);
-      expect(viewModel.error, isNull);
+      // The read starts in flight, which is what the page renders first.
+      expect(viewModel.products.value.isLoading, isTrue);
+      expect(viewModel.products.value.hasValue, isFalse);
+      expect(viewModel.products.value.hasError, isFalse);
 
       completer.complete(const [product]);
       await load;
 
-      expect(viewModel.isLoading, isFalse);
-      expect(viewModel.products, const [product]);
+      expect(
+        viewModel.products.value,
+        AsyncState<List<Product>>.data(const [product]),
+      );
+      expect(viewModel.products.value.isLoading, isFalse);
     });
 
     test('should expose the catalog read through the query', () async {
@@ -43,9 +48,12 @@ void main() {
 
       await viewModel.load();
 
-      expect(viewModel.products, const [product]);
-      expect(viewModel.error, isNull);
-      expect(viewModel.isLoading, isFalse);
+      expect(
+        viewModel.products.value,
+        AsyncState<List<Product>>.data(const [product]),
+      );
+      expect(viewModel.products.value.hasError, isFalse);
+      expect(viewModel.products.value.isLoading, isFalse);
     });
 
     test('should hold a failure in error instead of throwing', () async {
@@ -59,8 +67,10 @@ void main() {
 
       await expectLater(viewModel.load(), completes);
 
-      expect(viewModel.error, isA<Exception>());
-      expect(viewModel.products, isNull);
+      expect(viewModel.products.value.hasError, isTrue);
+      expect(viewModel.products.value.error, isA<Exception>());
+      expect(viewModel.products.value.hasValue, isFalse);
+      expect(viewModel.products.value.isLoading, isFalse);
     });
 
     test('should stay silent when a load outlives its view', () async {
@@ -69,20 +79,25 @@ void main() {
       when(() => repository.allProducts()).thenAnswer((_) => completer.future);
 
       final viewModel = ShopHomeViewModel(shopDispatcher(repository));
-      var notifications = 0;
-      viewModel.addListener(() => notifications++);
+      // Everything the read pushed, so this can be checked after the signal it
+      // pushed to has been disposed with the page.
+      final pushed = <AsyncState<List<Product>>>[];
+      addTearDown(viewModel.products.subscribe(pushed.add));
 
       final load = viewModel.load();
-      final notifiedBeforeDispose = notifications;
 
+      // Navigating away is the provider disposing this view model.
       viewModel.dispose();
       completer.complete(const [product]);
 
-      // An unguarded notifyListeners() would complete this future with
-      // "A ChangeNotifier was used after being disposed".
+      // An unguarded write would throw `SignalsWriteAfterDisposeError`, which
+      // would complete this future with it.
       await expectLater(load, completes);
 
-      expect(notifications, notifiedBeforeDispose);
+      // A read nobody is watching is not a result, and there is nobody left to
+      // tell: the only state it ever pushed is the loading state it started in.
+      expect(pushed, isNotEmpty);
+      expect(pushed.every((state) => state.isLoading), isTrue);
     });
   });
 }

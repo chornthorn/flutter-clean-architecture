@@ -7,7 +7,7 @@ import '../../domain/entities/post.dart';
 import '../../domain/usecases/delete_post_command.dart';
 import '../../domain/usecases/get_post_query.dart';
 import '../../domain/usecases/update_post_command.dart';
-import '../posts_watch.dart';
+import '../posts_revision.dart';
 
 // State for one post. Same scope and lifecycle rules as the other view models.
 //
@@ -19,10 +19,10 @@ import '../posts_watch.dart';
 // read into an error state. See `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
 class PostDetailViewModel {
-  PostDetailViewModel(this._dispatcher, this._watch);
+  PostDetailViewModel(this._dispatcher, this._revision);
 
   final CqrsDispatcher _dispatcher;
-  final PostsWatch _watch;
+  final PostsRevision _revision;
 
   // See `PostsHomeViewModel`: cancelling in `dispose` is the page walking away
   // from whatever read is still in flight.
@@ -86,7 +86,7 @@ class PostDetailViewModel {
         GetPostQuery(post.id, cancellation: _cancellation.token),
       );
       // The list below is now wrong about this post.
-      _watch.markStale();
+      _revision.markStale();
       // The write landed either way, so this answers true; the signal is what
       // stays silent once the page is gone.
       if (_isDisposed) return true;
@@ -113,7 +113,7 @@ class PostDetailViewModel {
     try {
       await _dispatcher.command(DeletePostCommand(post.id));
       // The list below still has it.
-      _watch.markStale();
+      _revision.markStale();
       if (_isDisposed) return true;
       _delete.setValue(null);
       return true;
