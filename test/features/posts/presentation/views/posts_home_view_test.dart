@@ -8,6 +8,7 @@ import 'package:flutter_x/features/posts/presentation/posts_watch.dart';
 import 'package:flutter_x/features/posts/presentation/view_models/posts_home_view_model.dart';
 import 'package:flutter_x/features/posts/presentation/views/posts_home_view.dart';
 import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
+import 'package:flutter_x/features/posts/presentation/widgets/post_tile.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../../../app/view_host.dart';
@@ -65,6 +66,50 @@ void main() {
       await tester.pumpWidget(hostPage(viewModel, const PostsHomeView()));
 
       expect(find.text('Could not load posts.'), findsOneWidget);
+    });
+
+    testWidgets('should say so when there is nothing to show', (tester) async {
+      final repository = MockPostRepository();
+      when(() => repository.allPosts()).thenAnswer((_) async => const []);
+      final viewModel = PostsHomeViewModel(
+        postsDispatcher(repository),
+        PostsWatch(),
+      );
+      addTearDown(viewModel.dispose);
+      await viewModel.load();
+
+      await tester.pumpWidget(hostPage(viewModel, const PostsHomeView()));
+
+      expect(find.text('No posts yet.'), findsOneWidget);
+      expect(find.byType(PostTile), findsNothing);
+    });
+
+    testWidgets('should load again when the failure is retried', (
+      tester,
+    ) async {
+      final repository = MockPostRepository();
+      var attempts = 0;
+      when(() => repository.allPosts()).thenAnswer((_) async {
+        attempts++;
+        // Fails once, then answers, so the retry has something to show.
+        if (attempts == 1) throw Exception('offline');
+        return const [post];
+      });
+      final viewModel = PostsHomeViewModel(
+        postsDispatcher(repository),
+        PostsWatch(),
+      );
+      addTearDown(viewModel.dispose);
+      await viewModel.load();
+
+      await tester.pumpWidget(hostPage(viewModel, const PostsHomeView()));
+      expect(find.text('Could not load posts.'), findsOneWidget);
+
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not load posts.'), findsNothing);
+      expect(find.text('First post'), findsOneWidget);
     });
 
     testWidgets('should add a post through the dialog', (tester) async {

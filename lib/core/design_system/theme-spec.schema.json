@@ -27,7 +27,7 @@
           "properties": { "primary": {}, "subtle": {}, "inverse": {} }
         },
         "canvas": { "properties": { "primary": {} } },
-        "surface": { "properties": { "card": {} } },
+        "surface": { "properties": { "card": {}, "border": {} } },
         "action": { "properties": { "filled": {} } },
         "feedback": { "properties": { "success": {}, "danger": {} } }
       }

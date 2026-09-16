@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
+import 'post_buttons.dart';
 
 // Collects a post and hands it to the page, which owns the write call — so this
 // widget needs no view model and can be tested on its own.
@@ -72,41 +73,91 @@ class _PostFormDialogState extends State<PostFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.theme;
+
     return AlertDialog(
-      title: Text(widget.heading),
+      backgroundColor: theme.colors.surface.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(theme.sizes.radius.md),
+      ),
+      title: Text(widget.heading, style: theme.typography.title.semiBold),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: _title,
-            decoration: const InputDecoration(labelText: 'Title'),
+            style: theme.typography.body.regular,
+            cursorColor: theme.colors.brand.primary,
+            decoration: _fieldDecoration(theme, 'Title'),
           ),
+          SizedBox(height: theme.sizes.spacing.md),
           TextField(
             controller: _body,
-            decoration: const InputDecoration(labelText: 'Body'),
+            style: theme.typography.body.regular,
+            cursorColor: theme.colors.brand.primary,
+            decoration: _fieldDecoration(theme, 'Body'),
           ),
           if (_failed) ...[
-            SizedBox(height: context.theme.sizes.spacing.md),
-            const Text('Could not save the post.'),
+            SizedBox(height: theme.sizes.spacing.md),
+            _failure(theme),
           ],
         ],
       ),
       actions: [
-        TextButton(
+        PostTextButton(
+          label: 'Cancel',
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
         ),
         // A title the domain will reject is not worth a round trip to say so.
         ValueListenableBuilder<TextEditingValue>(
           valueListenable: _title,
-          builder: (context, value, _) => FilledButton(
-            onPressed: _isSubmitting || value.text.trim().isEmpty
-                ? null
-                : _submit,
-            child: Text(widget.submitLabel),
+          builder: (context, value, _) => PostFilledButton(
+            label: widget.submitLabel,
+            isEnabled: !_isSubmitting && value.text.trim().isNotEmpty,
+            onPressed: _submit,
           ),
         ),
       ],
     );
   }
+
+  // The field's own chrome, since `InputDecoration` would otherwise take its
+  // outline and focus colours from the generated scheme.
+  InputDecoration _fieldDecoration(AppTheme theme, String label) {
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(theme.sizes.radius.md),
+      borderSide: BorderSide(color: theme.colors.surface.border),
+    );
+
+    return InputDecoration(
+      labelText: label,
+      labelStyle: theme.typography.label.regular,
+      floatingLabelStyle: theme.typography.label.regular.copyWith(
+        color: theme.colors.brand.primary,
+      ),
+      border: border,
+      enabledBorder: border,
+      focusedBorder: border.copyWith(
+        borderSide: BorderSide(color: theme.colors.brand.primary, width: 2),
+      ),
+    );
+  }
+
+  // The words stay in the reading colour and the icon carries the failure one:
+  // the danger token is a fill colour, and on the light dialog it falls short of
+  // the 4.5:1 that text needs.
+  Widget _failure(AppTheme theme) => Row(
+    children: [
+      Icon(Icons.error_outline, color: theme.colors.feedback.danger),
+      SizedBox(width: theme.sizes.spacing.sm),
+      Expanded(
+        child: Text(
+          'Could not save the post.',
+          style: theme.typography.label.regular.copyWith(
+            color: theme.colors.foreground.primary,
+          ),
+        ),
+      ),
+    ],
+  );
 }

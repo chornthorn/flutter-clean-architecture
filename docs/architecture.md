@@ -349,6 +349,18 @@ flow.
 `AppThemeProvider.builder`, so toggling the mode rebuilds the app with the other
 token set. Screens read tokens with `context.theme.colors/sizes/typography`.
 
+The post feature holds the first component kit — `PostCard`, `PostTile`,
+`PostByline`, `PostAuthorBadge`, `PostsNotice` and the two buttons, all under
+`features/posts/presentation/widgets/`. They stay beside their one caller: the
+rule that keeps `core/design_system/components/` empty until a second feature
+needs the control is what decides when they move.
+
+One token is there for a reason worth keeping. `colors.surface.border` is the
+hairline that gives a card an edge: the fill and the canvas sit within about
+1.05:1 of each other in both modes, so a borderless card reads as flat space.
+That is also why `PostCard` is a `Material` and not a `Card` — `Card` takes its
+colours from Material's generated scheme, which knows nothing about the tokens.
+
 Two things that look like cleanups and are not:
 
 - **Moving the theme notifier into the container.** It is widget-tree state: a

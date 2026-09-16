@@ -14,7 +14,7 @@
           "inverse": "#FFFFFF"
         },
         "canvas": { "primary": "#F9FAFB" },
-        "surface": { "card": "#FFFFFF" },
+        "surface": { "card": "#FFFFFF", "border": "#E5E7EB" },
         "action": { "filled": "#4F46E5" },
         "feedback": { "success": "#10B981", "danger": "#EF4444" }
       },
@@ -34,7 +34,8 @@
         "primary": { "$type": "color", "$value": "$color.canvas.primary" }
       },
       "surface": {
-        "card": { "$type": "color", "$value": "$color.surface.card" }
+        "card": { "$type": "color", "$value": "$color.surface.card" },
+        "border": { "$type": "color", "$value": "$color.surface.border" }
       },
       "action": {
         "filled": { "$type": "color", "$value": "$color.action.filled" }
@@ -141,7 +142,7 @@
           "inverse": "#111827"
         },
         "canvas": { "primary": "#111827" },
-        "surface": { "card": "#1F2937" },
+        "surface": { "card": "#1F2937", "border": "#374151" },
         "action": { "filled": "#A5B4FC" },
         "feedback": { "success": "#34D399", "danger": "#F87171" }
       },
@@ -161,7 +162,8 @@
         "primary": { "$type": "color", "$value": "$color.canvas.primary" }
       },
       "surface": {
-        "card": { "$type": "color", "$value": "$color.surface.card" }
+        "card": { "$type": "color", "$value": "$color.surface.card" },
+        "border": { "$type": "color", "$value": "$color.surface.border" }
       },
       "action": {
         "filled": { "$type": "color", "$value": "$color.action.filled" }
