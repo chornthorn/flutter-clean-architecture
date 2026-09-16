@@ -9,47 +9,24 @@ import '../../domain/usecases/delete_post_command.dart';
 import '../../domain/usecases/get_post_query.dart';
 import '../../domain/usecases/update_post_command.dart';
 
-// State for one post. Same scope and lifecycle rules as the other view models.
-//
-// The id is a `load` argument rather than a field: it comes from the route, and
-// the page that owns it passes it in.
-//
-// One `AsyncSignal` per use case, each published as a `ReadonlySignal`. Reading,
-// editing and deleting have separate lifecycles, so a failed save cannot put the
-// read into an error state. See `docs/architecture.md`.
+// State for one post: one signal per use case, per `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
 class PostDetailViewModel implements ViewModel {
   PostDetailViewModel(this._dispatcher);
 
   final CqrsDispatcher _dispatcher;
-
-  // See `PostsHomeViewModel`: cancelling in `dispose` is the page walking away
-  // from whatever read is still in flight.
   final _cancellation = CancellationSource();
 
   bool _isDisposed = false;
 
-  // `GetPostQuery`. Loading until the read settles, and the post after that — or
-  // `AsyncData(null)` for an id that has none, which is a value and not a
-  // failure, and is what tells "not found" apart from "could not load".
   final _post = asyncSignal<Post?>(AsyncState.loading());
 
-  // `UpdatePostCommand`. Carries no payload: reaching `AsyncData` is the edit
-  // landing and `AsyncError` is it failing. Settled rather than loading, because
-  // no write has run yet.
+  // Settled, not loading: no write has run yet.
   final _update = asyncSignal<void>(AsyncState.data(null));
-
-  // `DeletePostCommand`. Shaped like [_update].
   final _delete = asyncSignal<void>(AsyncState.data(null));
 
-  // What the screen is showing: a post, a missing post, a load in flight, or a
-  // load that failed.
   ReadonlySignal<AsyncState<Post?>> get post => _post;
-
-  // The last edit's attempt, for as long as it is worth reporting.
   ReadonlySignal<AsyncState<void>> get update => _update;
-
-  // The last delete's attempt.
   ReadonlySignal<AsyncState<void>> get delete => _delete;
 
   Future<void> load(int id) async {
@@ -62,14 +39,11 @@ class PostDetailViewModel implements ViewModel {
       if (_isDisposed) return;
       _post.setValue(post);
     } catch (error, stackTrace) {
-      // A dropped read is not a failure: there is nobody left to report it to.
-      // Everything else is.
       if (_isDisposed) return;
       _post.setError(error, stackTrace);
     }
   }
 
-  // Sends the edit, then re-reads the post rather than patching a local copy.
   // Answers whether it worked, so the form knows whether to close.
   Future<bool> updatePost({required String title, required String body}) async {
     final id = _postOnScreenId;
@@ -84,23 +58,18 @@ class PostDetailViewModel implements ViewModel {
       final updated = await _dispatcher.query(
         GetPostQuery(id, cancellation: _cancellation.token),
       );
-      // The write landed either way, so this answers true; the signal is what
-      // stays silent once the page is gone.
       if (_isDisposed) return true;
       _post.setValue(updated);
       _update.setValue(null);
       return true;
     } catch (error, stackTrace) {
-      // The re-read can be dropped on the way out; the edit itself already
-      // landed. See `PostsHomeViewModel.createPost` for why this answers false.
       if (_isDisposed) return false;
       _update.setError(error, stackTrace);
       return false;
     }
   }
 
-  // Sends the delete. Answers whether it worked, so the page knows whether to
-  // leave a screen that no longer has a post to show.
+  // Answers whether it worked, so the page knows whether to leave.
   Future<bool> deletePost() async {
     final id = _postOnScreenId;
     if (id == null) return false;
@@ -119,13 +88,8 @@ class PostDetailViewModel implements ViewModel {
     }
   }
 
-  // Walking away: the provider above the page calls this when the route
-  // unmounts.
-  //
-  // The flag comes first and the cancellation second, so a read the cancellation
-  // drops finds the view model already closed and writes nothing back. A signal
-  // that has been disposed *throws* on a write, which is why every write above
-  // checks the flag first.
+  // The provider calls this when the page unmounts. A disposed signal throws on a
+  // write, which is what the guards above are for.
   @override
   void dispose() {
     _isDisposed = true;
@@ -135,8 +99,6 @@ class PostDetailViewModel implements ViewModel {
     _delete.dispose();
   }
 
-  // The id the two writes go to. Null while the read is in flight, after a
-  // failure, and for an id that resolved to nothing — which is all the writes
-  // need to know: the page tells those three apart from `post` itself.
+  // The id the two writes go to: null until the read lands on a post.
   int? get _postOnScreenId => _post.value.value?.id;
 }
