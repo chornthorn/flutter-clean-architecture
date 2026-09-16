@@ -1,27 +1,61 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/features/shop/domain/entities/cart.dart';
+import 'package:flutter_x/features/shop/domain/usecases/add_product_to_cart_command.dart';
 import 'package:flutter_x/features/shop/domain/usecases/get_product_query.dart';
 import 'package:flutter_x/features/shop/domain/usecases/get_products_query.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'domain/entities/product_fixture.dart';
+import 'domain/repositories/mock_audit_log.dart';
+import 'domain/repositories/mock_cart_repository.dart';
 import 'domain/repositories/mock_product_repository.dart';
 import 'shop_dispatcher_fixture.dart';
 
 void main() {
-  // The generated module is the only thing binding a query to its handler. A
-  // query it fails to register throws HandlerNotFoundException at dispatch.
-  test('should dispatch every query the shop declares', () async {
-    final repository = MockProductRepository();
-    when(
-      () => repository.allProducts(),
-    ).thenAnswer((_) async => const [product]);
-    when(
-      () => repository.productById('sku-42'),
-    ).thenAnswer((_) async => product);
+  // The generated module is the only thing binding a message to its handler. A
+  // message it fails to register throws HandlerNotFoundException at dispatch.
+  group('ShopCqrsModule', () {
+    // mocktail needs a fallback before `any()` can match a `Cart` argument.
+    setUpAll(() => registerFallbackValue(const Cart.empty()));
 
-    final dispatcher = shopDispatcher(repository);
+    late MockProductRepository products;
 
-    expect(await dispatcher.query(const GetProductsQuery()), const [product]);
-    expect(await dispatcher.query(const GetProductQuery('sku-42')), product);
+    setUp(() {
+      products = MockProductRepository();
+      when(
+        () => products.allProducts(),
+      ).thenAnswer((_) async => const [product]);
+      when(
+        () => products.productById('sku-42'),
+      ).thenAnswer((_) async => product);
+    });
+
+    test('should dispatch every query the shop declares', () async {
+      final dispatcher = shopDispatcher(products);
+
+      expect(await dispatcher.query(const GetProductsQuery()), const [product]);
+      expect(await dispatcher.query(const GetProductQuery('sku-42')), product);
+    });
+
+    test('should dispatch the command and fan its event out', () async {
+      final cart = MockCartRepository();
+      when(() => cart.cart()).thenAnswer((_) async => const Cart.empty());
+      when(() => cart.save(any())).thenAnswer((_) async {});
+      final auditLog = MockAuditLog();
+      when(() => auditLog.append(any())).thenAnswer((_) async {});
+
+      final dispatcher = shopDispatcher(
+        products,
+        cart: cart,
+        auditLog: auditLog,
+      );
+
+      await dispatcher.command(const AddProductToCartCommand('sku-42'));
+
+      // The cart write and the audit entry are two halves of one dispatch: the
+      // second only happens if the event found its handler.
+      verify(() => cart.save(const Cart(['sku-42']))).called(1);
+      verify(() => auditLog.append('product.added sku-42 items=1')).called(1);
+    });
   });
 }

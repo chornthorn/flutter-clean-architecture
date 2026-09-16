@@ -21,16 +21,18 @@ in the mirrored folder of whatever it stands in for:
 |:-----|:--------|
 | `features/shop/domain/entities/product_fixture.dart` | the canonical `Product` |
 | `features/shop/domain/repositories/mock_product_repository.dart` | `ProductRepository` |
-| `features/shop/shop_dispatcher_fixture.dart` | the shop's query path: a real dispatcher over the generated handler module |
+| `features/shop/domain/repositories/mock_cart_repository.dart` | `CartRepository` |
+| `features/shop/domain/repositories/mock_audit_log.dart` | `AuditLog` |
+| `features/shop/shop_dispatcher_fixture.dart` | the shop's message path: a real dispatcher over the generated handler module |
 | `features/shop/presentation/views/view_host.dart` | mounts a page under a provider |
 
 Mocks come from `mocktail`, and they mock the **domain contract**, never the
 adapter: a test that stubs `ProductRepository` keeps passing when
 `InMemoryProductRepository` is replaced by a real one.
 
-Views and view models are tested on the **real** query path —
+Views and view models are tested on the **real** message path —
 `shop_dispatcher_fixture.dart` builds a dispatcher over the generated handler
-module, and only the repository behind it is a mock. A handler the generator
+module, and only the repositories behind it are mocks. A handler the generator
 fails to register then shows up as a `HandlerNotFoundException` in a fast test,
 not in the app.
 
@@ -41,7 +43,7 @@ when(() => repository.allProducts()).thenAnswer((_) async => const [product]);
 verify(() => repository.allProducts()).called(1);
 ```
 
-Two `mocktail` behaviours worth knowing before you write a stub:
+Four `mocktail` behaviours worth knowing before you write a stub:
 
 - `verify` **consumes** the calls it matches, so assert a call count once, at the
   end of a flow — not as a checkpoint partway through.
@@ -49,6 +51,11 @@ Two `mocktail` behaviours worth knowing before you write a stub:
   for a `Future`-returning method use
   `thenAnswer((_) async => throw Exception('offline'))`, which is also what a
   real repository does.
+- An **unstubbed** method returns `null`, which for a `Future<void>` surfaces as
+  `type 'Null' is not a subtype of type 'Future<void>'` from inside the mock. Stub
+  every method the code under test will reach.
+- `any()` needs `registerFallbackValue` for **your own** types — `Cart`, not
+  `String`. Call it once in `setUpAll`.
 
 Two test styles, by layer:
 

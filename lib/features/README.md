@@ -83,7 +83,8 @@ container.
 3. Add a view under `presentation/views/` if the variant needs one.
 4. Add the query (or command) and its handler under `domain/usecases/` if the
    view needs an interaction the feature doesn't have yet, and annotate the
-   handler with `@Injectable`.
+   handler with `@Injectable`. A mutation that others should react to raises an
+   event, which gets its own file and one handler per reaction.
 5. Add both `decode` and `encode` arms to the codec at the bottom of
    `<name>_module.dart` if the route should be reachable by URL.
 6. Annotate anything new that the container must build (`@Injectable`) and rerun
@@ -95,7 +96,9 @@ container.
 - `home/` — the app's landing screen. `presentation/` only, with a
   deliberately codec-less router: one screen has no sub-URLs, so the root path
   belongs to `BaseAppCodec` in `lib/app/`.
-- `shop/` — the reference feature; every folder is in use.
+- `shop/` — the reference feature; every folder is in use. Read side: two
+  queries. Write side: an add-to-cart command whose handler raises
+  `ProductAddedToCart`, and an event handler that appends to an audit log.
 - `settings/` — `presentation/` only. Its screens read no state, so `domain/`
   and `infrastructure/` would be empty ceremony; add them when the feature has
   something to load.

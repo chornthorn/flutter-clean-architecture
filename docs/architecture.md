@@ -206,6 +206,59 @@ it knows what serves it.
 _products = await _dispatcher.query(const GetProductsQuery());
 ```
 
+### Naming
+
+A message names its **subject**, not just its verb — `AddProductToCartCommand`,
+not `AddToCartCommand`, which leaves the reader asking what gets added.
+
+| Kind | Message | Handler |
+|:-----|:--------|:--------|
+| Query | `GetProductsQuery`, `GetProductQuery` | `GetProductsQueryHandler` |
+| Command | `AddProductToCartCommand` | `AddProductToCartCommandHandler` |
+| Event | `ProductAddedToCartEvent` | `ProductAddedToCartAuditHandler` |
+
+- The suffix matches the kind, and an event is past tense — it records something
+  that already happened.
+- A **query or command handler takes its message's name**, because there is
+exactly one of each per message.
+- An **event handler is named for its role** instead, because several handlers
+  serve one event: a second reaction is another file beside the first, and the
+  dispatcher runs them all.
+
+A use case is one file holding the message and its handler, named for the message:
+`add_product_to_cart_command.dart`. An event and the handlers that react to it
+share a file named for the event, since the reactions are all reactions to it.
+
+The write side has the same shape. A command carries the intent, its handler owns
+the mutation, and what others should react to is raised as an event:
+
+```dart
+class AddProductToCartCommand extends Command<void> {
+  const AddProductToCartCommand(this.productId);
+  final String productId;
+}
+
+@Injectable(scope: Scope.factory)
+class AddProductToCartCommandHandler
+    implements CommandHandler<AddProductToCartCommand, void> {
+  const AddProductToCartCommandHandler(this._products, this._cart, this._dispatcher);
+  // ...
+}
+```
+
+Two details that differ from the read side:
+
+- **A publishing handler takes the `CqrsDispatcher`, and the dispatcher is the
+  publisher.** `CqrsDispatcher implements EventPublisher` and the app binds it
+  once, so a command publishes through the same object that routed the command to
+  it — no second registration, no narrower wrapper type. In a test, hand it a real
+  dispatcher with only the handler you want to observe registered, as
+  `add_to_cart_command_test.dart` does.
+- **Events fan out, the other messages do not.** The dispatcher resolves a *list*
+  of handlers per event type and runs them together, so a second reaction is a new
+  file and a regenerate — nothing else moves. Command and query handlers are
+  one-per-message by contrast: the dispatcher resolves a single handler for each.
+
 The dispatcher is the app's one non-feature container binding — an
 `@ExternalModule` in `provider.dart`, beside the container that resolves it:
 
