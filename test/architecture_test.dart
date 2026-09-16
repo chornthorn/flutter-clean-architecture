@@ -2,6 +2,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// `lib/provider.dart`, written as the two forms an import can take. The bare
+// basename cannot be used: `package:provider/provider.dart` is a legitimate
+// import in `presentation/`, and a substring test would flag it.
+const container = [
+  'package:flutter_application_1/provider.dart',
+  '../provider.dart',
+];
+
 // Layer rules as import constraints, so the structure cannot rot quietly.
 // See docs/architecture.md.
 void main() {
@@ -11,7 +19,7 @@ void main() {
     'domain': [
       'package:flutter',
       'package:get_it',
-      'dependency_container.dart',
+      ...container,
       'infrastructure/',
       'presentation/',
     ],
@@ -19,7 +27,7 @@ void main() {
     // reaches for the container, an adapter, or a repository contract.
     'presentation': [
       'package:get_it',
-      'dependency_container.dart',
+      ...container,
       'infrastructure/',
       'domain/repositories/',
     ],

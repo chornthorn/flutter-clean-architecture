@@ -3,7 +3,7 @@ import 'package:injectify/injectify.dart';
 import 'package:kaisel/kaisel.dart';
 import 'package:provider/provider.dart';
 
-import '../../dependency_container.dart';
+import '../../provider.dart';
 import 'presentation/view_models/shop_home_view_model.dart';
 import 'presentation/view_models/shop_product_view_model.dart';
 import 'presentation/views/shop_home_view.dart';

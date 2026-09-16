@@ -38,9 +38,9 @@ an export, no code. A feature without handlers has no such file.
 
 | Folder | May import | Must not import |
 |:-------|:-----------|:----------------|
-| `domain/` | Plain Dart, `injectify` and `cqrs` annotations | Flutter, `get_it`, `dependency_container.dart`, `infrastructure/`, `presentation/` |
+| `domain/` | Plain Dart, `injectify` and `cqrs` annotations | Flutter, `get_it`, `provider.dart`, `infrastructure/`, `presentation/` |
 | `infrastructure/` | `domain/`, `core/`, DI annotations, IO packages | `presentation/` |
-| `presentation/` | `domain/entities/`, `core/`, Flutter, `injectify` annotations | `get_it`, `dependency_container.dart`, `infrastructure/`, `domain/repositories/` |
+| `presentation/` | `domain/entities/`, `core/`, `cqrs`, Flutter, `injectify` annotations | `get_it`, `provider.dart`, `infrastructure/`, `domain/repositories/` |
 
 The router file sits outside the layers: it is pure routing plus one provider per
 route, which owns the page's view model. See `docs/architecture.md`.

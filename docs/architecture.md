@@ -15,10 +15,9 @@ Flutter clean-architecture template, and each one is deliberate.
 ```
 lib/
   main.dart
-  dependency_container.dart          the DI container + configureDependencies()
-  dependency_container.config.dart   generated — do not edit
-  cqrs_init.dart                     the CQRS compositor (@CqrsInit)
-  cqrs_init.cqrs.dart                generated — do not edit
+  provider.dart                      the container + @CqrsInit, the app's composition
+  provider.config.dart               generated — do not edit
+  provider.cqrs.dart                 generated — do not edit
   app/                               app-level setup and composition
     app.dart                         MaterialApp.router + theme + the router config
     app_route.dart                   the host's sealed route family
@@ -44,7 +43,7 @@ lib/
 |:-------------|:-------------|:------|
 | `App/AppDelegate.swift` | `lib/main.dart`, `lib/app/app.dart` | Entry point and root widget. |
 | `App/AppCoordinator.swift` | `lib/app/app_route.dart`, `app_page_builder.dart`, plus each `features/<name>/<name>_module.dart` | Kaisel supplies the coordination machinery. Each feature owns a router because a kaisel `RouteModule` is the mountable unit — there is no single app-level coordinator. |
-| `App/DependencyContainer.swift` | `lib/dependency_container.dart`, plus `features/<name>/<name>_module.dart` | `injectify` + `get_it`: one root container that composes a folder-scoped micro-package per feature. A feature's registrations are reachable only through its own module. Kept at the `lib/` root rather than inside `app/` so a feature's module does not import the app layer. |
+| `App/DependencyContainer.swift` | `lib/provider.dart`, plus `features/<name>/<name>_module.dart` | `injectify` + `get_it`: one root container that composes a folder-scoped micro-package per feature. A feature's registrations are reachable only through its own module. Kept at the `lib/` root rather than inside `app/` so a feature's module does not import the app layer. It also carries `@CqrsInit`, so the app's composition sits in one file. |
 | `Core/DesignSystem/` | `lib/core/design_system/` | Tokens (`app.tokens.json`) compiled to `app_theme.g.dart` by `design_builder`. `components/` arrives with the second feature needing the same control. |
 | `Core/Networking/` | `lib/core/networking/` | Not created — no HTTP call exists yet. |
 | `Core/Storage/` | `lib/core/storage/` | Not created — nothing is persisted yet. |
@@ -62,9 +61,9 @@ lib/
 | Folder | May import | Must not import |
 |:-------|:-----------|:----------------|
 | `core/` | Flutter, packages | `features/` |
-| `features/*/domain/` | Plain Dart + `injectify` annotations | Flutter, `get_it`, `dependency_container.dart`, `infrastructure/`, `presentation/` |
+| `features/*/domain/` | Plain Dart, `injectify` and `cqrs` annotations | Flutter, `get_it`, `provider.dart`, `infrastructure/`, `presentation/` |
 | `features/*/infrastructure/` | `domain/`, `core/`, DI annotations, IO packages | `presentation/` |
-| `features/*/presentation/` | `domain/entities/`, `core/`, Flutter, `injectify` annotations | `get_it`, `dependency_container.dart`, `infrastructure/`, `domain/repositories/` |
+| `features/*/presentation/` | `domain/entities/`, `core/`, `cqrs`, Flutter, `injectify` annotations | `get_it`, `provider.dart`, `infrastructure/`, `domain/repositories/` |
 
 `<name>_module.dart` sits outside the layers: it is pure routing plus the
 feature's DI boundary. Wiring happens through the container — see below — so no
@@ -99,15 +98,15 @@ survive a clone without a placeholder file:
 - `core/design_system/components/` — arrives with the second feature that needs
   the same control. Until then, feature-local widgets live in
   `presentation/widgets/`.
-- Nothing is registered in `lib/dependency_container.dart` itself yet: every
-  registration lives in a feature's micro-package. App-level bindings (a shared
-  HTTP client, a database from `core/`) land there when that infrastructure
-  arrives.
+- **App-level bindings live in `lib/provider.dart`**, next to the container rather
+  than in a feature's micro-package, and only through an `@ExternalModule`. The
+  CQRS dispatcher is the first; a shared HTTP client or a database from `core/`
+  joins it when that infrastructure arrives.
 
 ## Dependency injection
 
-`injectify` + `get_it`, code-generated. `lib/dependency_container.dart` is the
-container, and `main()` awaits `configureDependencies()` before the first frame —
+`injectify` + `get_it`, code-generated. `lib/provider.dart` is the container, and
+`main()` awaits `configureDependencies()` before the first frame —
 a missing registration surfaces as a build-time throw rather than a silent null.
 
 Registration is folder-scoped. `features/<name>/<name>_module.dart` declares an
@@ -176,8 +175,8 @@ feature, one compositor for the app.
 
 ```
 lib/
-  cqrs_init.dart              @CqrsInit — composes the feature modules
-  cqrs_init.cqrs.dart         generated — AppCqrsModule
+  provider.dart               the container; @CqrsInit composes the feature modules
+  provider.cqrs.dart          generated — AppCqrsModule
   features/<name>/
     <name>_handler.dart       @CqrsMicroPackage — the feature's module
     domain/usecases/          query/command + handler, side by side
@@ -208,7 +207,7 @@ _products = await _dispatcher.query(const GetProductsQuery());
 ```
 
 The dispatcher is the app's one non-feature container binding — an
-`@ExternalModule` in `dependency_container.dart`:
+`@ExternalModule` in `provider.dart`, beside the container that resolves it:
 
 ```dart
 CqrsDispatcher()..registry.registerModule(AppCqrsModule.fromLocator(getIt.get))
@@ -220,9 +219,11 @@ adapter is picked up.
 
 Three edges worth knowing before you change this:
 
-- **`generateInjectable: true` is what emits `fromLocator`.** Without it the
-  generated modules take one factory per handler, and that list is exactly what
-  drifts every time a handler is added.
+- **`generateInjectable: true` is what emits `fromLocator`, and it belongs on
+  the feature's `@CqrsMicroPackage` as well as the root `@CqrsInit`.** The root
+  emits a call to `ShopCqrsModule.fromLocator` regardless, so a missing flag on
+  the feature yields a generated root that does not compile — not a silently
+  unwired app. The root alone is not enough; this was verified, not assumed.
 - **The default registry is the only registry these modules fit.**
   `HandlerRegistry.resolver(...)` is read-only — its `registerQuery` throws
   `UnsupportedError`. The generated module is the bridge from the container, so
