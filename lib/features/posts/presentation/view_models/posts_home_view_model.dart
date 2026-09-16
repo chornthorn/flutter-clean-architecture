@@ -3,6 +3,7 @@ import 'package:injectify/injectify.dart';
 import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/async/cancellation.dart';
+import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/create_post_command.dart';
 import '../../domain/usecases/get_posts_query.dart';
@@ -14,7 +15,7 @@ import '../posts_revision.dart';
 // One `AsyncSignal` per use case, each published as a `ReadonlySignal`. See
 // `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
-class PostsHomeViewModel {
+class PostsHomeViewModel implements ViewModel {
   PostsHomeViewModel(this._dispatcher, this._revision) {
     // `subscribe` calls back once, straight away, with the revision this page
     // mounted at. That call is the mount and not a write above it — the read it
@@ -117,6 +118,7 @@ class PostsHomeViewModel {
   // revision bumped on the way out cannot start a read. A signal that has been
   // disposed *throws* on a write, which is why every write above checks the flag
   // first.
+  @override
   void dispose() {
     _isDisposed = true;
     _revisionSubscription();

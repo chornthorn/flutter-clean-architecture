@@ -158,6 +158,11 @@ holds **one `AsyncSignal` per use case**, each published as a `ReadonlySignal` s
 only the view model can push state into it. The page resolves it once with
 `context.read<T>()` and rebuilds through `SignalBuilder` from the signals it reads.
 
+Every view model `implements ViewModel` (`core/presentation/view_model.dart`). That
+is an `interface class` with a single method — `dispose()` — and it is deliberately
+the only thing view models share: what a view model holds and how it writes to it is
+written out in each class rather than inherited.
+
 A use case's lifecycle then belongs to that use case alone: on the post detail, a
 save that failed cannot put the read into an error state, and a delete on the wire
 is not read as a load. Four things follow, and each one is a way to get this wrong:

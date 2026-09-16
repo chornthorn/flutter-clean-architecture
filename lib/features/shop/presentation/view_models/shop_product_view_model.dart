@@ -2,6 +2,7 @@ import 'package:cqrs/cqrs.dart';
 import 'package:injectify/injectify.dart';
 import 'package:signals/signals_flutter.dart';
 
+import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/usecases/add_product_to_cart_command.dart';
 import '../../domain/usecases/get_cart_query.dart';
@@ -16,7 +17,7 @@ import '../../domain/usecases/get_product_query.dart';
 // One `AsyncSignal` per use case, each published as a `ReadonlySignal`. See
 // `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
-class ShopProductViewModel {
+class ShopProductViewModel implements ViewModel {
   ShopProductViewModel(this._dispatcher);
 
   final CqrsDispatcher _dispatcher;
@@ -94,6 +95,7 @@ class ShopProductViewModel {
   //
   // A signal that has been disposed *throws* on a write, which is why the writes
   // above check the flag first.
+  @override
   void dispose() {
     _isDisposed = true;
     _product.dispose();

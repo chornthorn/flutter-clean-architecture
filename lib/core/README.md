@@ -19,6 +19,10 @@ lib/core/
   async/
     cancellation.dart       the signal a screen hands down with its reads, so a
                             request is dropped when the screen goes away
+  presentation/
+    view_model.dart         the lifecycle a page's state holder owes the route
+                            that owns it — the one interface every view model
+                            implements, and nothing else
   storage/                  arrives with the first persisted data: the database or
                             key-value stack features' repositories sit on
 ```

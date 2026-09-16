@@ -3,6 +3,7 @@ import 'package:injectify/injectify.dart';
 import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/async/cancellation.dart';
+import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/delete_post_command.dart';
 import '../../domain/usecases/get_post_query.dart';
@@ -18,7 +19,7 @@ import '../posts_revision.dart';
 // editing and deleting have separate lifecycles, so a failed save cannot put the
 // read into an error state. See `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
-class PostDetailViewModel {
+class PostDetailViewModel implements ViewModel {
   PostDetailViewModel(this._dispatcher, this._revision);
 
   final CqrsDispatcher _dispatcher;
@@ -131,6 +132,7 @@ class PostDetailViewModel {
   // drops finds the view model already closed and writes nothing back. A signal
   // that has been disposed *throws* on a write, which is why every write above
   // checks the flag first.
+  @override
   void dispose() {
     _isDisposed = true;
     _cancellation.cancel();
