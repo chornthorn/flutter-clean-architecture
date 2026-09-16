@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/app/app_codec.dart';
 import 'package:flutter_x/app/app_route.dart';
+import 'package:flutter_x/features/posts/posts_module.dart';
 import 'package:flutter_x/features/settings/settings_module.dart';
 import 'package:flutter_x/features/shop/shop_module.dart';
 import 'package:kaisel/kaisel.dart';
@@ -60,6 +61,32 @@ void main() {
       );
     });
 
+    test('should map the posts URL to the posts mount', () {
+      expect(
+        appCodec.decode(Uri.parse('/posts')),
+        KaiselConfig<AppRoute>(
+          mainStack: const [PostsMount()],
+          nestedState: KaiselModuleConfig(stack: const [PostsHome()]),
+        ),
+      );
+    });
+
+    test('should map a post URL to the detail above the module root', () {
+      expect(
+        appCodec.decode(Uri.parse('/posts/7')),
+        KaiselConfig<AppRoute>(
+          mainStack: const [PostsMount()],
+          nestedState: KaiselModuleConfig(
+            stack: const [PostsHome(), PostDetail(7)],
+          ),
+        ),
+      );
+    });
+
+    test('should not claim a post path whose id is not a number', () {
+      expect(appCodec.decode(Uri.parse('/posts/all')), isNull);
+    });
+
     test('should return null for an unknown host path', () {
       expect(appCodec.decode(Uri.parse('/nope')), isNull);
     });
@@ -79,6 +106,8 @@ void main() {
       '/shop/cart',
       '/settings',
       '/settings/about',
+      '/posts',
+      '/posts/7',
     ];
 
     for (final path in paths) {

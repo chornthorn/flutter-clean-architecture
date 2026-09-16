@@ -33,6 +33,11 @@ class HomeView extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             OutlinedButton(
+              onPressed: () => context.push(const PostsMount()),
+              child: const Text('Open posts'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
               onPressed: () => context.push(const SettingsMount()),
               child: const Text('Open settings'),
             ),

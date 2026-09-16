@@ -24,6 +24,8 @@ lib/
     app_page_builder.dart            marker route -> feature mount
     app_codec.dart                   host URL codec + module mounts
   core/                              shared foundation (see core/README.md)
+    networking/
+      network_client.dart           the Dio every feature's endpoints shares
     design_system/
       theme-spec.schema.json
       app.tokens.json                the token values, per mode
@@ -45,15 +47,15 @@ lib/
 | `App/AppCoordinator.swift` | `lib/app/app_route.dart`, `app_page_builder.dart`, plus each `features/<name>/<name>_module.dart` | Kaisel supplies the coordination machinery. Each feature owns a router because a kaisel `RouteModule` is the mountable unit — there is no single app-level coordinator. |
 | `App/DependencyContainer.swift` | `lib/provider.dart`, plus `features/<name>/<name>_module.dart` | `injectify` + `get_it`: one root container that composes a folder-scoped micro-package per feature. A feature's registrations are reachable only through its own module. Kept at the `lib/` root rather than inside `app/` so a feature's module does not import the app layer. It also carries `@CqrsInit`, so the app's composition sits in one file. |
 | `Core/DesignSystem/` | `lib/core/design_system/` | Tokens (`app.tokens.json`) compiled to `app_theme.g.dart` by `design_builder`. `components/` arrives with the second feature needing the same control. |
-| `Core/Networking/` | `lib/core/networking/` | Not created — no HTTP call exists yet. |
+| `Core/Networking/` | `lib/core/networking/` | `network_client.dart` builds the one `Dio` every feature's endpoints share, with its timeouts and base URL. Bound in `provider.dart`, so features take it from the container rather than importing this. |
 | `Core/Storage/` | `lib/core/storage/` | Not created — nothing is persisted yet. |
 | `Features/Leads/Presentation/Views/` | `features/<name>/presentation/views/` | `LeadListView.swift` → `shop_home_view.dart`. |
 | `.../Presentation/ViewModels/` | `presentation/view_models/` | `ChangeNotifier`s, one per view. |
 | `.../Domain/Entities/` | `domain/entities/` | |
 | `.../Domain/UseCases/` | `domain/usecases/` | A use case is a query (or command) plus its handler, in one file. Both live in Domain — there is no separate application layer. |
 | `.../Domain/Repositories/` | `domain/repositories/` | The interface definition; the concrete type goes in Infrastructure. |
-| `.../Infrastructure/DTOs/` | `infrastructure/dtos/` | Not created — no response differs from an entity yet. |
-| `.../Infrastructure/Endpoints/` | `infrastructure/endpoints/` | Not created — no endpoints yet. |
+| `.../Infrastructure/DTOs/` | `infrastructure/dtos/` | The wire shape, hand-mapped when the payload is flat — see `posts/infrastructure/dtos/`. |
+| `.../Infrastructure/Endpoints/` | `infrastructure/endpoints/` | A `@RestApi` interface; `retrofit_generator` writes the implementation into a `.g.dart` beside it. |
 | `.../Infrastructure/Repositories/` | `infrastructure/repositories/` | The concrete implementation. |
 
 ## Rules
@@ -91,23 +93,36 @@ Each of these lands with its trigger. Adding them earlier is ceremony — and
 because git does not track empty directories, an unused folder would not even
 survive a clone without a placeholder file:
 
-- `core/networking/`, `core/storage/` — arrive with the first HTTP call and the
-  first persisted data.
-- `infrastructure/dtos/`, `infrastructure/endpoints/` — arrive with the first
-  response that differs from an entity, and the first endpoint.
+- `core/storage/` — arrives with the first persisted data.
 - `core/design_system/components/` — arrives with the second feature that needs
   the same control. Until then, feature-local widgets live in
   `presentation/widgets/`.
 - **App-level bindings live in `lib/provider.dart`**, next to the container rather
   than in a feature's micro-package, and only through an `@ExternalModule`. The
-  CQRS dispatcher is the first; a shared HTTP client or a database from `core/`
-  joins it when that infrastructure arrives.
+  CQRS dispatcher and the HTTP client are there; a database from `core/` joins
+  them when that infrastructure arrives.
 
 ## Dependency injection
 
 `injectify` + `get_it`, code-generated. `lib/provider.dart` is the container, and
-`main()` awaits `configureDependencies()` before the first frame —
+`main()` awaits `configureDependencies(environment: ...)` before the first frame —
 a missing registration surfaces as a build-time throw rather than a silent null.
+
+### Environments
+
+A feature can bind a different adapter per environment, and `posts` is the
+reference: `RemotePostRepository` carries `@Environment(Environment.prod)` while
+`InMemoryPostRepository` carries `Environment.dev` and `Environment.test`. The
+generated module emits one `registerFor` per variant, so exactly one binds.
+
+```bash
+flutter run                          # main() defaults to prod: reads over HTTP
+flutter run --dart-define=DI_ENV=dev # the fixture: no network needed
+```
+
+`environment` is **required**, not optional: with none set, injectify registers
+*every* variant and GetIt rejects the second registration of the same type. Passing
+`Environment.test` in tests is what keeps the suite off the network.
 
 Registration is folder-scoped. `features/<name>/<name>_module.dart` declares an
 `@InjectableMicroPackage`, and every `@Injectable` class under that feature
@@ -142,7 +157,7 @@ Regenerate after adding or changing an annotation — see
 
 ## Generated sources
 
-Three generators write Dart into `lib/`, and **none of their output is
+Four generators write Dart into `lib/`, and **none of their output is
 committed**:
 
 | Output | Written by | Driven by |
@@ -150,6 +165,7 @@ committed**:
 | `*.config.dart` | `injectify_generator` | `build.yaml`, the `@Injectable*` annotations |
 | `*.cqrs.dart` | `cqrs_codegen` | the `@CqrsInit` / `@CqrsMicroPackage` annotations |
 | `app_theme.g.dart` | `design_builder` | `build.yaml`, `app.tokens.json` |
+| `post_api.g.dart` | `retrofit_generator`, finished by `source_gen` | the `@RestApi` interface |
 
 ```bash
 dart run build_runner build

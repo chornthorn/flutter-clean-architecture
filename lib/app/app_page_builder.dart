@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:kaisel/kaisel.dart';
 
 import '../features/home/home_module.dart';
+import '../features/posts/posts_module.dart';
 import '../features/settings/settings_module.dart';
 import '../features/shop/shop_module.dart';
 import 'app_route.dart';
@@ -13,5 +14,8 @@ Widget buildAppPage(BuildContext context, AppRoute route) => switch (route) {
   ShopMount() => const KaiselModuleMount<ShopRoute>(module: ShopRouterModule()),
   SettingsMount() => const KaiselModuleMount<SettingsRoute>(
     module: SettingsRouterModule(),
+  ),
+  PostsMount() => const KaiselModuleMount<PostsRoute>(
+    module: PostsRouterModule(),
   ),
 };

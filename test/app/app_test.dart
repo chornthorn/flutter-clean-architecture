@@ -3,11 +3,12 @@ import 'package:flutter_x/app/app.dart';
 import 'package:flutter_x/core/design_system/app_theme.g.dart';
 import 'package:flutter_x/provider.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:injectify/injectify.dart';
 
 void main() {
   setUp(() async {
     await getIt.reset();
-    await configureDependencies();
+    await configureDependencies(environment: Environment.test);
   });
 
   testWidgets('should hand the token theme to the screens', (tester) async {

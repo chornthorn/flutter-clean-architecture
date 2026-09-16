@@ -19,6 +19,8 @@ lib/features/<name>/
     usecases/
     repositories/
   infrastructure/             adapters implementing the contracts
+    dtos/                     the wire shape, where one is needed
+    endpoints/                the `@RestApi` calls, where there are any
     repositories/
   presentation/               Flutter UI
     views/                    one view per route
@@ -104,3 +106,8 @@ container.
 - `settings/` — `presentation/` only. Its screens read no state, so `domain/`
   and `infrastructure/` would be empty ceremony; add them when the feature has
   something to load.
+- `posts/` — the remote feature, and the reference for a source that is a choice:
+  `infrastructure/endpoints/` holds the `@RestApi` calls, `dtos/` the wire shape,
+  and `repositories/` two adapters for one contract — an HTTP one wired in `prod`
+  and an in-memory fixture wired in `dev` and `test`. Reachable at `/posts`, with
+  a detail route at `/posts/<id>`.

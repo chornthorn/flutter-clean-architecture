@@ -5,13 +5,15 @@ it — one feature's code belongs inside that feature.
 
 ```
 lib/core/
+  networking/
+    network_client.dart  the Dio every feature's endpoints shares, with its
+                         timeouts and base URL. Bound in `provider.dart` —
+                         features take it from the container, not from here.
   design_system/
     theme-spec.schema.json  names the token groups design_builder parses
     app.tokens.json         the token values, per mode — edit here
     app_theme.g.dart        generated — AppTheme and its provider
     components/             arrives with the second feature that needs the same control
-  networking/               arrives with the first HTTP call: a base client and
-                            interceptors shared by every feature's endpoints
   storage/                  arrives with the first persisted data: the database or
                             key-value stack features' repositories sit on
 ```

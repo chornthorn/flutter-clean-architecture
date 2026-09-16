@@ -1,5 +1,6 @@
 import 'package:kaisel/kaisel.dart';
 
+import '../features/posts/posts_module.dart';
 import '../features/settings/settings_module.dart';
 import '../features/shop/shop_module.dart';
 import 'app_route.dart';
@@ -28,6 +29,7 @@ class BaseAppCodec extends KaiselConfigCodec<AppRoute> {
       HomeMount() => Uri(path: '/'),
       ShopMount() => Uri(path: '/shop'),
       SettingsMount() => Uri(path: '/settings'),
+      PostsMount() => Uri(path: '/posts'),
     };
   }
 }
@@ -52,6 +54,11 @@ const appCodec = ConfigCodecWithModules<AppRoute>(
       mountRoute: SettingsMount(),
       prefix: '/settings',
       codec: SettingsRouteCodec(),
+    ),
+    ModuleMount(
+      mountRoute: PostsMount(),
+      prefix: '/posts',
+      codec: PostsRouteCodec(),
     ),
   ],
 );

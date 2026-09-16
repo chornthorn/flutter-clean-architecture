@@ -6,6 +6,7 @@ import 'package:flutter_x/features/shop/domain/repositories/product_repository.d
 import 'package:flutter_x/features/shop/domain/usecases/add_product_to_cart_command.dart';
 import 'package:flutter_x/features/shop/domain/usecases/get_cart_query.dart';
 import 'package:flutter_x/provider.dart';
+import 'package:injectify/injectify.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'domain/entities/product_fixture.dart';
@@ -16,7 +17,7 @@ void main() {
 
   setUp(() async {
     await getIt.reset();
-    await configureDependencies();
+    await configureDependencies(environment: Environment.test);
 
     // Swap the adapter for a mock, leaving the domain contract intact.
     repository = MockProductRepository();

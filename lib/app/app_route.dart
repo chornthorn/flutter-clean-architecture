@@ -17,3 +17,7 @@ final class ShopMount extends AppRoute {
 final class SettingsMount extends AppRoute {
   const SettingsMount();
 }
+
+final class PostsMount extends AppRoute {
+  const PostsMount();
+}

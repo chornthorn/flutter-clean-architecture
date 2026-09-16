@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/app/app.dart';
 import 'package:flutter_x/provider.dart';
+import 'package:injectify/injectify.dart';
 
 void main() {
   setUp(() async {
     // The app resolves its dependencies from the container, so a test that pumps
-    // it has to build one first.
+    // it has to build one first — in `test`, where the posts feature reads its
+    // in-memory adapter instead of the network.
     await getIt.reset();
-    await configureDependencies();
+    await configureDependencies(environment: Environment.test);
   });
 
   testWidgets('should navigate into a feature, within it, and back out', (
@@ -63,6 +65,27 @@ void main() {
 
     // At the feature's root the exit action pops the mount off the host stack.
     await tester.tap(find.byTooltip('Exit shop'));
+    await tester.pumpAndSettle();
+    expect(find.text('kaisel features'), findsOneWidget);
+
+    // The posts feature is the same shape over a different source: in `test` the
+    // container binds its in-memory adapter, so this touches no network.
+    await tester.tap(find.text('Open posts'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'Posts'), findsOneWidget);
+    expect(find.text('First post'), findsOneWidget);
+
+    await tester.tap(find.text('First post'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'Post 1'), findsOneWidget);
+    expect(find.text('The first post in the local fixture.'), findsOneWidget);
+
+    // Back to the list, where the exit action lives.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'Posts'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Exit posts'));
     await tester.pumpAndSettle();
     expect(find.text('kaisel features'), findsOneWidget);
   });

@@ -25,6 +25,11 @@ in the mirrored folder of whatever it stands in for:
 | `features/shop/domain/repositories/mock_audit_log.dart` | `AuditLog` |
 | `features/shop/shop_dispatcher_fixture.dart` | the shop's message path: a real dispatcher over the generated handler module |
 | `features/shop/presentation/views/view_host.dart` | mounts a page under a provider, in the app's token theme |
+| `features/posts/presentation/views/view_host.dart` | the same, for the posts pages |
+| `features/posts/domain/entities/post_fixture.dart` | the canonical `Post` |
+| `features/posts/domain/repositories/mock_post_repository.dart` | `PostRepository` |
+| `features/posts/posts_dispatcher_fixture.dart` | the posts message path: a real dispatcher over the generated handler module |
+| `features/posts/infrastructure/repositories/remote_post_repository_test.dart` | a fake `HttpClientAdapter`, so the generated client is exercised with no socket |
 
 Mocks come from `mocktail`, and they mock the **domain contract**, never the
 adapter: a test that stubs `ProductRepository` keeps passing when
@@ -62,6 +67,12 @@ Two test styles, by layer:
 - **Domain and view models** are plain Dart: build the class, call it, assert.
   No widgets, no container.
 - **Views** are pumped under `hostPage(...)` from
-  `features/shop/presentation/views/view_host.dart`, which mounts a provider the
+  `features/<name>/presentation/views/view_host.dart`, which mounts a provider the
   way the feature's module does. No container there either — pass the view model
   you built.
+
+**The container is built in `test`, never `prod`.** `configureDependencies`
+requires an environment, and `Environment.test` is the one that binds the
+in-memory posts adapter — which is what keeps the suite off the network. The one
+place an adapter's class name may appear is a test asserting the *binding* itself
+(`features/posts/posts_module_test.dart`).
