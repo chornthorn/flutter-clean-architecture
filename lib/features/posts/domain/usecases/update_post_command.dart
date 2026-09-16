@@ -4,7 +4,6 @@ import 'package:injectify/injectify.dart';
 import '../entities/post.dart';
 import '../repositories/post_repository.dart';
 
-// Edits an existing post.
 class UpdatePostCommand extends Command<Post> {
   const UpdatePostCommand({
     required this.id,
@@ -17,8 +16,7 @@ class UpdatePostCommand extends Command<Post> {
   final String body;
 }
 
-// The same rule as create, from the same place: `cleanedTitle` is what stops the
-// two write paths from drifting apart.
+// The same title rule as create, from the same place: `cleanedTitle`.
 @Injectable(scope: Scope.factory)
 class UpdatePostCommandHandler
     implements CommandHandler<UpdatePostCommand, Post> {

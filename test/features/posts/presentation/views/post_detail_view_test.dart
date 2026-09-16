@@ -149,8 +149,7 @@ void main() {
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
-      // The page reads the write's own state, so neither action starts a second
-      // one while the first is unanswered.
+      // The page reads the write's own state, so neither action starts a second one.
       expect(
         tester
             .widget<IconButton>(

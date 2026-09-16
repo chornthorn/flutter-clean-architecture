@@ -11,8 +11,7 @@ import 'domain/repositories/mock_post_repository.dart';
 import 'posts_dispatcher_fixture.dart';
 
 void main() {
-  // The generated module is the only thing binding a message to its handler. A
-  // message it fails to register throws HandlerNotFoundException at dispatch.
+  // The generated module binds each message to its handler; a miss throws at dispatch.
   group('PostsCqrsModule', () {
     late MockPostRepository repository;
 

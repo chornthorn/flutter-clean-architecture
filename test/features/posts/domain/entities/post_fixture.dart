@@ -1,7 +1,6 @@
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
 
-// The canonical post tests build on, so ids stay consistent across files. It
-// matches the in-memory adapter's first row.
+// The canonical post: it matches the in-memory adapter's first row, so ids stay consistent.
 const post = Post(
   id: 1,
   userId: 1,

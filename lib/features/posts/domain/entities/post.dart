@@ -1,7 +1,4 @@
 // A post from the catalog at jsonplaceholder.typicode.com.
-//
-// Plain Dart: the shape a screen needs, not the shape the API returns — that
-// mapping belongs in `infrastructure/`.
 class Post {
   const Post({
     required this.id,
@@ -31,8 +28,7 @@ class Post {
   String toString() => 'Post($id, $title)';
 }
 
-// The one rule a title has to satisfy, wherever a post is written. It lives with
-// the entity rather than in each command, so create and update cannot drift.
+// The one title rule; it lives with the entity so create and update cannot drift.
 String cleanedTitle(String title) {
   final cleaned = title.trim();
   if (cleaned.isEmpty) {

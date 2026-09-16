@@ -42,8 +42,7 @@ void main() {
 
       await viewModel.load(999);
 
-      // A value that is null is a value: the page tells a missing post from a
-      // failed read by the state, not by the error.
+      // A null value is a value: a missing post is told from a failed read by the state.
       expect(viewModel.post.value, AsyncState<Post?>.data(null));
       expect(viewModel.post.value.hasError, isFalse);
       expect(viewModel.post.value.isLoading, isFalse);
@@ -73,14 +72,12 @@ void main() {
 
       expect(viewModel.update.value.isLoading, isFalse);
       expect(viewModel.delete.value.isLoading, isFalse);
-      // The read is the one that starts in flight, which is what the page
-      // renders first.
+      // The read is the one that starts in flight — what the page renders first.
       expect(viewModel.post.value.isLoading, isTrue);
     });
 
     test('should edit through the command and re-read the post', () async {
-      // A real store: the new title shows up only if the command wrote it and the
-      // reload read it back.
+      // A real store: the title changes only if the command wrote it and the reload read it back.
       final store = InMemoryPostRepository();
       final viewModel = PostDetailViewModel(postsDispatcher(store));
       addTearDown(viewModel.dispose);
@@ -125,8 +122,7 @@ void main() {
 
         expect(saved, isFalse);
         expect(viewModel.update.value.hasError, isTrue);
-        // What was on screen is untouched — and the read it came from is not the
-        // use case that failed, so its state is untouched too.
+        // What was on screen is untouched, and so is the read's state: another use case failed.
         expect(viewModel.post.value.value, post);
         expect(viewModel.post.value.hasError, isFalse);
       },
@@ -180,8 +176,7 @@ void main() {
 
         final deleting = viewModel.deletePost();
 
-        // Which write is on the wire is read off the use case it belongs to, and
-        // no other state reports it.
+        // Which write is on the wire is read off its own use case, and no other state reports it.
         expect(viewModel.delete.value.isLoading, isTrue);
         expect(viewModel.update.value.isLoading, isFalse);
         expect(viewModel.post.value.isLoading, isFalse);
@@ -201,14 +196,12 @@ void main() {
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((invocation) {
         walkedAway = invocation.namedArguments[#cancellation] as Cancellation?;
-        // Stands in for the transport: the read answers only once the page has
-        // gone, and it answers with a dropped request rather than with data.
+        // The read answers only once the page has gone, and with a dropped request.
         return walkedAway!.then((_) => throw Exception('dropped'));
       });
 
       final viewModel = PostDetailViewModel(postsDispatcher(repository));
-      // Everything the read pushed, so this can be checked after the signals it
-      // pushed to have been disposed with the page.
+      // Everything the read pushed, checked after its signals died with the page.
       final pushed = <AsyncState<Post?>>[];
       addTearDown(viewModel.post.subscribe(pushed.add));
 
@@ -219,8 +212,7 @@ void main() {
       viewModel.dispose();
       await load;
 
-      // A dropped read is not a failure, and there is nobody left to tell: the
-      // only state it ever pushed is the loading state it started in.
+      // A dropped read is not a failure: it only ever pushed the loading state it started in.
       expect(pushed, isNotEmpty);
       expect(pushed.every((state) => state.isLoading), isTrue);
     });

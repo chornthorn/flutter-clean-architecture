@@ -1,7 +1,6 @@
 import 'package:kaisel/kaisel.dart';
 
-// The host's routes: one mount marker per feature, and nothing else. Each
-// feature's own routes live in its own sealed type.
+// The host's sealed route family: one mount marker per feature.
 sealed class AppRoute extends KaiselRoute {
   const AppRoute();
 }

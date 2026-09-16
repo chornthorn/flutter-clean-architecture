@@ -2,8 +2,7 @@ import 'package:injectify/injectify.dart';
 
 import '../../domain/repositories/audit_log.dart';
 
-// Appends to a list that lives as long as the app does. `entries()` hands back a
-// copy, so a reader cannot append through it.
+// Appends to a list that lives as long as the app does.
 @Injectable(as: AuditLog, scope: Scope.lazySingleton)
 class InMemoryAuditLog implements AuditLog {
   final List<String> _entries = [];

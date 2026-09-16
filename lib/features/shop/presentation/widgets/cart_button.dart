@@ -3,8 +3,7 @@ import 'package:kaisel/kaisel.dart';
 
 import '../../shop_module.dart';
 
-// AppBar action that opens the cart. `ShopCart` is a `ShopRoute`, so this pushes
-// inside the feature, the way a product tile does.
+// AppBar action that opens the cart.
 class CartButton extends StatelessWidget {
   const CartButton({super.key});
 

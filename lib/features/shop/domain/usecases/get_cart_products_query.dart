@@ -10,8 +10,7 @@ class GetCartProductsQuery extends Query<List<Product>> {
   const GetCartProductsQuery();
 }
 
-// A read that spans two aggregates: the cart knows ids, the catalog knows
-// products, and neither alone answers what is in the cart.
+// Spans two aggregates: the cart knows ids, the catalog knows products.
 @Injectable(scope: Scope.factory)
 class GetCartProductsQueryHandler
     implements QueryHandler<GetCartProductsQuery, List<Product>> {
@@ -24,8 +23,8 @@ class GetCartProductsQueryHandler
   Future<List<Product>> execute(GetCartProductsQuery query) async {
     final ids = (await _cart.cart()).productIds;
 
-    // Looked up together rather than one after another. A batch read belongs on
-    // `ProductRepository` once an adapter makes one call per id expensive.
+    // Looked up together rather than one after another; a batch read belongs on
+    // `ProductRepository` once one call per id is expensive.
     final found = await Future.wait(ids.map(_products.productById));
 
     // An id the catalog no longer has is dropped, not shown as a gap.

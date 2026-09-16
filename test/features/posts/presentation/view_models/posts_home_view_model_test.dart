@@ -58,8 +58,7 @@ void main() {
     );
 
     test('should create through the command and re-read the list', () async {
-      // A real store: the post shows up in the list only if the command wrote it
-      // and the reload read it back.
+      // A real store: the post shows up only if the command wrote it and the reload read it back.
       final store = InMemoryPostRepository();
       final viewModel = PostsHomeViewModel(postsDispatcher(store));
       addTearDown(viewModel.dispose);
@@ -106,8 +105,7 @@ void main() {
 
         expect(created, isFalse);
         expect(viewModel.create.value.hasError, isTrue);
-        // The list it already had is untouched — and so is the read's own state,
-        // because the write is not the use case that failed.
+        // The list is untouched, and so is the read's state: another use case failed.
         expect(viewModel.posts.value.value, const [post]);
         expect(viewModel.posts.value.hasError, isFalse);
       },
@@ -120,14 +118,12 @@ void main() {
         () => repository.allPosts(cancellation: any(named: 'cancellation')),
       ).thenAnswer((invocation) {
         walkedAway = invocation.namedArguments[#cancellation] as Cancellation?;
-        // Stands in for the transport: the read answers only once the page has
-        // gone, and it answers with a dropped request rather than with data.
+        // The read answers only once the page has gone, and with a dropped request.
         return walkedAway!.then((_) => throw Exception('dropped'));
       });
 
       final viewModel = PostsHomeViewModel(postsDispatcher(repository));
-      // Everything the read pushed, so this can be checked after the signals it
-      // pushed to have been disposed with the page.
+      // Everything the read pushed, checked after its signals died with the page.
       final pushed = <AsyncState<List<Post>>>[];
       addTearDown(viewModel.posts.subscribe(pushed.add));
 
@@ -138,8 +134,7 @@ void main() {
       viewModel.dispose();
       await load;
 
-      // A dropped read is not a failure, and there is nobody left to tell: the
-      // only state it ever pushed is the loading state it started in.
+      // A dropped read is not a failure: it only ever pushed the loading state it started in.
       expect(pushed, isNotEmpty);
       expect(pushed.every((state) => state.isLoading), isTrue);
     });

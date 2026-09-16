@@ -12,9 +12,7 @@ import 'domain/entities/post_fixture.dart';
 void main() {
   setUp(() async => getIt.reset());
 
-  // The feature's point is that its source is a choice, not a fact, so which
-  // adapter each environment gets is worth pinning — the rest of the suite
-  // depends on it, and a wrong binding would only show up as a network call.
+  // The feature's source is a choice, so which adapter each environment gets is pinned here.
   group('PostRepository binding', () {
     test('should read the fixture in dev', () async {
       await configureDependencies(environment: Environment.dev);

@@ -12,7 +12,6 @@ import '../repositories/mock_product_repository.dart';
 
 void main() {
   group('AddProductToCartCommandHandler', () {
-    // mocktail needs a fallback before `any()` can match a `Cart` argument.
     setUpAll(() => registerFallbackValue(const Cart.empty()));
 
     late MockProductRepository products;
@@ -27,9 +26,6 @@ void main() {
       auditLog = MockAuditLog();
       when(() => auditLog.append(any())).thenAnswer((_) async {});
 
-      // The handler publishes through the dispatcher in production, so the test
-      // gives it one — with only the audit handler registered, which is what
-      // makes the publish observable.
       final dispatcher = CqrsDispatcher()
         ..registry.registerEvent<ProductAddedToCartEvent>(
           () => ProductAddedToCartAuditHandler(auditLog),
@@ -59,7 +55,6 @@ void main() {
         throwsArgumentError,
       );
 
-      // Nothing was written and nothing was announced.
       verifyNever(() => cart.save(any()));
       verifyNever(() => auditLog.append(any()));
     });

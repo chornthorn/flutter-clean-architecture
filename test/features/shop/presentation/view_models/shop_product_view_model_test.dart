@@ -11,7 +11,6 @@ import '../../domain/repositories/mock_product_repository.dart';
 import '../../shop_dispatcher_fixture.dart';
 
 void main() {
-  // mocktail needs a fallback before `any()` can match a `Cart` argument.
   setUpAll(() => registerFallbackValue(const Cart.empty()));
 
   group('ShopProductViewModel', () {
@@ -44,8 +43,7 @@ void main() {
 
         await viewModel.load('no-such-sku');
 
-        // A value that is null is a value: the page tells a missing product from
-        // a failed read by the state, not by the error.
+        // A null product is a value: the page tells it from a failure by the state.
         expect(viewModel.product.value, AsyncState<Product?>.data(null));
         expect(viewModel.product.value.hasError, isFalse);
         expect(viewModel.product.value.isLoading, isFalse);
@@ -108,8 +106,7 @@ void main() {
         () => repository.productById('sku-42'),
       ).thenAnswer((_) async => product);
 
-      // Real cart and audit log: the count is read back through the query, so a
-      // command that failed to write shows up here as a stale count.
+      // Real cart: the count is read back, so a write that failed shows as stale.
       final viewModel = ShopProductViewModel(shopDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');
@@ -144,8 +141,7 @@ void main() {
 
       expect(viewModel.add.value.hasError, isTrue);
       expect(viewModel.cartCount.value, 0);
-      // What was on screen is untouched — and the read it came from is not the
-      // use case that failed, so its state is untouched too.
+      // The read is untouched: the use case that failed is the add, not the read.
       expect(viewModel.product.value.value, product);
       expect(viewModel.product.value.hasError, isFalse);
     });

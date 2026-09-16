@@ -92,8 +92,7 @@ void main() {
     });
 
     test('should return null for an unknown path inside a module prefix', () {
-      // A URL under /shop belongs to the shop namespace; the composer must
-      // not silently hand it to the base codec.
+      // It belongs to that module: the base codec must not claim it.
       expect(appCodec.decode(Uri.parse('/shop/nope')), isNull);
     });
   });

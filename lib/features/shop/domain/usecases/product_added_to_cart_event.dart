@@ -3,8 +3,7 @@ import 'package:injectify/injectify.dart';
 
 import '../repositories/audit_log.dart';
 
-// Raised after a product is in the cart, for whoever cares about that. Past
-// tense by convention: an event is something that already happened.
+// Raised once a product is in the cart.
 class ProductAddedToCartEvent extends Event {
   const ProductAddedToCartEvent(this.productId, this.itemCount);
 
@@ -12,8 +11,7 @@ class ProductAddedToCartEvent extends Event {
   final int itemCount;
 }
 
-// Named for its role, not for the event: a second reaction to the same event is
-// another handler beside this one, and the dispatcher runs them all.
+// The audit reaction to the event.
 @Injectable(scope: Scope.factory)
 class ProductAddedToCartAuditHandler
     implements EventHandler<ProductAddedToCartEvent> {

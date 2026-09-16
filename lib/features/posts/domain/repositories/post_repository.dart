@@ -1,22 +1,17 @@
 import '../../../../core/async/cancellation.dart';
 import '../entities/post.dart';
 
-// What the posts feature needs from its data source. Implemented twice: once over
-// HTTP and once in memory, so the feature runs with or without a network.
+// What the posts feature needs from its data source.
 //
-// Every method takes a [Cancellation], because every path down to the wire can be
-// dropped. Whether a caller *should* drop one is a separate question: a read
-// dropped on the way out only wastes an answer nobody would have seen, while a
-// write dropped mid-flight may still land on the server — so the shipped callers
-// hand a token to reads and let writes finish. See `core/README.md`.
+// Every method carries a token, because any request can be dropped; whether a caller
+// should drop one is the caller's call. See `core/README.md`.
 abstract interface class PostRepository {
   Future<List<Post>> allPosts({Cancellation? cancellation});
 
-  // `null` when the source has no such post.
+  // `null` means the source has no such post.
   Future<Post?> postById(int id, {Cancellation? cancellation});
 
-  // Stores a new post and answers with what the store recorded — including the id
-  // the store assigned.
+  // Answers with what the store recorded, the assigned id included.
   Future<Post> createPost({
     required int userId,
     required String title,
@@ -24,8 +19,7 @@ abstract interface class PostRepository {
     Cancellation? cancellation,
   });
 
-  // Replaces the title and body of an existing post and answers with what the
-  // store recorded. The author does not change.
+  // Answers with what the store recorded; the author does not change.
   Future<Post> updatePost({
     required int id,
     required String title,
@@ -33,6 +27,6 @@ abstract interface class PostRepository {
     Cancellation? cancellation,
   });
 
-  // Removes a post. Deleting one that is already gone is not a failure.
+  // Deleting one that is already gone is not a failure.
   Future<void> deletePost(int id, {Cancellation? cancellation});
 }

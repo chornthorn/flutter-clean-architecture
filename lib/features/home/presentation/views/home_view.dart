@@ -6,8 +6,7 @@ import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_scaffold.dart';
 
-// The app's landing screen. Each button pushes a mount marker; the feature
-// behind it supplies the screens from there.
+// The app's landing screen; each button pushes a feature's mount marker.
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
 

@@ -17,12 +17,8 @@ final class SettingsAbout extends SettingsRoute {
   const SettingsAbout();
 }
 
-// The settings feature as a kaisel module.
-//
-// Its screens read no state, so it has no `domain/` or `infrastructure/` layer
-// and nothing to register with the container yet.
-//
-// Keep it `const` — see `HomeRouterModule`.
+// The settings feature as a kaisel module. Keep it `const`: a new instance would
+// drop the module's navigation state.
 class SettingsRouterModule extends RouteModule<SettingsRoute> {
   const SettingsRouterModule();
 
@@ -40,12 +36,11 @@ class SettingsRouterModule extends RouteModule<SettingsRoute> {
   ModuleStackCodec<SettingsRoute> get codec => const SettingsRouteCodec();
 }
 
-// URL mapping under the `/settings` mount prefix. See `ShopRouteCodec` for the
-// conventions both features follow.
+// URL mapping under the `/settings` mount prefix.
 class SettingsRouteCodec extends ModuleStackCodec<SettingsRoute> {
   const SettingsRouteCodec();
 
-  // Same guard as `ShopRouteCodec.encodeAny`, same reason.
+  // The composer can hand this another feature's stack for one frame.
   @override
   List<String> encodeAny(List<KaiselRoute> stack) {
     final top = stack.last;

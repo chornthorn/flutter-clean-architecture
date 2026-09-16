@@ -18,8 +18,7 @@ class SettingsHomeView extends StatelessWidget {
     return AppScaffold(
       title: const Text('Settings'),
       actions: [
-        // The feature's inner navigator has nothing to pop here, so this
-        // leaves the feature.
+        // The inner navigator is at its root, so this pops the host stack.
         IconButton(
           onPressed: () => context.router<AppRoute>().pop(),
           icon: const Icon(Icons.close),

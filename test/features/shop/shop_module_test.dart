@@ -19,7 +19,6 @@ void main() {
     await getIt.reset();
     await configureDependencies(environment: Environment.test);
 
-    // Swap the adapter for a mock, leaving the domain contract intact.
     repository = MockProductRepository();
     when(
       () => repository.allProducts(),
@@ -32,9 +31,7 @@ void main() {
     getIt.registerLazySingleton<ProductRepository>(() => repository);
   });
 
-  // The dispatcher, the handler factories and the repositories behind them are
-  // separate registrations; nothing else proves the container can resolve the
-  // write path end to end.
+  // Nothing else proves the container can resolve the write path end to end.
   test('should resolve the command path and its event handler', () async {
     final dispatcher = getIt<CqrsDispatcher>();
 
@@ -47,8 +44,7 @@ void main() {
     expect(await getIt<AuditLog>().entries(), ['product.added sku-42 items=1']);
   });
 
-  // `verify` replaces a hand-rolled call counter: a second read would mean a
-  // navigation rebuild re-created the list view model.
+  // A second read would mean a navigation rebuild re-created the list view model.
   testWidgets('should load the catalog once per mount, not per rebuild', (
     tester,
   ) async {
@@ -66,8 +62,6 @@ void main() {
 
     expect(find.text('Espresso cup'), findsWidgets);
 
-    // `verify` consumes the calls it matches, so this is asserted once, at the
-    // end — a second call anywhere in the flow fails here.
     verify(() => repository.allProducts()).called(1);
   });
 }

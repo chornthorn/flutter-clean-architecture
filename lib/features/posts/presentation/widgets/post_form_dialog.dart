@@ -4,14 +4,7 @@ import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_failure_line.dart';
 
-// Collects a post and hands it to the page, which owns the write call — so this
-// widget needs no view model and can be tested on its own.
-//
-// One form serves create and edit; what differs is the wording and the text the
-// fields start with.
-//
-// It stays open while the call is in flight, and on failure says so instead of
-// closing and losing what was typed.
+// Collects a post and hands it to the page, which owns the write call.
 class PostFormDialog extends StatefulWidget {
   const PostFormDialog({
     super.key,
@@ -22,7 +15,6 @@ class PostFormDialog extends StatefulWidget {
     this.initialBody = '',
   });
 
-  // The dialog's own title: 'New post' or 'Edit post'.
   final String heading;
 
   final String submitLabel;
@@ -122,8 +114,7 @@ class _PostFormDialogState extends State<PostFormDialog> {
     );
   }
 
-  // The field's own chrome, since `InputDecoration` would otherwise take its
-  // outline and focus colours from the generated scheme.
+  // `InputDecoration` would otherwise take its outline and focus colours from the scheme.
   InputDecoration _fieldDecoration(AppTheme theme, String label) {
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(theme.sizes.radius.md),

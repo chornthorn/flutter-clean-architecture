@@ -1,7 +1,4 @@
-// The shopper's cart: the product ids they have added, oldest first. One entry
-// per add, so the item count is the list length.
-//
-// Immutable — [withProduct] returns a new cart rather than changing this one.
+// The shopper's cart: the ids they added, oldest first, one entry per add.
 class Cart {
   const Cart(this.productIds);
 

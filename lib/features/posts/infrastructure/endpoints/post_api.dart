@@ -7,8 +7,7 @@ import '../dtos/update_post_dto.dart';
 
 part 'post_api.g.dart';
 
-// The feature's endpoints, one method per call. The implementation — paths,
-// query strings, decoding — is generated into the part file.
+// The feature's endpoints; the implementation is generated into the part file.
 @RestApi()
 abstract class PostApi {
   factory PostApi(Dio dio, {String baseUrl}) = _PostApi;

@@ -12,7 +12,6 @@ import '../../domain/repositories/mock_product_repository.dart';
 import '../../shop_dispatcher_fixture.dart';
 
 void main() {
-  // mocktail needs a fallback before `any()` can match a `Cart` argument.
   setUpAll(() => registerFallbackValue(const Cart.empty()));
 
   group('ShopProductView', () {
@@ -60,8 +59,7 @@ void main() {
         () => repository.productById('sku-42'),
       ).thenAnswer((_) async => product);
 
-      // Real cart: the text below the button is the query's answer, so a button
-      // that dispatched nothing would leave it at zero.
+      // Real cart: the count is the query's answer, not the button's.
       final viewModel = ShopProductViewModel(shopDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');

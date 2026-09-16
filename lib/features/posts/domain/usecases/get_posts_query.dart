@@ -5,11 +5,8 @@ import '../../../../core/async/cancellation.dart';
 import '../entities/post.dart';
 import '../repositories/post_repository.dart';
 
-// Lists the posts.
 class GetPostsQuery extends Query<List<Post>> {
-  // The token completes when the screen that asked has gone away. The handler
-  // passes it down, so the read is dropped instead of finishing into a page
-  // nobody is watching.
+  // Completes when the screen that asked has gone away, so the read is dropped with it.
   const GetPostsQuery({this.cancellation});
 
   final Cancellation? cancellation;

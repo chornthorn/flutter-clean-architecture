@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/app/app.dart';
 import 'package:flutter_x/core/design_system/app_theme.g.dart';
 import 'package:flutter_x/provider.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:injectify/injectify.dart';
 
 void main() {
@@ -15,8 +15,6 @@ void main() {
     await tester.pumpWidget(const KaiselApp());
     await tester.pumpAndSettle();
 
-    // `context.theme` throws when no AppTheme is in the theme, so reading a
-    // token here is also the assertion that the extension was attached.
     final theme = _context(tester).theme;
 
     expect(theme.colors.brand.primary, const Color(0xFF4F46E5));
@@ -37,7 +35,6 @@ void main() {
     await tester.tap(find.byTooltip('Toggle theme'));
     await tester.pumpAndSettle();
 
-    // Both halves move: Material's brightness and the token values behind it.
     expect(Theme.of(_context(tester)).brightness, Brightness.dark);
     expect(
       _context(tester).theme.colors.canvas.primary,
@@ -46,7 +43,6 @@ void main() {
   });
 }
 
-// The landing screen's title sits below `MaterialApp`, so its context sees the
-// theme the app handed down.
+// The landing title sits below `MaterialApp`: its context carries the theme.
 BuildContext _context(WidgetTester tester) =>
     tester.element(find.text('kaisel features'));

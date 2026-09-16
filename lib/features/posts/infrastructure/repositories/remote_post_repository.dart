@@ -8,12 +8,7 @@ import '../dtos/create_post_dto.dart';
 import '../dtos/update_post_dto.dart';
 import '../endpoints/post_api.dart';
 
-// Talks to jsonplaceholder over HTTP. Wired in `prod`, where the app has a
-// network; `dev` and `test` get the in-memory adapter instead.
-//
-// Note what the API does *not* do: it echoes a created post back with an id of
-// its own invention and stores nothing, so a later read will not find it. A real
-// backend would persist, and re-reading the list is what a real one rewards.
+// The HTTP adapter. jsonplaceholder stores nothing it is sent — see `lib/features/README.md`.
 @Environment(Environment.prod)
 @Injectable(as: PostRepository, scope: Scope.lazySingleton)
 class RemotePostRepository implements PostRepository {
@@ -35,8 +30,7 @@ class RemotePostRepository implements PostRepository {
         cancelToken: _tokenFor(cancellation),
       )).toDomain();
     } on DioException catch (error) {
-      // The contract's "no such post" is the API's 404. Anything else is a real
-      // failure and belongs to the caller.
+      // The contract's "no such post" is the API's 404; anything else is a real failure.
       if (error.response?.statusCode == 404) return null;
       rethrow;
     }
@@ -82,11 +76,8 @@ class RemotePostRepository implements PostRepository {
     }
   }
 
-  // Where the domain's way of walking away meets the transport's.
-  //
-  // Dropping a request that already answered is a no-op, so a caller that walks
-  // away late costs nothing. `ignore` because the failure a dropped request
-  // raises reaches the caller, who is the one that knows it was a cancellation.
+  // `ignore`: the failure a dropped request raises reaches the caller, which is
+  // the one that knows it was a cancellation.
   CancelToken? _tokenFor(Cancellation? cancellation) {
     if (cancellation == null) return null;
 

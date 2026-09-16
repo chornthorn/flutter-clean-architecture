@@ -79,8 +79,7 @@ void main() {
       when(() => repository.allProducts()).thenAnswer((_) => completer.future);
 
       final viewModel = ShopHomeViewModel(shopDispatcher(repository));
-      // Everything the read pushed, so this can be checked after the signal it
-      // pushed to has been disposed with the page.
+      // Everything the read pushed, checked after the page disposed the signal.
       final pushed = <AsyncState<List<Product>>>[];
       addTearDown(viewModel.products.subscribe(pushed.add));
 
@@ -90,12 +89,10 @@ void main() {
       viewModel.dispose();
       completer.complete(const [product]);
 
-      // An unguarded write would throw `SignalsWriteAfterDisposeError`, which
-      // would complete this future with it.
+      // An unguarded write completes this future with `SignalsWriteAfterDisposeError`.
       await expectLater(load, completes);
 
-      // A read nobody is watching is not a result, and there is nobody left to
-      // tell: the only state it ever pushed is the loading state it started in.
+      // A read nobody is watching is not a result: the only state pushed is loading.
       expect(pushed, isNotEmpty);
       expect(pushed.every((state) => state.isLoading), isTrue);
     });

@@ -6,9 +6,7 @@ import 'package:injectify/injectify.dart';
 
 void main() {
   setUp(() async {
-    // The app resolves its dependencies from the container, so a test that pumps
-    // it has to build one first — in `test`, where the posts feature reads its
-    // in-memory adapter instead of the network.
+    // `Environment.test` is what keeps this suite off the network.
     await getIt.reset();
     await configureDependencies(environment: Environment.test);
   });
@@ -21,43 +19,34 @@ void main() {
 
     expect(find.text('kaisel features'), findsOneWidget);
 
-    // Host stack: [HomeMount, ShopMount] — the feature supplies the screens.
+    // Host stack [HomeMount, ShopMount]: the feature supplies the screens.
     await tester.tap(find.text('Open shop'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Shop'), findsOneWidget);
 
-    // The list arrives through the domain contract and the real in-memory
-    // adapter wired at the composition root.
     expect(find.text('Espresso cup'), findsOneWidget);
 
-    // Pushed on the feature's own router, not the host's. The product view
-    // titles itself with the route's id and shows the domain entity.
     await tester.tap(find.text('Espresso cup'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'sku-42'), findsOneWidget);
     expect(find.text('12.50'), findsOneWidget);
 
-    // The write side, through the container's own dispatcher: the button sends
-    // the command, and the line under it is the cart query's answer.
     expect(find.text('0 in cart'), findsOneWidget);
     await tester.tap(find.text('Add to cart'));
     await tester.pumpAndSettle();
     expect(find.text('1 in cart'), findsOneWidget);
 
-    // The cart screen reads the same cart back, through its own query and the
-    // view model the container builds for it.
     await tester.tap(find.byTooltip('Cart'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Cart'), findsOneWidget);
     expect(find.text('Espresso cup'), findsOneWidget);
     expect(find.text('Total'), findsOneWidget);
 
-    // A back gesture at this depth unwinds one step of the feature's own stack.
+    // Back unwinds the feature's own stack, not the host's.
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('1 in cart'), findsOneWidget);
 
-    // A back gesture at this depth unwinds the feature, not the host stack.
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'sku-42'), findsNothing);
@@ -68,15 +57,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('kaisel features'), findsOneWidget);
 
-    // The posts feature is the same shape over a different source: in `test` the
-    // container binds its in-memory adapter, so this touches no network — and the
-    // writes really land, which is what makes the whole CRUD loop visible here.
     await tester.tap(find.text('Open posts'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Posts'), findsOneWidget);
     expect(find.text('First post'), findsOneWidget);
 
-    // Create.
     await tester.tap(find.byTooltip('New post'));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -88,13 +73,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Added post'), findsOneWidget);
 
-    // Read.
     await tester.tap(find.text('First post'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Post 1'), findsOneWidget);
     expect(find.text('The first post in the local fixture.'), findsOneWidget);
 
-    // Update.
     await tester.tap(find.byTooltip('Edit post'));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -106,15 +89,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Edited post'), findsOneWidget);
 
-    // Back to the list. It was told to re-read while it was hidden, so the edit is
-    // already there — nothing remounted it.
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Posts'), findsOneWidget);
     expect(find.text('Edited post'), findsOneWidget);
     expect(find.text('First post'), findsNothing);
 
-    // Delete, behind a confirmation.
     await tester.tap(find.text('Edited post'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Delete post'));
@@ -123,7 +103,6 @@ void main() {
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
 
-    // The delete popped back to the list, which no longer holds the post.
     expect(find.widgetWithText(AppBar, 'Posts'), findsOneWidget);
     expect(find.text('Edited post'), findsNothing);
     expect(find.text('Added post'), findsOneWidget);

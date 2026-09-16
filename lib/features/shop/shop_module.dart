@@ -11,8 +11,8 @@ import 'presentation/views/shop_cart_view.dart';
 import 'presentation/views/shop_home_view.dart';
 import 'presentation/views/shop_product_view.dart';
 
-// The shop feature's injectify micro-package: every `@Injectable` class under
-// `lib/features/shop/` is registered by this module and by nothing else.
+// The shop feature's entry point: its injectify micro-package, routes and codec —
+// see `lib/features/README.md`.
 @InjectableMicroPackage(moduleName: 'Shop')
 void configureShopModule() {}
 
@@ -34,13 +34,11 @@ final class ShopProduct extends ShopRoute {
 
   final String id;
 
-  // Equality is by `props`.
   @override
   List<Object?> get props => [id];
 }
 
-// Kaisel module for the shop feature. Keep it `const` — kaisel rebuilds the
-// router when the module instance changes.
+// Kaisel module for the shop feature.
 class ShopRouterModule extends RouteModule<ShopRoute> {
   const ShopRouterModule();
 
@@ -49,10 +47,6 @@ class ShopRouterModule extends RouteModule<ShopRoute> {
 
   @override
   Widget buildPage(BuildContext context, ShopRoute route) => switch (route) {
-    // `Provider`, not `ChangeNotifierProvider`: these view models publish signals
-    // rather than notifying, so what they need from here is an owner for their
-    // lifetime and not a listener. `dispose:` is how the page leaving reaches
-    // them — the container's factory scope does not dispose what it builds.
     ShopHome() => Provider<ShopHomeViewModel>(
       create: (_) => getIt<ShopHomeViewModel>()..load(),
       dispose: (_, viewModel) => viewModel.dispose(),

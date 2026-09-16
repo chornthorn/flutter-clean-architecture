@@ -14,11 +14,7 @@ import '../view_models/shop_home_view_model.dart';
 import '../widgets/cart_button.dart';
 import '../widgets/product_tile.dart';
 
-// The feature's list screen.
-//
-// Reads its view model from the provider above it — `read`, not `watch`: what
-// changes lives in the view model's signal, and `SignalBuilder` is what rebuilds
-// this page off it.
+// The feature's list screen — see `docs/architecture.md` for the state shape.
 class ShopHomeView extends StatelessWidget {
   const ShopHomeView({super.key});
 
@@ -31,8 +27,7 @@ class ShopHomeView extends StatelessWidget {
         title: const Text('Shop'),
         actions: [
           const CartButton(),
-          // The feature's inner navigator has nothing to pop here, so this
-          // leaves the feature.
+          // The inner navigator has nothing to pop, so this leaves the feature.
           IconButton(
             onPressed: () => context.router<AppRoute>().pop(),
             icon: const Icon(Icons.close),
@@ -51,12 +46,9 @@ class ShopHomeView extends StatelessWidget {
   ) {
     final theme = context.theme;
 
-    // `AsyncDataReloading` and `AsyncDataRefreshing` implement `AsyncLoading`, so
-    // the arms that carry a value or a failure have to come before the loading
-    // one — matching the loading arm first would swallow them.
+    // Value and failure arms first: both reload variants are `AsyncLoading`.
     return switch (state) {
-      // An empty catalog is a value and not a failure: the read worked, and
-      // there is nothing in it yet.
+      // An empty catalog is a value, not a failure: the read worked.
       AsyncData<List<Product>>(:final value) when value.isEmpty =>
         const AppNotice(
           icon: Icons.inventory_2_outlined,
@@ -87,8 +79,7 @@ class ShopHomeView extends StatelessWidget {
         final product = products[index];
         return ProductTile(
           product: product,
-          // `ShopProduct` belongs to `ShopRoute`, so this pushes inside the
-          // feature rather than on the host stack.
+          // `ShopProduct` is a `ShopRoute`, so this pushes inside the feature.
           onTap: () => context.push(ShopProduct(product.id)),
         );
       },

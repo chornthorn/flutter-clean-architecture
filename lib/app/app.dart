@@ -6,15 +6,13 @@ import 'app_codec.dart';
 import 'app_page_builder.dart';
 import 'app_route.dart';
 
-// The app's router. A top-level `final`, so it lives as long as the app.
+// The app's router, created once at top level.
 final appRouterConfig = KaiselRouterConfig<AppRoute>(
   initial: const HomeMount(),
   builder: buildAppPage,
   codec: appCodec,
 );
 
-// Owns the theme notifier for the app's lifetime. `AppThemeProvider.builder`
-// rebuilds `MaterialApp` on a mode change, which is what swaps the token set.
 class KaiselApp extends StatefulWidget {
   const KaiselApp({super.key});
 
@@ -23,6 +21,7 @@ class KaiselApp extends StatefulWidget {
 }
 
 class _KaiselAppState extends State<KaiselApp> {
+  // Owned here, not by the container: a mode change has to rebuild `MaterialApp`.
   final _theme = AppThemeNotifier(initialMode: AppThemeMode.light);
 
   @override

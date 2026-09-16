@@ -47,7 +47,6 @@ void main() {
       ).execute(GetPostsQuery(cancellation: walkedAway.future));
 
       // The token the screen handed the query is the one the adapter is given.
-      // That handover is the whole path a cancellation travels.
       verify(
         () => repository.allPosts(cancellation: walkedAway.future),
       ).called(1);

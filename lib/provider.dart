@@ -8,15 +8,11 @@ import 'features/shop/shop_handler.dart';
 import 'provider.config.dart';
 import 'provider.cqrs.dart';
 
-// The app's container. `useMicroPackage: true` makes `init` discover and compose
-// every `@InjectableMicroPackage` under `features/`.
+// The app's container. See `docs/architecture.md` for the DI rules.
 final getIt = GetIt.instance;
 
-// Registers everything the app needs. Call from `main()`, before the first frame.
-//
-// `environment` is required rather than optional: features bind one adapter per
-// environment (the posts source, for one), and an unset environment registers
-// every variant, which GetIt rejects as a duplicate registration.
+// Registers everything the app needs, before the first frame. `environment` is
+// required: an unset one registers every variant and GetIt rejects the duplicate.
 @InjectableInit(
   initializerName: 'init',
   preferRelativeImports: true,
@@ -28,8 +24,6 @@ Future<void> configureDependencies({required String environment}) async {
 }
 
 // The app's CQRS entry point: a compositor over each feature's handler module.
-// `generateInjectable` emits `AppCqrsModule.fromLocator`, which is how the
-// dispatcher below is wired in one line.
 @CqrsInit(
   moduleName: 'App',
   useMicroPackage: true,
@@ -38,7 +32,8 @@ Future<void> configureDependencies({required String environment}) async {
 )
 void configureCqrs() {}
 
-// App-level bindings: the ones that belong to no single feature.
+// App-level bindings — no feature owns them, so they are provided through an
+// `@ExternalModule` beside the container.
 @ExternalModule()
 abstract class AppModule {
   @Injectable(scope: Scope.lazySingleton)
@@ -47,7 +42,7 @@ abstract class AppModule {
       ..registry.registerModule(AppCqrsModule.fromLocator(getIt.get));
   }
 
-  // One client for every feature's endpoints.
+  // One client for every feature: timeouts and interceptors configured once.
   @Injectable(scope: Scope.lazySingleton)
   Dio dio() => createNetworkClient();
 }

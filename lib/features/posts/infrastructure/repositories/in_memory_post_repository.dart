@@ -4,12 +4,7 @@ import '../../../../core/async/cancellation.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/post_repository.dart';
 
-// A local store in the same shape the API serves, so the feature runs with no
-// network. Deliberately short titles: this is a fixture, not a mirror of the
-// remote catalog.
-//
-// Unlike jsonplaceholder, this one really does store what it is given, so a
-// created post comes back from the next read.
+// The local adapter: an in-memory store that really keeps what it is given.
 @Environment(Environment.dev)
 @Environment(Environment.test)
 @Injectable(as: PostRepository, scope: Scope.lazySingleton)
@@ -35,8 +30,7 @@ class InMemoryPostRepository implements PostRepository {
     ),
   ];
 
-  // The fixture is already in memory, so nothing is ever in flight to drop.
-  // Every method takes the contract's `cancellation` to honour it, and ignores it.
+  // Nothing is ever in flight here, so the token is taken to honour the contract and ignored.
   @override
   Future<List<Post>> allPosts({Cancellation? cancellation}) async =>
       List.unmodifiable(_posts);
@@ -56,7 +50,6 @@ class InMemoryPostRepository implements PostRepository {
     required String body,
     Cancellation? cancellation,
   }) async {
-    // The store assigns the id, as a real one would.
     final created = Post(
       id: _nextId(),
       userId: userId,
@@ -102,7 +95,6 @@ class InMemoryPostRepository implements PostRepository {
 
   @override
   Future<void> deletePost(int id, {Cancellation? cancellation}) async {
-    // Idempotent, as the contract says.
     _posts.removeWhere((post) => post.id == id);
   }
 }

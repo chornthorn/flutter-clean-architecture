@@ -23,8 +23,7 @@ void main() {
     test('should be equal when the items match in order', () {
       expect(const Cart(['sku-42']), const Cart(['sku-42']));
       expect(const Cart(['sku-42']), isNot(const Cart(['sku-99'])));
-      // The list comparison is hand-rolled, so the length mismatch is its own
-      // case: a loop over the shorter list would call these equal.
+      // The list comparison is hand-rolled, so a length mismatch is its own case.
       expect(const Cart(['sku-42']), isNot(const Cart(['sku-42', 'sku-99'])));
     });
   });

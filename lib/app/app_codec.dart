@@ -5,7 +5,7 @@ import '../features/settings/settings_module.dart';
 import '../features/shop/shop_module.dart';
 import 'app_route.dart';
 
-// URL mapping for the host's own routes. Feature URLs never reach here.
+// URL mapping for the host's own routes.
 class BaseAppCodec extends KaiselConfigCodec<AppRoute> {
   const BaseAppCodec();
 
@@ -21,8 +21,7 @@ class BaseAppCodec extends KaiselConfigCodec<AppRoute> {
     };
   }
 
-  // Mount arms are normally encoded by the composer; they keep the switch
-  // exhaustive and stay correct if this codec is used on its own.
+  // The composer usually encodes these; the exhaustive switch needs them anyway.
   @override
   Uri encode(KaiselConfig<AppRoute> config) {
     return switch (config.mainStack.last) {
@@ -34,14 +33,8 @@ class BaseAppCodec extends KaiselConfigCodec<AppRoute> {
   }
 }
 
-// The app-wide codec: host routes via [BaseAppCodec], `/shop` and `/settings`
-// delegated to the feature that owns each namespace.
-//
-// The home feature is deliberately absent: one screen has no sub-URLs, and an
-// empty mount prefix would match every path.
-//
-// Note the decode shape: `mainStack: [mountRoute]` with nothing beneath it, so a
-// cold deep link lands with no history behind it.
+// The app-wide codec: host routes, plus each module's own URL namespace. The host
+// stack decodes to a single mount, so a deep link has no history behind it.
 const appCodec = ConfigCodecWithModules<AppRoute>(
   baseCodec: BaseAppCodec(),
   modules: [

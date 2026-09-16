@@ -5,17 +5,15 @@ import '../../../../core/design_system/components/app_card.dart';
 import '../../domain/entities/post.dart';
 import 'post_byline.dart';
 
-// One row in the post list: what the post says, clipped to two lines, and who
-// wrote it. No routing, no data access — the page above decides what a tap
-// means.
+// One row in the post list; the page above decides what a tap means.
 class PostTile extends StatelessWidget {
   const PostTile({super.key, required this.post, required this.onTap});
 
   final Post post;
   final VoidCallback onTap;
 
-  // Smaller than the byline on the detail screen: here it is a caption beside
-  // content, not the headline's companion.
+  // Smaller than the byline on the detail screen: the badge is a caption here,
+  // not the headline's companion.
   static const _badgeSize = 24.0;
 
   @override

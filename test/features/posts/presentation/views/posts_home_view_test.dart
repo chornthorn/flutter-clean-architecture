@@ -103,8 +103,7 @@ void main() {
     });
 
     testWidgets('should add a post through the dialog', (tester) async {
-      // A real store: the new post reaches the list only if the dialog handed it
-      // to the view model, the command wrote it, and the reload read it back.
+      // A real store: the post shows up only if the command wrote it and the reload read it back.
       final viewModel = PostsHomeViewModel(
         postsDispatcher(InMemoryPostRepository()),
       );

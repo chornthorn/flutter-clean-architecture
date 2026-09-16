@@ -20,10 +20,7 @@ class PostsHomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Read once, subscribe never: what changes lives in the view model's
-    // signals, and `SignalBuilder` is what rebuilds this page off the ones read
-    // below. It spans the whole screen because the action and the body answer to
-    // different signals.
+    // Read once, subscribe never: `SignalBuilder` rebuilds this page off the signals read below.
     final viewModel = context.read<PostsHomeViewModel>();
     final theme = context.theme;
 
@@ -31,8 +28,7 @@ class PostsHomeView extends StatelessWidget {
       builder: (context) => AppScaffold(
         title: const Text('Posts'),
         actions: [
-          // The feature's inner navigator has nothing to pop here, so this
-          // leaves the feature.
+          // Nothing to pop inside the feature, so this leaves it.
           IconButton(
             onPressed: () => context.router<AppRoute>().pop(),
             icon: const Icon(Icons.close),
@@ -41,9 +37,8 @@ class PostsHomeView extends StatelessWidget {
         ],
         body: _buildBody(context, viewModel),
         floatingActionButton: FloatingActionButton(
-          // One write at a time from this screen. The form disables its own
-          // submit while one is in flight, but it can still be dismissed over
-          // it, and this is what stops a second write from there.
+          // One write at a time: the form disables its own submit in flight, but it
+          // can still be dismissed over one, and this is what stops a second write.
           onPressed: viewModel.create.value.isLoading
               ? null
               : () => _compose(context, viewModel),
@@ -59,9 +54,7 @@ class PostsHomeView extends StatelessWidget {
   Widget _buildBody(BuildContext context, PostsHomeViewModel viewModel) {
     final theme = context.theme;
 
-    // `AsyncDataReloading` and `AsyncDataRefreshing` implement `AsyncLoading`, so
-    // the arms that carry a value or a failure have to come before the loading
-    // one — matching the loading arm first would swallow them.
+    // `AsyncData*` first: the reloading and refreshing states implement `AsyncLoading`.
     return switch (viewModel.posts.value) {
       AsyncData<List<Post>>(:final value) when value.isEmpty => const AppNotice(
         icon: Icons.article_outlined,
@@ -76,14 +69,11 @@ class PostsHomeView extends StatelessWidget {
           final post = value[index];
           return PostTile(
             post: post,
-            // `PostDetail` belongs to `PostsRoute`, so this pushes inside the
-            // feature rather than on the host stack.
+            // `PostDetail` is a `PostsRoute`, so this pushes inside the feature.
             onTap: () => _open(context, viewModel, post.id),
           );
         },
       ),
-      // The list is the point of the screen, so a dead end here offers a way to
-      // ask again rather than only reporting the failure.
       AsyncError<List<Post>>() => AppNotice(
         icon: Icons.cloud_off_outlined,
         message: 'Could not load posts.',

@@ -1,6 +1,4 @@
-// The body of a create request. Separate from `PostDto` because the request has
-// no id — that one is the server's to assign, and sending a placeholder would be
-// a lie in the payload.
+// The create request body; no id, because the server assigns it.
 class CreatePostDto {
   const CreatePostDto({
     required this.userId,

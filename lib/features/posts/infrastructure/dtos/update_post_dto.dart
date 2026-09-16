@@ -1,5 +1,4 @@
-// The body of an update request: the fields a post can change. No id — that is
-// in the path — and no author, because an edit does not reassign a post.
+// The update body: no id (it is in the path), no author (an edit does not reassign).
 class UpdatePostDto {
   const UpdatePostDto({required this.title, required this.body});
 

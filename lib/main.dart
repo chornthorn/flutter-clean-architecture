@@ -7,9 +7,7 @@ import 'provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Which adapter each environment-gated binding gets rolled in with: `prod`
-  // reads jsonplaceholder over HTTP, `dev`/`test` read the in-memory posts.
-  // Override with `flutter run --dart-define=DI_ENV=dev`.
+  // `DI_ENV=dev` swaps the posts source from HTTP to the in-memory fixtures.
   await configureDependencies(
     environment: const String.fromEnvironment(
       'DI_ENV',

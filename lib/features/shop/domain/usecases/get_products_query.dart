@@ -9,7 +9,6 @@ class GetProductsQuery extends Query<List<Product>> {
   const GetProductsQuery();
 }
 
-// @Injectable so the generated CQRS module can resolve it through the locator.
 @Injectable(scope: Scope.factory)
 class GetProductsQueryHandler
     implements QueryHandler<GetProductsQuery, List<Product>> {

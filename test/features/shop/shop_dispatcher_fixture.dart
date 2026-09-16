@@ -12,13 +12,7 @@ import 'package:flutter_x/features/shop/infrastructure/repositories/in_memory_au
 import 'package:flutter_x/features/shop/infrastructure/repositories/in_memory_cart_repository.dart';
 import 'package:flutter_x/features/shop/shop_handler.dart';
 
-// A real dispatcher over the shop's generated handler module — the query and
-// command paths the container builds at runtime, with the repositories passed in
-// instead of resolved. Built from the generated module, so a handler the
-// generator misses fails here rather than in the app.
-//
-// The dispatcher is also the publisher, as in `provider.dart`, so a command's
-// event really reaches the event handlers.
+// A real dispatcher over the shop's generated handler module.
 CqrsDispatcher shopDispatcher(
   ProductRepository products, {
   CartRepository? cart,

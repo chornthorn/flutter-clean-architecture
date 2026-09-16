@@ -3,15 +3,13 @@ import 'package:injectify/injectify.dart';
 
 import '../repositories/post_repository.dart';
 
-// Removes a post.
 class DeletePostCommand extends Command<void> {
   const DeletePostCommand(this.id);
 
   final int id;
 }
 
-// Nothing to decide here: the contract already says that removing what is gone is
-// the same as removing what is there.
+// Nothing to decide: the contract already treats removing what is gone as done.
 @Injectable(scope: Scope.factory)
 class DeletePostCommandHandler
     implements CommandHandler<DeletePostCommand, void> {

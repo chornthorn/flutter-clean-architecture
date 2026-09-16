@@ -4,7 +4,6 @@ import 'package:injectify/injectify.dart';
 import '../entities/post.dart';
 import '../repositories/post_repository.dart';
 
-// Writes a new post.
 class CreatePostCommand extends Command<Post> {
   const CreatePostCommand({
     required this.userId,
@@ -17,11 +16,7 @@ class CreatePostCommand extends Command<Post> {
   final String body;
 }
 
-// The write side: apply the rule the UI cannot be trusted with, then let the
-// store assign the id and answer with what it recorded.
-//
-// `async` on purpose: a bad command has to arrive as a failed future, not as a
-// synchronous throw out of `dispatcher.command(...)`.
+// `async` on purpose: a bad title must fail the future, not throw out of `dispatcher.command(...)`.
 @Injectable(scope: Scope.factory)
 class CreatePostCommandHandler
     implements CommandHandler<CreatePostCommand, Post> {

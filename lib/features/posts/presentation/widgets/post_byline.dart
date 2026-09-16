@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/design_system/app_theme.g.dart';
 import 'post_author_badge.dart';
 
-// Who wrote a post, as one unit: the badge and the line of text that names it.
-// Sits under a title in the list and above the body on the detail screen, so it
-// sizes the badge per call site rather than hardcoding one.
+// Who wrote a post, as one unit; the badge is sized per call site rather than hardcoded.
 class PostByline extends StatelessWidget {
   const PostByline({super.key, required this.userId, this.badgeSize = 32});
 

@@ -19,9 +19,7 @@ class ShopCartView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Read once, subscribe never: what changes lives in the view model's
-    // signals, and `SignalBuilder` is what rebuilds this page off the ones read
-    // below.
+    // Read once, subscribe never — `SignalBuilder` below does the rebuilding.
     final viewModel = context.read<ShopCartViewModel>();
 
     return SignalBuilder(
@@ -39,12 +37,9 @@ class ShopCartView extends StatelessWidget {
   ) {
     final theme = context.theme;
 
-    // `AsyncDataReloading` and `AsyncDataRefreshing` implement `AsyncLoading`, so
-    // the arms that carry a value or a failure have to come before the loading
-    // one — matching the loading arm first would swallow them.
+    // Value and failure arms first: both reload variants are `AsyncLoading`.
     return switch (state) {
-      // An empty cart is a value and not a failure: the read worked, and nothing
-      // has been added yet.
+      // An empty cart is a value, not a failure: the read worked.
       AsyncData<List<Product>>(:final value) when value.isEmpty =>
         const AppNotice(
           icon: Icons.shopping_cart_outlined,
@@ -84,7 +79,6 @@ class ShopCartView extends StatelessWidget {
                 SizedBox(height: theme.sizes.spacing.sm),
             itemBuilder: (context, index) {
               final product = products[index];
-              // Rows keep the product list's meaning: tap one to open it.
               return ProductTile(
                 product: product,
                 onTap: () => context.push(ShopProduct(product.id)),
@@ -104,8 +98,6 @@ class ShopCartView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Total', style: theme.typography.label.regular),
-                // The total the view model derives from the rows above, read
-                // through the same builder.
                 Text(
                   viewModel.total.value.toStringAsFixed(2),
                   style: theme.typography.title.semiBold,

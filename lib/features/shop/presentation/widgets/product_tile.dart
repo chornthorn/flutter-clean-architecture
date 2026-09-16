@@ -4,8 +4,7 @@ import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_card.dart';
 import '../../domain/entities/product.dart';
 
-// One row in the product list. No routing, no data access — the page above
-// decides what a tap means.
+// One row in the product list; the page above decides what a tap means.
 class ProductTile extends StatelessWidget {
   const ProductTile({super.key, required this.product, required this.onTap});
 
@@ -26,8 +25,8 @@ class ProductTile extends StatelessWidget {
               children: [
                 Text(product.name, style: theme.typography.title.regular),
                 SizedBox(height: theme.sizes.spacing.sm),
-                // The name is what a person calls the product; the id is what
-                // the catalog calls it.
+                // The name is what a person calls the product; the id is what the
+                // catalog calls it.
                 Text(product.id, style: theme.typography.label.regular),
               ],
             ),

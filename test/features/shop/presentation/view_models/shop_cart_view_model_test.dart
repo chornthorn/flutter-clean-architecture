@@ -29,9 +29,7 @@ void main() {
 
       await load;
 
-      // The rows are built by the query handler, one list per read, so this
-      // compares the payload rather than the whole state: `AsyncData`'s `==`
-      // compares its list by identity, and every read makes a new one.
+      // Each read builds a new list; `AsyncData`'s `==` compares lists by identity.
       expect(viewModel.products.value.value, const [product]);
       expect(viewModel.products.value.isLoading, isFalse);
     });
@@ -107,8 +105,7 @@ void main() {
       await viewModel.load();
       expect(viewModel.total.value, product.price);
 
-      // The cart grows: the total follows the rows rather than staying at what
-      // they added up to when it was first read.
+      // The total follows the rows rather than staying at the first read's sum.
       ids = const ['sku-42', 'sku-42'];
       await viewModel.load();
 

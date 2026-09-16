@@ -5,19 +5,15 @@ import '../repositories/cart_repository.dart';
 import '../repositories/product_repository.dart';
 import 'product_added_to_cart_event.dart';
 
-// Puts one product in the cart. The subject is named in the message: "add to
-// cart" would leave the reader asking what gets added.
+// Puts one product in the cart.
 class AddProductToCartCommand extends Command<void> {
   const AddProductToCartCommand(this.productId);
 
   final String productId;
 }
 
-// The write side: check the product exists, append it to the cart, then announce
-// it. The event carries the new count so handlers need not re-read the cart.
-//
-// The third dependency is the dispatcher itself — it is the app's publisher, so
-// publishing needs no second container binding.
+// The write side. The event carries the new count, so a handler on it need not
+// re-read the cart.
 @Injectable(scope: Scope.factory)
 class AddProductToCartCommandHandler
     implements CommandHandler<AddProductToCartCommand, void> {

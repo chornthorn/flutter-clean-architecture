@@ -8,8 +8,8 @@ import 'package:flutter_x/core/networking/network_client.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/remote_post_repository.dart';
 
-// Answers requests from a canned payload instead of a socket, so the generated
-// client is exercised without a network.
+// Answers from a canned payload instead of a socket, so the generated client runs
+// with no network.
 class _FakeAdapter implements HttpClientAdapter {
   _FakeAdapter(this.respond);
 
@@ -35,8 +35,8 @@ class _FakeAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-// Holds a request open until it is dropped, the way a socket does — so a test
-// can watch a cancellation arrive instead of racing it.
+// Holds a request open until it is dropped, so a test can watch a cancellation
+// arrive instead of racing it.
 class _PendingAdapter implements HttpClientAdapter {
   Future<void>? cancelFuture;
 
@@ -49,8 +49,7 @@ class _PendingAdapter implements HttpClientAdapter {
     this.cancelFuture = cancelFuture;
     final pending = Completer<ResponseBody>();
 
-    // What a real adapter does with a dropped request: raises it as cancelled
-    // rather than answering.
+    // What a real adapter does with a dropped request: raise it as cancelled.
     cancelFuture?.whenComplete(
       () => pending.completeError(
         DioException.requestCancelled(
@@ -138,8 +137,7 @@ void main() {
 
       walkedAway.complete();
 
-      // The read reports a cancellation, which is how the page that asked can
-      // tell it apart from a failure, and the transport stops reading.
+      // The read reports a cancellation, which is how the page tells it from a failure.
       await expectLater(
         read,
         throwsA(
@@ -152,9 +150,7 @@ void main() {
       );
     });
 
-    // Every endpoint carries the token, writes included, so the transport can
-    // drop whatever it is given. Whether a write *should* be dropped is the
-    // caller's call — see `core/README.md`.
+    // Writes carry the token too; dropping one is the caller's call — see `core/README.md`.
     test('should drop the write when the caller walks away', () async {
       final adapter = _PendingAdapter();
       final repository = repositoryReturning(
@@ -305,8 +301,7 @@ void main() {
         (_) => _json(const {'error': 'gone'}, status: 404),
       );
 
-      // The contract says removing what is gone is the same as removing what is
-      // there, so a 404 is an outcome, not a failure.
+      // The post is gone either way, so a 404 is an outcome, not a failure.
       await expectLater(repository.deletePost(999), completes);
     });
 

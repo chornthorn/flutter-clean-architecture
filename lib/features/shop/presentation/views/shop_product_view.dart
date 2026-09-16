@@ -12,10 +12,7 @@ import '../../domain/entities/product.dart';
 import '../view_models/shop_product_view_model.dart';
 import '../widgets/cart_button.dart';
 
-// One product, looked up by the id carried on `ShopProduct`.
-//
-// The page requires the id rather than reading it back off the view model, so
-// which product this screen shows is visible from its constructor.
+// One product, looked up by the id on `ShopProduct`; see `docs/architecture.md`.
 class ShopProductView extends StatelessWidget {
   const ShopProductView({super.key, required this.id});
 
@@ -23,9 +20,7 @@ class ShopProductView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Read once, subscribe never: what changes lives in the view model's
-    // signals, and `SignalBuilder` is what rebuilds this page off the ones read
-    // below.
+    // Read once, subscribe never — `SignalBuilder` below does the rebuilding.
     final viewModel = context.read<ShopProductViewModel>();
 
     return SignalBuilder(
@@ -40,9 +35,7 @@ class ShopProductView extends StatelessWidget {
   Widget _buildBody(BuildContext context, ShopProductViewModel viewModel) {
     final theme = context.theme;
 
-    // `AsyncDataReloading` and `AsyncDataRefreshing` implement `AsyncLoading`, so
-    // the arms that carry a value or a failure have to come before the loading
-    // one — matching the loading arm first would swallow them.
+    // Value and failure arms first: both reload variants are `AsyncLoading`.
     return switch (viewModel.product.value) {
       AsyncData<Product?>(:final value) when value != null => _buildProduct(
         context,
@@ -58,8 +51,7 @@ class ShopProductView extends StatelessWidget {
           onPressed: () => viewModel.load(id),
         ),
       ),
-      // A failure and a missing id both leave no product; only one is an error,
-      // and only one of them is worth asking the far side again.
+      // A missing product is an answer, not a failure: only the error is retried.
       AsyncData<Product?>() => const AppNotice(
         icon: Icons.search_off_outlined,
         message: 'Product not found.',
@@ -82,7 +74,6 @@ class ShopProductView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // The headline belongs to the page, the way a post's does.
           Text(product.name, style: theme.typography.display.regular),
           SizedBox(height: theme.sizes.spacing.sm),
           Text(product.id, style: theme.typography.label.regular),
@@ -106,9 +97,7 @@ class ShopProductView extends StatelessWidget {
             onPressed: viewModel.addToCart,
           ),
           SizedBox(height: theme.sizes.spacing.md),
-          // The add's own state, not an error shared with the load: a write that
-          // failed leaves the product above it alone, and a load that failed is
-          // the body's to report.
+          // The add's state, not an error shared with the read above it.
           if (viewModel.add.value.hasError)
             const AppFailureLine(message: 'Could not add to cart.')
           else

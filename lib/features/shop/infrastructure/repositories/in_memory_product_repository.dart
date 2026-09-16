@@ -3,9 +3,7 @@ import 'package:injectify/injectify.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/repositories/product_repository.dart';
 
-// A stand-in catalog. Bound to the domain contract, so nothing names this class
-// directly — a REST implementation bound to the same contract replaces it
-// without touching any other file.
+// A stand-in catalog.
 @Injectable(as: ProductRepository, scope: Scope.lazySingleton)
 class InMemoryProductRepository implements ProductRepository {
   const InMemoryProductRepository();

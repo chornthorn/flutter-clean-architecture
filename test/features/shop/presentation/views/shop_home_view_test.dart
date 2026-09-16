@@ -32,8 +32,7 @@ void main() {
     });
 
     testWidgets('should rebuild when the read settles', (tester) async {
-      // Guards the `SignalBuilder`: a page that only read the signal, without
-      // subscribing to it, would never leave the spinner.
+      // Guards the `SignalBuilder`: without it the page stays on the spinner.
       final completer = Completer<List<Product>>();
       final repository = MockProductRepository();
       when(() => repository.allProducts()).thenAnswer((_) => completer.future);

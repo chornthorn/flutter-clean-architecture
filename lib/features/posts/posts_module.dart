@@ -9,12 +9,10 @@ import 'presentation/view_models/posts_home_view_model.dart';
 import 'presentation/views/post_detail_view.dart';
 import 'presentation/views/posts_home_view.dart';
 
-// The posts feature's injectify micro-package: every `@Injectable` class under
-// `lib/features/posts/` is registered by this module and by nothing else.
+// The posts feature's entry point: its injectify micro-package and its routes.
 @InjectableMicroPackage(moduleName: 'Posts')
 void configurePostsModule() {}
 
-// Routes for the posts feature.
 sealed class PostsRoute extends KaiselRoute {
   const PostsRoute();
 }
@@ -28,13 +26,11 @@ final class PostDetail extends PostsRoute {
 
   final int id;
 
-  // Equality is by `props`.
   @override
   List<Object?> get props => [id];
 }
 
-// Kaisel module for the posts feature. Keep it `const` — kaisel rebuilds the
-// router when the module instance changes.
+// Keep it `const`: kaisel rebuilds the router when the module instance changes.
 class PostsRouterModule extends RouteModule<PostsRoute> {
   const PostsRouterModule();
 
@@ -43,10 +39,7 @@ class PostsRouterModule extends RouteModule<PostsRoute> {
 
   @override
   Widget buildPage(BuildContext context, PostsRoute route) => switch (route) {
-    // `Provider`, not `ChangeNotifierProvider`: the view model publishes signals
-    // rather than notifying, so what it needs from here is an owner for its
-    // lifetime and not a listener. `dispose:` is how the page leaving reaches
-    // it — the container's factory scope does not dispose what it builds.
+    // `Provider` owns the view model's lifetime; the container does not dispose factories.
     PostsHome() => Provider<PostsHomeViewModel>(
       create: (_) => getIt<PostsHomeViewModel>()..load(),
       dispose: (_, viewModel) => viewModel.dispose(),
@@ -63,7 +56,7 @@ class PostsRouterModule extends RouteModule<PostsRoute> {
   ModuleStackCodec<PostsRoute> get codec => const PostsRouteCodec();
 }
 
-// URL mapping under the `/posts` prefix.
+// The `/posts` URL mapping.
 class PostsRouteCodec extends ModuleStackCodec<PostsRoute> {
   const PostsRouteCodec();
 

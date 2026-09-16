@@ -13,9 +13,6 @@ import '../widgets/post_byline.dart';
 import '../widgets/post_form_dialog.dart';
 
 // One post, looked up by the id carried on `PostDetail`.
-//
-// The page requires the id rather than reading it back off the view model, so
-// which post this screen shows is visible from its constructor.
 class PostDetailView extends StatelessWidget {
   const PostDetailView({super.key, required this.id});
 
@@ -23,10 +20,7 @@ class PostDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Read once, subscribe never: what changes lives in the view model's
-    // signals, and `SignalBuilder` is what rebuilds this page off the ones read
-    // below. It spans the whole screen because the app bar and the body answer
-    // to the same state.
+    // Read once, subscribe never: `SignalBuilder` rebuilds this page off the signals read below.
     final viewModel = context.read<PostDetailViewModel>();
 
     return SignalBuilder(
@@ -47,14 +41,12 @@ class PostDetailView extends StatelessWidget {
     PostDetailViewModel viewModel,
     AsyncState<Post?> state,
   ) {
-    // Nothing to edit or delete until there is a post on screen. The state's
-    // value is null while the read is in flight, after a failure, and for an id
-    // that resolved to nothing.
+    // No actions until a post is on screen: the value is null while the read is
+    // in flight, after a failure, and for an id that resolved to nothing.
     final post = state.value;
     if (post == null) return const [];
 
-    // One write at a time from this screen, and each use case says whether it is
-    // the one in flight.
+    // One write at a time; each use case's own signal says whether it is in flight.
     final isWriting =
         viewModel.update.value.isLoading || viewModel.delete.value.isLoading;
 
@@ -79,9 +71,7 @@ class PostDetailView extends StatelessWidget {
   ) {
     final theme = context.theme;
 
-    // `AsyncDataReloading` and `AsyncDataRefreshing` implement `AsyncLoading`, so
-    // the arms that carry a value or a failure have to come before the loading
-    // one — matching the loading arm first would swallow them.
+    // `AsyncData*` first: the reloading and refreshing states implement `AsyncLoading`.
     return switch (state) {
       AsyncData<Post?>(:final value) when value != null => _buildPost(
         context,
@@ -96,8 +86,7 @@ class PostDetailView extends StatelessWidget {
           onPressed: () => viewModel.load(id),
         ),
       ),
-      // A failure and a missing id both leave no post; only one is an error,
-      // and only one of them is worth asking the far side again.
+      // No post and no error means the id resolved to nothing, not worth a retry.
       AsyncData<Post?>() => const AppNotice(
         icon: Icons.search_off_outlined,
         message: 'Post not found.',
@@ -116,9 +105,8 @@ class PostDetailView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // The headline belongs to the page, so it takes the display step and
-          // sits on the canvas; the body below it is content, so it takes a
-          // card, the way a row does in the list.
+          // The title is the page's headline, so it sits on the canvas; the body is
+          // content, so it takes a card, the way a row does in the list.
           Text(post.title, style: theme.typography.display.regular),
           SizedBox(height: theme.sizes.spacing.md),
           PostByline(userId: post.userId),
@@ -161,9 +149,8 @@ class PostDetailView extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(theme.sizes.radius.md),
         ),
-        // The icon says the action is destructive. The button does not carry
-        // that colour: the danger token is a fill, and its inverse pair sits
-        // under the contrast a label needs.
+        // The icon carries the danger colour, not the button: the token is a fill,
+        // and its inverse pair sits under the contrast a label needs.
         icon: Icon(Icons.delete_outline, color: theme.colors.feedback.danger),
         title: Text(
           'Delete this post?',
@@ -190,7 +177,6 @@ class PostDetailView extends StatelessWidget {
 
     final deleted = await viewModel.deletePost();
 
-    // There is nothing left on this screen, so it leaves the stack.
     if (deleted && context.mounted) {
       Navigator.of(context).pop();
     }

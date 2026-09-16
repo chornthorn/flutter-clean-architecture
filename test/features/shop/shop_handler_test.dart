@@ -14,10 +14,7 @@ import 'domain/repositories/mock_product_repository.dart';
 import 'shop_dispatcher_fixture.dart';
 
 void main() {
-  // The generated module is the only thing binding a message to its handler. A
-  // message it fails to register throws HandlerNotFoundException at dispatch.
   group('ShopCqrsModule', () {
-    // mocktail needs a fallback before `any()` can match a `Cart` argument.
     setUpAll(() => registerFallbackValue(const Cart.empty()));
 
     late MockProductRepository products;
@@ -64,8 +61,7 @@ void main() {
 
       await dispatcher.command(const AddProductToCartCommand('sku-42'));
 
-      // The cart write and the audit entry are two halves of one dispatch: the
-      // second only happens if the event found its handler.
+      // The audit entry lands only if the event found its handler.
       verify(() => cart.save(const Cart(['sku-42']))).called(1);
       verify(() => auditLog.append('product.added sku-42 items=1')).called(1);
     });

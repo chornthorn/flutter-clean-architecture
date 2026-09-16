@@ -8,18 +8,12 @@ sealed class HomeRoute extends KaiselRoute {
   const HomeRoute();
 }
 
-// The feature's only screen: the app's landing menu.
 final class HomeRoot extends HomeRoute {
   const HomeRoot();
 }
 
-// The home feature as a kaisel module.
-//
-// No codec: one screen has no sub-URLs, so the root path is owned by
-// `BaseAppCodec` in `lib/app/`.
-//
-// Keep it `const` — `KaiselModuleMount` rebuilds the router when the module
-// instance changes, dropping its navigation state.
+// The home feature as a kaisel module. No codec: see `lib/features/README.md`.
+// Keep it `const`: a new instance would drop the module's navigation state.
 class HomeRouterModule extends RouteModule<HomeRoute> {
   const HomeRouterModule();
 

@@ -1,7 +1,6 @@
 import '../../domain/entities/post.dart';
 
-// The wire shape of a post. Hand-mapped: the payload is four flat fields, so
-// `json_serializable` would add a dependency and a second generator for nothing.
+// The wire shape of a post, hand-mapped: four flat fields are not worth a second generator.
 class PostDto {
   const PostDto({
     required this.id,

@@ -1,7 +1,4 @@
 // A product in the shop catalog.
-//
-// Plain Dart: the shape a screen needs, not the shape an API returns — that
-// mapping belongs in `infrastructure/`.
 class Product {
   const Product({required this.id, required this.name, required this.price});
 
