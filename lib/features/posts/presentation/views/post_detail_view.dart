@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
+import '../../../../core/design_system/components/app_buttons.dart';
+import '../../../../core/design_system/components/app_card.dart';
+import '../../../../core/design_system/components/app_notice.dart';
+import '../../../../core/design_system/components/app_scaffold.dart';
 import '../view_models/post_detail_view_model.dart';
-import '../widgets/post_buttons.dart';
 import '../widgets/post_byline.dart';
-import '../widgets/post_card.dart';
 import '../widgets/post_form_dialog.dart';
-import '../widgets/posts_notice.dart';
 
 // One post, looked up by the id carried on `PostDetail`.
 //
@@ -21,35 +22,24 @@ class PostDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<PostDetailViewModel>();
-    final theme = context.theme;
 
-    return Scaffold(
-      backgroundColor: theme.colors.canvas.primary,
-      appBar: AppBar(
-        title: Text('Post $id'),
-        backgroundColor: theme.colors.surface.card,
-        foregroundColor: theme.colors.foreground.primary,
-        titleTextStyle: theme.typography.title.semiBold,
-        elevation: 0,
-        // The bar is a fixed token colour, and Material's scroll tint would
-        // paint the generated scheme's colour over it.
-        surfaceTintColor: Colors.transparent,
-        actions: [
-          // Nothing to edit or delete until there is a post on screen.
-          if (viewModel.post != null) ...[
-            IconButton(
-              onPressed: () => _edit(context, viewModel),
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Edit post',
-            ),
-            IconButton(
-              onPressed: () => _delete(context, viewModel),
-              icon: const Icon(Icons.delete_outline),
-              tooltip: 'Delete post',
-            ),
-          ],
+    return AppScaffold(
+      title: Text('Post $id'),
+      actions: [
+        // Nothing to edit or delete until there is a post on screen.
+        if (viewModel.post != null) ...[
+          IconButton(
+            onPressed: () => _edit(context, viewModel),
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit post',
+          ),
+          IconButton(
+            onPressed: () => _delete(context, viewModel),
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete post',
+          ),
         ],
-      ),
+      ],
       body: _buildBody(context, viewModel),
     );
   }
@@ -68,18 +58,18 @@ class PostDetailView extends StatelessWidget {
       // A failure and a missing id both leave no post; only one is an error,
       // and only one of them is worth asking the far side again.
       if (viewModel.error != null) {
-        return PostsNotice(
+        return AppNotice(
           icon: Icons.cloud_off_outlined,
           message: 'Could not load post.',
           isFailure: true,
-          action: PostFilledButton(
+          action: AppFilledButton(
             label: 'Try again',
             onPressed: () => viewModel.load(id),
           ),
         );
       }
 
-      return const PostsNotice(
+      return const AppNotice(
         icon: Icons.search_off_outlined,
         message: 'Post not found.',
       );
@@ -97,9 +87,7 @@ class PostDetailView extends StatelessWidget {
           SizedBox(height: theme.sizes.spacing.md),
           PostByline(userId: post.userId),
           SizedBox(height: theme.sizes.spacing.xl),
-          PostCard(
-            child: Text(post.body, style: theme.typography.body.regular),
-          ),
+          AppCard(child: Text(post.body, style: theme.typography.body.regular)),
         ],
       ),
     );
@@ -152,11 +140,11 @@ class PostDetailView extends StatelessWidget {
           style: theme.typography.label.regular,
         ),
         actions: [
-          PostTextButton(
+          AppTextButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(dialogContext).pop(false),
           ),
-          PostFilledButton(
+          AppFilledButton(
             label: 'Delete',
             onPressed: () => Navigator.of(dialogContext).pop(true),
           ),

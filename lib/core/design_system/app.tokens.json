@@ -59,6 +59,11 @@
       "radius": {
         "sm": { "$type": "number", "$value": 4 },
         "md": { "$type": "number", "$value": 8 }
+      },
+      "icon": {
+        "sm": { "$type": "number", "$value": 16 },
+        "md": { "$type": "number", "$value": 24 },
+        "lg": { "$type": "number", "$value": 40 }
       }
     },
     "typography": {
@@ -187,6 +192,11 @@
       "radius": {
         "sm": { "$type": "number", "$value": 4 },
         "md": { "$type": "number", "$value": 8 }
+      },
+      "icon": {
+        "sm": { "$type": "number", "$value": 16 },
+        "md": { "$type": "number", "$value": 24 },
+        "lg": { "$type": "number", "$value": 40 }
       }
     },
     "typography": {

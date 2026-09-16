@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/design_system/app_theme.g.dart';
+import '../app_theme.g.dart';
 
-// A screen that has no post to show, and why: nothing there yet, nothing found,
-// or nothing reachable. One shape for all three keeps the states consistent —
-// only the icon, the sentence and the colour differ.
-class PostsNotice extends StatelessWidget {
-  const PostsNotice({
+// A screen with nothing to show, and why: nothing there yet, nothing found, or
+// nothing reachable. One shape for all three keeps the states consistent — only
+// the icon, the sentence and the colour differ.
+class AppNotice extends StatelessWidget {
+  const AppNotice({
     super.key,
     required this.icon,
     required this.message,
@@ -20,12 +20,8 @@ class PostsNotice extends StatelessWidget {
   // A failure is worth the danger colour; an empty list is not a failure.
   final bool isFailure;
 
-  // The way out of the state — retry, or write the first post.
+  // The way out of the state — retry, or write the first thing.
   final Widget? action;
-
-  // No size token covers a screen-state glyph. 40 is large enough to read as
-  // the illustration for the screen without pushing the message off centre.
-  static const _iconSize = 40.0;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +49,7 @@ class PostsNotice extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: _iconSize, color: iconColor),
+                  Icon(icon, size: theme.sizes.icon.lg, color: iconColor),
                   SizedBox(height: theme.sizes.spacing.md),
                   Text(
                     message,

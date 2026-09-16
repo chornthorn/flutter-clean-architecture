@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/features/shop/domain/entities/product.dart';
 import 'package:flutter_x/features/shop/presentation/view_models/shop_home_view_model.dart';
 import 'package:flutter_x/features/shop/presentation/views/shop_home_view.dart';
+import 'package:flutter_x/features/shop/presentation/widgets/product_tile.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../../../app/view_host.dart';
@@ -62,6 +63,44 @@ void main() {
       await tester.pumpWidget(hostPage(viewModel, const ShopHomeView()));
 
       expect(find.text('Could not load products.'), findsOneWidget);
+    });
+
+    testWidgets('should say so when the catalog is empty', (tester) async {
+      final repository = MockProductRepository();
+      when(() => repository.allProducts()).thenAnswer((_) async => const []);
+      final viewModel = ShopHomeViewModel(shopDispatcher(repository));
+      addTearDown(viewModel.dispose);
+      await viewModel.load();
+
+      await tester.pumpWidget(hostPage(viewModel, const ShopHomeView()));
+
+      expect(find.text('No products yet.'), findsOneWidget);
+      expect(find.byType(ProductTile), findsNothing);
+    });
+
+    testWidgets('should load again when the failure is retried', (
+      tester,
+    ) async {
+      final repository = MockProductRepository();
+      var attempts = 0;
+      when(() => repository.allProducts()).thenAnswer((_) async {
+        attempts++;
+        // Fails once, then answers, so the retry has something to show.
+        if (attempts == 1) throw Exception('offline');
+        return const [product];
+      });
+      final viewModel = ShopHomeViewModel(shopDispatcher(repository));
+      addTearDown(viewModel.dispose);
+      await viewModel.load();
+
+      await tester.pumpWidget(hostPage(viewModel, const ShopHomeView()));
+      expect(find.text('Could not load products.'), findsOneWidget);
+
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not load products.'), findsNothing);
+      expect(find.text('Espresso cup'), findsOneWidget);
     });
   });
 }

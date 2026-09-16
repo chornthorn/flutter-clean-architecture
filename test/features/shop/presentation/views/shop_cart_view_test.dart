@@ -67,5 +67,36 @@ void main() {
 
       expect(find.text('Could not load the cart.'), findsOneWidget);
     });
+
+    testWidgets('should read the cart again when the failure is retried', (
+      tester,
+    ) async {
+      final cart = MockCartRepository();
+      var attempts = 0;
+      when(() => cart.cart()).thenAnswer((_) async {
+        attempts++;
+        // Fails once, then answers, so the retry has something to show.
+        if (attempts == 1) throw Exception('offline');
+        return const Cart(['sku-42']);
+      });
+      final products = MockProductRepository();
+      when(
+        () => products.productById('sku-42'),
+      ).thenAnswer((_) async => product);
+
+      final viewModel = ShopCartViewModel(shopDispatcher(products, cart: cart));
+      addTearDown(viewModel.dispose);
+      await viewModel.load();
+
+      await tester.pumpWidget(hostPage(viewModel, const ShopCartView()));
+      expect(find.text('Could not load the cart.'), findsOneWidget);
+
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not load the cart.'), findsNothing);
+      expect(find.text('Espresso cup'), findsOneWidget);
+      expect(find.text('12.50'), findsNWidgets(2));
+    });
   });
 }

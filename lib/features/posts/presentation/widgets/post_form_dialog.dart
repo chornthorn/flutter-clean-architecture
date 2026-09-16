@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
-import 'post_buttons.dart';
+import '../../../../core/design_system/components/app_buttons.dart';
+import '../../../../core/design_system/components/app_failure_line.dart';
 
 // Collects a post and hands it to the page, which owns the write call — so this
 // widget needs no view model and can be tested on its own.
@@ -99,19 +100,19 @@ class _PostFormDialogState extends State<PostFormDialog> {
           ),
           if (_failed) ...[
             SizedBox(height: theme.sizes.spacing.md),
-            _failure(theme),
+            const AppFailureLine(message: 'Could not save the post.'),
           ],
         ],
       ),
       actions: [
-        PostTextButton(
+        AppTextButton(
           label: 'Cancel',
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
         ),
         // A title the domain will reject is not worth a round trip to say so.
         ValueListenableBuilder<TextEditingValue>(
           valueListenable: _title,
-          builder: (context, value, _) => PostFilledButton(
+          builder: (context, value, _) => AppFilledButton(
             label: widget.submitLabel,
             isEnabled: !_isSubmitting && value.text.trim().isNotEmpty,
             onPressed: _submit,
@@ -142,22 +143,4 @@ class _PostFormDialogState extends State<PostFormDialog> {
       ),
     );
   }
-
-  // The words stay in the reading colour and the icon carries the failure one:
-  // the danger token is a fill colour, and on the light dialog it falls short of
-  // the 4.5:1 that text needs.
-  Widget _failure(AppTheme theme) => Row(
-    children: [
-      Icon(Icons.error_outline, color: theme.colors.feedback.danger),
-      SizedBox(width: theme.sizes.spacing.sm),
-      Expanded(
-        child: Text(
-          'Could not save the post.',
-          style: theme.typography.label.regular.copyWith(
-            color: theme.colors.foreground.primary,
-          ),
-        ),
-      ),
-    ],
-  );
 }

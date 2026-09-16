@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
+import '../../../../core/design_system/components/app_card.dart';
 import '../../domain/entities/post.dart';
 import 'post_byline.dart';
-import 'post_card.dart';
 
 // One row in the post list: what the post says, clipped to two lines, and who
 // wrote it. No routing, no data access — the page above decides what a tap
@@ -22,7 +22,7 @@ class PostTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
 
-    return PostCard(
+    return AppCard(
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,6 +49,7 @@ class PostTile extends StatelessWidget {
               ExcludeSemantics(
                 child: Icon(
                   Icons.chevron_right,
+                  size: theme.sizes.icon.md,
                   color: theme.colors.foreground.subtle,
                 ),
               ),

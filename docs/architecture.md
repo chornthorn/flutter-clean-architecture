@@ -94,9 +94,6 @@ because git does not track empty directories, an unused folder would not even
 survive a clone without a placeholder file:
 
 - `core/storage/` — arrives with the first persisted data.
-- `core/design_system/components/` — arrives with the second feature that needs
-  the same control. Until then, feature-local widgets live in
-  `presentation/widgets/`.
 - **App-level bindings live in `lib/provider.dart`**, next to the container rather
   than in a feature's micro-package, and only through an `@ExternalModule`. The
   CQRS dispatcher and the HTTP client are there; a database from `core/` joins
@@ -349,16 +346,17 @@ flow.
 `AppThemeProvider.builder`, so toggling the mode rebuilds the app with the other
 token set. Screens read tokens with `context.theme.colors/sizes/typography`.
 
-The post feature holds the first component kit — `PostCard`, `PostTile`,
-`PostByline`, `PostAuthorBadge`, `PostsNotice` and the two buttons, all under
-`features/posts/presentation/widgets/`. They stay beside their one caller: the
-rule that keeps `core/design_system/components/` empty until a second feature
-needs the control is what decides when they move.
+The shared controls live in `core/design_system/components/` — `AppScaffold`,
+`AppCard`, `AppNotice`, `AppFailureLine` and the three button weights. They moved
+there from the posts feature when the second feature needed them, which is the
+trigger that section describes. A control only one screen needs still belongs
+beside that screen: `PostTile`, `PostByline` and `PostAuthorBadge` are the
+example.
 
 One token is there for a reason worth keeping. `colors.surface.border` is the
 hairline that gives a card an edge: the fill and the canvas sit within about
 1.05:1 of each other in both modes, so a borderless card reads as flat space.
-That is also why `PostCard` is a `Material` and not a `Card` — `Card` takes its
+That is also why `AppCard` is a `Material` and not a `Card` — `Card` takes its
 colours from Material's generated scheme, which knows nothing about the tokens.
 
 Two things that look like cleanups and are not:

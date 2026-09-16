@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/design_system/app_theme.g.dart';
-import 'package:flutter_x/features/posts/presentation/widgets/post_card.dart';
+import 'package:flutter_x/core/design_system/components/app_card.dart';
 import 'package:flutter_x/features/posts/presentation/widgets/post_tile.dart';
 
 import '../../../../app/view_host.dart';
@@ -47,7 +47,7 @@ void main() {
 
       final card = tester.widget<Material>(
         find.descendant(
-          of: find.byType(PostCard),
+          of: find.byType(AppCard),
           matching: find.byType(Material),
         ),
       );

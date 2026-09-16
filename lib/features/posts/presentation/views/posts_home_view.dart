@@ -4,12 +4,13 @@ import 'package:provider/provider.dart';
 
 import '../../../../app/app_route.dart';
 import '../../../../core/design_system/app_theme.g.dart';
+import '../../../../core/design_system/components/app_buttons.dart';
+import '../../../../core/design_system/components/app_notice.dart';
+import '../../../../core/design_system/components/app_scaffold.dart';
 import '../../posts_module.dart';
 import '../view_models/posts_home_view_model.dart';
-import '../widgets/post_buttons.dart';
 import '../widgets/post_form_dialog.dart';
 import '../widgets/post_tile.dart';
-import '../widgets/posts_notice.dart';
 
 // The feature's list screen.
 class PostsHomeView extends StatelessWidget {
@@ -20,27 +21,17 @@ class PostsHomeView extends StatelessWidget {
     final viewModel = context.watch<PostsHomeViewModel>();
     final theme = context.theme;
 
-    return Scaffold(
-      backgroundColor: theme.colors.canvas.primary,
-      appBar: AppBar(
-        title: const Text('Posts'),
-        backgroundColor: theme.colors.surface.card,
-        foregroundColor: theme.colors.foreground.primary,
-        titleTextStyle: theme.typography.title.semiBold,
-        elevation: 0,
-        // The bar is a fixed token colour, and Material's scroll tint would
-        // paint the generated scheme's colour over it.
-        surfaceTintColor: Colors.transparent,
-        actions: [
-          // The feature's inner navigator has nothing to pop here, so this
-          // leaves the feature.
-          IconButton(
-            onPressed: () => context.router<AppRoute>().pop(),
-            icon: const Icon(Icons.close),
-            tooltip: 'Exit posts',
-          ),
-        ],
-      ),
+    return AppScaffold(
+      title: const Text('Posts'),
+      actions: [
+        // The feature's inner navigator has nothing to pop here, so this
+        // leaves the feature.
+        IconButton(
+          onPressed: () => context.router<AppRoute>().pop(),
+          icon: const Icon(Icons.close),
+          tooltip: 'Exit posts',
+        ),
+      ],
       body: _buildBody(context, viewModel),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _compose(context, viewModel),
@@ -66,17 +57,17 @@ class PostsHomeView extends StatelessWidget {
     // The list is the point of the screen, so a dead end here offers a way to
     // ask again rather than only reporting the failure.
     if (viewModel.error != null) {
-      return PostsNotice(
+      return AppNotice(
         icon: Icons.cloud_off_outlined,
         message: 'Could not load posts.',
         isFailure: true,
-        action: PostFilledButton(label: 'Try again', onPressed: viewModel.load),
+        action: AppFilledButton(label: 'Try again', onPressed: viewModel.load),
       );
     }
 
     final posts = viewModel.posts ?? const [];
     if (posts.isEmpty) {
-      return const PostsNotice(
+      return const AppNotice(
         icon: Icons.article_outlined,
         message: 'No posts yet.',
       );
