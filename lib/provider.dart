@@ -23,8 +23,9 @@ final getIt = GetIt.instance;
   asExtension: true,
   useMicroPackage: true,
 )
-Future<void> configureDependencies({required String environment}) async =>
-    getIt.init(environment: environment);
+Future<void> configureDependencies({required String environment}) async {
+  getIt.init(environment: environment);
+}
 
 // The app's CQRS entry point: a compositor over each feature's handler module.
 // `generateInjectable` emits `AppCqrsModule.fromLocator`, which is how the
@@ -41,9 +42,10 @@ void configureCqrs() {}
 @ExternalModule()
 abstract class AppModule {
   @Injectable(scope: Scope.lazySingleton)
-  CqrsDispatcher dispatcher() =>
-      CqrsDispatcher()
-        ..registry.registerModule(AppCqrsModule.fromLocator(getIt.get));
+  CqrsDispatcher dispatcher() {
+    return CqrsDispatcher()
+      ..registry.registerModule(AppCqrsModule.fromLocator(getIt.get));
+  }
 
   // One client for every feature's endpoints.
   @Injectable(scope: Scope.lazySingleton)
