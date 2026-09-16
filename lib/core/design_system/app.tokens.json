@@ -1,6 +1,6 @@
 {
   "$schemaVersion": 3,
-  "$id": "dev.flutter_application_1.design",
+  "$id": "dev.flutter_x.design",
   "$version": "1.0.0",
   "$name": "App Design Tokens",
   "$description": "Light and dark appearances for the app, in W3C design-token form. Edit values here, not in the generated theme.",

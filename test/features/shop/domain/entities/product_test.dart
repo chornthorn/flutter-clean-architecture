@@ -1,5 +1,5 @@
-import 'package:flutter_application_1/features/shop/domain/entities/product.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/features/shop/domain/entities/product.dart';
 
 void main() {
   group('Product', () {

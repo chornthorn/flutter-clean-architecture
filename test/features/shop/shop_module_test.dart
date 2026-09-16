@@ -1,7 +1,7 @@
-import 'package:flutter_application_1/app/app.dart';
-import 'package:flutter_application_1/features/shop/domain/repositories/product_repository.dart';
-import 'package:flutter_application_1/provider.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/app/app.dart';
+import 'package:flutter_x/features/shop/domain/repositories/product_repository.dart';
+import 'package:flutter_x/provider.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'domain/entities/product_fixture.dart';

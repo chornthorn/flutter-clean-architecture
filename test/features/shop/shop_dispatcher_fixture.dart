@@ -1,8 +1,8 @@
 import 'package:cqrs/cqrs.dart';
-import 'package:flutter_application_1/features/shop/domain/repositories/product_repository.dart';
-import 'package:flutter_application_1/features/shop/domain/usecases/get_product_query.dart';
-import 'package:flutter_application_1/features/shop/domain/usecases/get_products_query.dart';
-import 'package:flutter_application_1/features/shop/shop_handler.dart';
+import 'package:flutter_x/features/shop/domain/repositories/product_repository.dart';
+import 'package:flutter_x/features/shop/domain/usecases/get_product_query.dart';
+import 'package:flutter_x/features/shop/domain/usecases/get_products_query.dart';
+import 'package:flutter_x/features/shop/shop_handler.dart';
 
 // A real dispatcher over the shop's generated handler module — the query path
 // the container builds at runtime, with the repository passed in instead of

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/features/shop/presentation/view_models/shop_product_view_model.dart';
-import 'package:flutter_application_1/features/shop/presentation/views/shop_product_view.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/features/shop/presentation/view_models/shop_product_view_model.dart';
+import 'package:flutter_x/features/shop/presentation/views/shop_product_view.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../domain/entities/product_fixture.dart';

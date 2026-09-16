@@ -5,10 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 // `lib/provider.dart`, written as the two forms an import can take. The bare
 // basename cannot be used: `package:provider/provider.dart` is a legitimate
 // import in `presentation/`, and a substring test would flag it.
-const container = [
-  'package:flutter_application_1/provider.dart',
-  '../provider.dart',
-];
+const container = ['package:flutter_x/provider.dart', '../provider.dart'];
 
 // Layer rules as import constraints, so the structure cannot rot quietly.
 // See docs/architecture.md.

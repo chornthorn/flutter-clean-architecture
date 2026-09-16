@@ -1,6 +1,6 @@
-import 'package:flutter_application_1/features/shop/domain/usecases/get_product_query.dart';
-import 'package:flutter_application_1/features/shop/domain/usecases/get_products_query.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/features/shop/domain/usecases/get_product_query.dart';
+import 'package:flutter_x/features/shop/domain/usecases/get_products_query.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'domain/entities/product_fixture.dart';

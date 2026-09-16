@@ -1,4 +1,4 @@
-import 'package:flutter_application_1/features/shop/presentation/view_models/shop_product_view_model.dart';
+import 'package:flutter_x/features/shop/presentation/view_models/shop_product_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
