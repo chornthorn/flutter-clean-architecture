@@ -5,11 +5,11 @@ import 'package:flutter_x/features/shop/presentation/view_models/shop_product_vi
 import 'package:flutter_x/features/shop/presentation/views/shop_product_view.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../../app/view_host.dart';
 import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_cart_repository.dart';
 import '../../domain/repositories/mock_product_repository.dart';
 import '../../shop_dispatcher_fixture.dart';
-import 'view_host.dart';
 
 void main() {
   // mocktail needs a fallback before `any()` can match a `Cart` argument.

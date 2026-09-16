@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
+import 'package:flutter_x/features/posts/presentation/posts_watch.dart';
 import 'package:flutter_x/features/posts/presentation/view_models/post_detail_view_model.dart';
 import 'package:flutter_x/features/posts/presentation/views/post_detail_view.dart';
+import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../../app/view_host.dart';
 import '../../domain/entities/post_fixture.dart';
 import '../../domain/repositories/mock_post_repository.dart';
 import '../../posts_dispatcher_fixture.dart';
-import 'view_host.dart';
 
 void main() {
   group('PostDetailView', () {
@@ -15,7 +18,10 @@ void main() {
       final repository = MockPostRepository();
       when(() => repository.postById(1)).thenAnswer((_) async => post);
 
-      final viewModel = PostDetailViewModel(postsDispatcher(repository));
+      final viewModel = PostDetailViewModel(
+        postsDispatcher(repository),
+        PostsWatch(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
@@ -30,7 +36,10 @@ void main() {
       final repository = MockPostRepository();
       when(() => repository.postById(999)).thenAnswer((_) async => null);
 
-      final viewModel = PostDetailViewModel(postsDispatcher(repository));
+      final viewModel = PostDetailViewModel(
+        postsDispatcher(repository),
+        PostsWatch(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load(999);
 
@@ -49,7 +58,10 @@ void main() {
         () => repository.postById(1),
       ).thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = PostDetailViewModel(postsDispatcher(repository));
+      final viewModel = PostDetailViewModel(
+        postsDispatcher(repository),
+        PostsWatch(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
@@ -57,6 +69,59 @@ void main() {
 
       expect(find.text('Could not load post.'), findsOneWidget);
       expect(find.text('Post not found.'), findsNothing);
+    });
+
+    testWidgets('should edit the post through the dialog', (tester) async {
+      final viewModel = PostDetailViewModel(
+        postsDispatcher(InMemoryPostRepository()),
+        PostsWatch(),
+      );
+      addTearDown(viewModel.dispose);
+      await viewModel.load(1);
+
+      await tester.pumpWidget(hostPage(viewModel, const PostDetailView(id: 1)));
+
+      await tester.tap(find.byTooltip('Edit post'));
+      await tester.pumpAndSettle();
+      // The form opens on the post that is on screen, not on empty fields.
+      expect(find.byType(PostFormDialog), findsOneWidget);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Title'),
+        'Edited title',
+      );
+      await tester.pump();
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PostFormDialog), findsNothing);
+      expect(find.text('Edited title'), findsOneWidget);
+      expect(find.text('First post'), findsNothing);
+    });
+
+    testWidgets('should ask before deleting, and stop when told no', (
+      tester,
+    ) async {
+      final store = InMemoryPostRepository();
+      final viewModel = PostDetailViewModel(
+        postsDispatcher(store),
+        PostsWatch(),
+      );
+      addTearDown(viewModel.dispose);
+      await viewModel.load(1);
+
+      await tester.pumpWidget(hostPage(viewModel, const PostDetailView(id: 1)));
+
+      await tester.tap(find.byTooltip('Delete post'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete this post?'), findsOneWidget);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      // Backing out leaves the post where it was.
+      expect(await store.postById(1), isNotNull);
+      expect(find.byType(PostDetailView), findsOneWidget);
     });
   });
 }

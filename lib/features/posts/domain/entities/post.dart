@@ -30,3 +30,13 @@ class Post {
   @override
   String toString() => 'Post($id, $title)';
 }
+
+// The one rule a title has to satisfy, wherever a post is written. It lives with
+// the entity rather than in each command, so create and update cannot drift.
+String cleanedTitle(String title) {
+  final cleaned = title.trim();
+  if (cleaned.isEmpty) {
+    throw ArgumentError.value(title, 'title', 'A post needs a title');
+  }
+  return cleaned;
+}

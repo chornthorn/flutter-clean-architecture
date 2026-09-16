@@ -9,6 +9,8 @@ lib/core/
     network_client.dart  the Dio every feature's endpoints shares, with its
                          timeouts and base URL. Bound in `provider.dart` —
                          features take it from the container, not from here.
+    interceptors.dart    the cross-cutting layer: logging today, auth or retry
+                         when they are needed. Nothing per-endpoint belongs here.
   design_system/
     theme-spec.schema.json  names the token groups design_builder parses
     app.tokens.json         the token values, per mode — edit here

@@ -7,10 +7,10 @@ import 'package:flutter_x/features/shop/presentation/view_models/shop_home_view_
 import 'package:flutter_x/features/shop/presentation/views/shop_home_view.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../../app/view_host.dart';
 import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_product_repository.dart';
 import '../../shop_dispatcher_fixture.dart';
-import 'view_host.dart';
 
 void main() {
   group('ShopHomeView', () {

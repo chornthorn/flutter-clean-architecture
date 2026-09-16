@@ -69,21 +69,64 @@ void main() {
     expect(find.text('kaisel features'), findsOneWidget);
 
     // The posts feature is the same shape over a different source: in `test` the
-    // container binds its in-memory adapter, so this touches no network.
+    // container binds its in-memory adapter, so this touches no network — and the
+    // writes really land, which is what makes the whole CRUD loop visible here.
     await tester.tap(find.text('Open posts'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Posts'), findsOneWidget);
     expect(find.text('First post'), findsOneWidget);
 
+    // Create.
+    await tester.tap(find.byTooltip('New post'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Title'),
+      'Added post',
+    );
+    await tester.pump();
+    await tester.tap(find.text('Create'));
+    await tester.pumpAndSettle();
+    expect(find.text('Added post'), findsOneWidget);
+
+    // Read.
     await tester.tap(find.text('First post'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Post 1'), findsOneWidget);
     expect(find.text('The first post in the local fixture.'), findsOneWidget);
 
-    // Back to the list, where the exit action lives.
+    // Update.
+    await tester.tap(find.byTooltip('Edit post'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Title'),
+      'Edited post',
+    );
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edited post'), findsOneWidget);
+
+    // Back to the list. It was told to re-read while it was hidden, so the edit is
+    // already there — nothing remounted it.
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Posts'), findsOneWidget);
+    expect(find.text('Edited post'), findsOneWidget);
+    expect(find.text('First post'), findsNothing);
+
+    // Delete, behind a confirmation.
+    await tester.tap(find.text('Edited post'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete post'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete this post?'), findsOneWidget);
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    // The delete popped back to the list, which no longer holds the post.
+    expect(find.widgetWithText(AppBar, 'Posts'), findsOneWidget);
+    expect(find.text('Edited post'), findsNothing);
+    expect(find.text('Added post'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Exit posts'));
     await tester.pumpAndSettle();

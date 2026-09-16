@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
 import '../view_models/post_detail_view_model.dart';
+import '../widgets/post_form_dialog.dart';
 
 // One post, looked up by the id carried on `PostDetail`.
 //
@@ -18,7 +19,24 @@ class PostDetailView extends StatelessWidget {
     final viewModel = context.watch<PostDetailViewModel>();
 
     return Scaffold(
-      appBar: AppBar(title: Text('Post $id')),
+      appBar: AppBar(
+        title: Text('Post $id'),
+        actions: [
+          // Nothing to edit or delete until there is a post on screen.
+          if (viewModel.post != null) ...[
+            IconButton(
+              onPressed: () => _edit(context, viewModel),
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Edit post',
+            ),
+            IconButton(
+              onPressed: () => _delete(context, viewModel),
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Delete post',
+            ),
+          ],
+        ],
+      ),
       body: _buildBody(context, viewModel),
     );
   }
@@ -51,5 +69,58 @@ class PostDetailView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _edit(
+    BuildContext context,
+    PostDetailViewModel viewModel,
+  ) async {
+    final post = viewModel.post;
+    if (post == null) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (_) => PostFormDialog(
+        heading: 'Edit post',
+        submitLabel: 'Save',
+        initialTitle: post.title,
+        initialBody: post.body,
+        onSubmit: (title, body) =>
+            viewModel.updatePost(title: title, body: body),
+      ),
+    );
+  }
+
+  Future<void> _delete(
+    BuildContext context,
+    PostDetailViewModel viewModel,
+  ) async {
+    // Deleting is not undoable, so it asks first.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete this post?'),
+        content: const Text('It will be gone from the list.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final deleted = await viewModel.deletePost();
+
+    // There is nothing left on this screen, so it leaves the stack.
+    if (deleted && context.mounted) {
+      Navigator.of(context).pop();
+    }
   }
 }

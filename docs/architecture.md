@@ -47,14 +47,14 @@ lib/
 | `App/AppCoordinator.swift` | `lib/app/app_route.dart`, `app_page_builder.dart`, plus each `features/<name>/<name>_module.dart` | Kaisel supplies the coordination machinery. Each feature owns a router because a kaisel `RouteModule` is the mountable unit — there is no single app-level coordinator. |
 | `App/DependencyContainer.swift` | `lib/provider.dart`, plus `features/<name>/<name>_module.dart` | `injectify` + `get_it`: one root container that composes a folder-scoped micro-package per feature. A feature's registrations are reachable only through its own module. Kept at the `lib/` root rather than inside `app/` so a feature's module does not import the app layer. It also carries `@CqrsInit`, so the app's composition sits in one file. |
 | `Core/DesignSystem/` | `lib/core/design_system/` | Tokens (`app.tokens.json`) compiled to `app_theme.g.dart` by `design_builder`. `components/` arrives with the second feature needing the same control. |
-| `Core/Networking/` | `lib/core/networking/` | `network_client.dart` builds the one `Dio` every feature's endpoints share, with its timeouts and base URL. Bound in `provider.dart`, so features take it from the container rather than importing this. |
+| `Core/Networking/` | `lib/core/networking/` | `network_client.dart` builds the one `Dio` every feature's endpoints share, with its timeouts, base URL, and `interceptors.dart` (logging today; the place for auth or retry). Bound in `provider.dart`, so features take it from the container rather than importing this. |
 | `Core/Storage/` | `lib/core/storage/` | Not created — nothing is persisted yet. |
 | `Features/Leads/Presentation/Views/` | `features/<name>/presentation/views/` | `LeadListView.swift` → `shop_home_view.dart`. |
 | `.../Presentation/ViewModels/` | `presentation/view_models/` | `ChangeNotifier`s, one per view. |
 | `.../Domain/Entities/` | `domain/entities/` | |
 | `.../Domain/UseCases/` | `domain/usecases/` | A use case is a query (or command) plus its handler, in one file. Both live in Domain — there is no separate application layer. |
 | `.../Domain/Repositories/` | `domain/repositories/` | The interface definition; the concrete type goes in Infrastructure. |
-| `.../Infrastructure/DTOs/` | `infrastructure/dtos/` | The wire shape, hand-mapped when the payload is flat — see `posts/infrastructure/dtos/`. |
+| `.../Infrastructure/DTOs/` | `infrastructure/dtos/` | The wire shape, hand-mapped when the payload is flat — see `posts/infrastructure/dtos/`, which keeps the request shape (`CreatePostDto`) apart from the response one (`PostDto`). |
 | `.../Infrastructure/Endpoints/` | `infrastructure/endpoints/` | A `@RestApi` interface; `retrofit_generator` writes the implementation into a `.g.dart` beside it. |
 | `.../Infrastructure/Repositories/` | `infrastructure/repositories/` | The concrete implementation. |
 
@@ -262,14 +262,14 @@ class AddProductToCartCommandHandler
 }
 ```
 
-Three details that differ from the read side:
+Four details that differ from the read side:
 
 - **A publishing handler takes the `CqrsDispatcher`, and the dispatcher is the
   publisher.** `CqrsDispatcher implements EventPublisher` and the app binds it
   once, so a command publishes through the same object that routed the command to
   it — no second registration, no narrower wrapper type. In a test, hand it a real
   dispatcher with only the handler you want to observe registered, as
-  `add_product_to_cart_command_test.dart` does.
+  `add_to_cart_command_test.dart` does.
 - **Events fan out, the other messages do not.** The dispatcher resolves a *list*
   of handlers per event type and runs them together, so a second reaction is a new
   file and a regenerate — nothing else moves. Command and query handlers are
@@ -279,6 +279,15 @@ Three details that differ from the read side:
   through `GetCartQuery`; the count on screen is the query's answer, never a local
   `_cartCount++`. Write and read stay separate all the way up, so a command that
   silently failed shows a stale count instead of a lying one.
+- **A write on one page has to reach the readers on another.** Kaisel keeps a page
+  mounted while another is pushed over it, so returning to it remounts nothing and
+  re-runs nothing — a list edited from a detail page above it would keep showing
+  the old title. `PostsWatch` is that feature's signal: the writer pings it after a
+  successful write, the reader listens and re-reads. It is registered once in the
+  feature, so both sides share the instance without either knowing the other. A
+  `RouteObserver` + `RouteAware.didPopNext` would also work and needs no feature
+  plumbing, but it fires on *every* pop and only for pushes it can see; the
+  signal says what actually happened.
 
 The dispatcher is the app's one non-feature container binding — an
 `@ExternalModule` in `provider.dart`, beside the container that resolves it:
@@ -410,8 +419,11 @@ Things that look like improvements and are not:
 - **Rendering a page with no provider above it.** The page resolves its view
   model from the environment now, not from its constructor, so a bare
   `pumpWidget(ShopHomeView())` throws `ProviderNotFoundException`. Wrap it, as
-  `test/features/shop/presentation/views/view_host.dart` does — that wrapper is
-  the cost of this shape.
+  `test/app/view_host.dart` does — that wrapper is the cost of this shape, and it
+  is shared by every feature rather than copied per feature.
+- **Reading `context.theme` in a page pumped bare.** The token extension asserts
+  when the theme has no `AppTheme`, so a page test that skips `hostPage`/`hostShell`
+  fails with a null-check inside the design system rather than a clear message.
 - **Registering a view model as a singleton.** It would be shared across mounts
   and outlive the page that owns it. `Scope.factory` plus `ChangeNotifierProvider`
   disposal is the rule — the container does not dispose factories.

@@ -107,7 +107,19 @@ container.
   and `infrastructure/` would be empty ceremony; add them when the feature has
   something to load.
 - `posts/` — the remote feature, and the reference for a source that is a choice:
-  `infrastructure/endpoints/` holds the `@RestApi` calls, `dtos/` the wire shape,
-  and `repositories/` two adapters for one contract — an HTTP one wired in `prod`
-  and an in-memory fixture wired in `dev` and `test`. Reachable at `/posts`, with
-  a detail route at `/posts/<id>`.
+  `infrastructure/endpoints/` holds the `@RestApi` calls, `dtos/` the wire shapes
+  (one per request shape, so an update never sends an id it did not change), and
+  `repositories/` two adapters for one contract — an HTTP one wired in `prod` and
+  an in-memory store wired in `dev` and `test`. Reachable at `/posts`, with a
+  detail route at `/posts/<id>`.
+
+  All four writes and reads: `GetPostsQuery` and `GetPostQuery` behind a list and a
+  detail, plus `CreatePostCommand`, `UpdatePostCommand`, and `DeletePostCommand`
+  behind a form dialog and a delete confirmation. Every command validates the
+  title through `cleanedTitle` and lets the store assign ids, and every write is
+  followed by a read rather than a local patch.
+
+  Two things about the demo API: jsonplaceholder echoes writes back without
+  storing them, so under `prod` only the in-memory adapter shows the loop closing;
+  and because kaisel keeps the list mounted under the detail, `presentation/posts_watch.dart`
+  is what tells it to re-read after an edit or delete.

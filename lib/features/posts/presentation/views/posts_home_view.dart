@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../app/app_route.dart';
 import '../../posts_module.dart';
 import '../view_models/posts_home_view_model.dart';
+import '../widgets/post_form_dialog.dart';
 import '../widgets/post_tile.dart';
 
 // The feature's list screen.
@@ -29,6 +30,19 @@ class PostsHomeView extends StatelessWidget {
         ],
       ),
       body: _buildBody(context, viewModel),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => showDialog<void>(
+          context: context,
+          builder: (_) => PostFormDialog(
+            heading: 'New post',
+            submitLabel: 'Create',
+            onSubmit: (title, body) =>
+                viewModel.createPost(title: title, body: body),
+          ),
+        ),
+        tooltip: 'New post',
+        child: const Icon(Icons.add),
+      ),
     );
   }
 

@@ -19,13 +19,12 @@ in the mirrored folder of whatever it stands in for:
 
 | File | Doubles |
 |:-----|:--------|
+| `app/view_host.dart` | pumps a page under a provider, in the app's token theme; `hostShell` is the same without a view model |
 | `features/shop/domain/entities/product_fixture.dart` | the canonical `Product` |
 | `features/shop/domain/repositories/mock_product_repository.dart` | `ProductRepository` |
 | `features/shop/domain/repositories/mock_cart_repository.dart` | `CartRepository` |
 | `features/shop/domain/repositories/mock_audit_log.dart` | `AuditLog` |
 | `features/shop/shop_dispatcher_fixture.dart` | the shop's message path: a real dispatcher over the generated handler module |
-| `features/shop/presentation/views/view_host.dart` | mounts a page under a provider, in the app's token theme |
-| `features/posts/presentation/views/view_host.dart` | the same, for the posts pages |
 | `features/posts/domain/entities/post_fixture.dart` | the canonical `Post` |
 | `features/posts/domain/repositories/mock_post_repository.dart` | `PostRepository` |
 | `features/posts/posts_dispatcher_fixture.dart` | the posts message path: a real dispatcher over the generated handler module |
@@ -66,10 +65,10 @@ Two test styles, by layer:
 
 - **Domain and view models** are plain Dart: build the class, call it, assert.
   No widgets, no container.
-- **Views** are pumped under `hostPage(...)` from
-  `features/<name>/presentation/views/view_host.dart`, which mounts a provider the
-  way the feature's module does. No container there either — pass the view model
-  you built.
+- **Views** are pumped under `hostPage(...)` from `app/view_host.dart`, which
+  mounts a provider the way a feature's module does and carries the app's token
+  theme. No container there either — pass the view model you built. A widget that
+  needs the theme but no view model (a dialog) goes under `hostShell(...)`.
 
 **The container is built in `test`, never `prod`.** `configureDependencies`
 requires an environment, and `Environment.test` is the one that binds the
