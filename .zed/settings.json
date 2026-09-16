@@ -1,0 +1,21 @@
+{
+  // Codegen output: out of the project panel, file search, and file scans.
+  //
+  // `file_scan_exclusions` REPLACES Zed's defaults rather than adding to them,
+  // so their list is repeated here verbatim — dropping an entry would start
+  // showing .git, .DS_Store and friends in the panel.
+  "file_scan_exclusions": [
+    "**/.git",
+    "**/.svn",
+    "**/.hg",
+    "**/.jj",
+    "**/CVS",
+    "**/.DS_Store",
+    "**/Thumbs.db",
+    "**/.classpath",
+    "**/.settings",
+    "**/*.config.dart",
+    "**/*.cqrs.dart",
+    "**/*.g.dart"
+  ]
+}

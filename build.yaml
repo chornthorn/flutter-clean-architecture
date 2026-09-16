@@ -1,0 +1,19 @@
+targets:
+  $default:
+    builders:
+      injectify_generator:injectify_generator:
+        options:
+          # Use relative imports inside lib/ rather than package: imports.
+          prefer_relative_imports: true
+          # Name of the generated extension method on GetIt.
+          initializer_name: 'init'
+      design_builder|design_builder:
+        enabled: true
+        options:
+          # The schema names the token groups; the tokens supply their values.
+          spec_path: "lib/core/design_system/theme-spec.schema.json"
+          input_glob: "lib/core/design_system/*.tokens.json"
+          # Output lands next to the design system it describes.
+          output_path: "core/design_system"
+          output_file_name: "app_theme"
+          class_name: "AppTheme"

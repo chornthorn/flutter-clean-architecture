@@ -1,0 +1,9 @@
+targets:
+  $default:
+    builders:
+      injectify_generator:injectify_generator:
+        options:
+          # Automatically uses relative imports when possible
+          prefer_relative_imports: true
+          # Default initializer name
+          initializer_name: 'init'

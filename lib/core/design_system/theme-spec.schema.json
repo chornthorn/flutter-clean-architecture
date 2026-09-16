@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/khode-io/design-builder/blob/main/schema/theme-spec.schema.json",
+  "title": "Flutter Design Tokens",
+  "description": "Declares which token groups design_builder parses. The schema supplies names only — values come from app.tokens.json, so a group or token listed here must exist there.",
+  "type": "object",
+  "required": ["$schemaVersion", "$id", "$version", "$name", "light", "dark"],
+  "properties": {
+    "$schemaVersion": { "type": "integer" },
+    "$id": { "type": "string" },
+    "$version": { "type": "string" },
+    "$name": { "type": "string" },
+    "$description": { "type": "string" },
+    "$variables": { "type": "object" },
+    "light": { "$ref": "#/definitions/appearance" },
+    "dark": { "$ref": "#/definitions/appearance" }
+  },
+  "definitions": {
+    "colorToken": { "properties": { "$type": { "const": "color" } } },
+    "numberToken": { "properties": { "$type": { "const": "number" } } },
+    "stringToken": { "properties": { "$type": { "const": "string" } } },
+    "textStyleToken": { "properties": { "$type": { "const": "typography" } } },
+    "color": {
+      "properties": {
+        "brand": { "properties": { "primary": {}, "container": {} } },
+        "foreground": {
+          "properties": { "primary": {}, "subtle": {}, "inverse": {} }
+        },
+        "canvas": { "properties": { "primary": {} } },
+        "surface": { "properties": { "card": {} } },
+        "action": { "properties": { "filled": {} } },
+        "feedback": { "properties": { "success": {}, "danger": {} } }
+      }
+    },
+    "typographyWeight": {
+      "properties": { "regular": {}, "semiBold": {} }
+    },
+    "typography": {
+      "properties": { "display": {}, "title": {}, "body": {}, "label": {} }
+    },
+    "appearance": {
+      "properties": {
+        "sizes": {
+          "properties": {
+            "padding": {},
+            "spacing": {},
+            "radius": {}
+          }
+        }
+      }
+    }
+  }
+}

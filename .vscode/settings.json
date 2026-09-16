@@ -1,0 +1,15 @@
+{
+  // Codegen output: hidden from the Explorer and from search. The Dart analyzer
+  // still reads these files, so go-to-definition into one works.
+  // `dart run build_runner build` regenerates them; nothing here is committed.
+  "files.exclude": {
+    "**/*.config.dart": true,
+    "**/*.cqrs.dart": true,
+    "**/*.g.dart": true
+  },
+  "search.exclude": {
+    "**/*.config.dart": true,
+    "**/*.cqrs.dart": true,
+    "**/*.g.dart": true
+  }
+}

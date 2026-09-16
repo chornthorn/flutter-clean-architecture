@@ -1,0 +1,261 @@
+{
+  "$schemaVersion": 3,
+  "$id": "dev.flutter_application_1.design",
+  "$version": "1.0.0",
+  "$name": "App Design Tokens",
+  "$description": "Light and dark appearances for the app, in W3C design-token form. Edit values here, not in the generated theme.",
+  "light": {
+    "$variables": {
+      "color": {
+        "brand": { "primary": "#4F46E5", "container": "#EEF2FF" },
+        "foreground": {
+          "primary": "#111827",
+          "subtle": "#6B7280",
+          "inverse": "#FFFFFF"
+        },
+        "canvas": { "primary": "#F9FAFB" },
+        "surface": { "card": "#FFFFFF" },
+        "action": { "filled": "#4F46E5" },
+        "feedback": { "success": "#10B981", "danger": "#EF4444" }
+      },
+      "font": { "family": { "primary": "Roboto" } }
+    },
+    "color": {
+      "brand": {
+        "primary": { "$type": "color", "$value": "$color.brand.primary" },
+        "container": { "$type": "color", "$value": "$color.brand.container" }
+      },
+      "foreground": {
+        "primary": { "$type": "color", "$value": "$color.foreground.primary" },
+        "subtle": { "$type": "color", "$value": "$color.foreground.subtle" },
+        "inverse": { "$type": "color", "$value": "$color.foreground.inverse" }
+      },
+      "canvas": {
+        "primary": { "$type": "color", "$value": "$color.canvas.primary" }
+      },
+      "surface": {
+        "card": { "$type": "color", "$value": "$color.surface.card" }
+      },
+      "action": {
+        "filled": { "$type": "color", "$value": "$color.action.filled" }
+      },
+      "feedback": {
+        "success": { "$type": "color", "$value": "$color.feedback.success" },
+        "danger": { "$type": "color", "$value": "$color.feedback.danger" }
+      }
+    },
+    "sizes": {
+      "padding": {
+        "sm": { "$type": "number", "$value": 8 },
+        "md": { "$type": "number", "$value": 16 },
+        "lg": { "$type": "number", "$value": 24 }
+      },
+      "spacing": {
+        "sm": { "$type": "number", "$value": 8 },
+        "md": { "$type": "number", "$value": 16 },
+        "xl": { "$type": "number", "$value": 32 }
+      },
+      "radius": {
+        "sm": { "$type": "number", "$value": 4 },
+        "md": { "$type": "number", "$value": 8 }
+      }
+    },
+    "typography": {
+      "display": {
+        "regular": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 32,
+            "fontWeight": 400,
+            "height": 1.2,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.primary"
+          }
+        },
+        "semiBold": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 32,
+            "fontWeight": 600,
+            "height": 1.2,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.primary"
+          }
+        }
+      },
+      "title": {
+        "regular": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 20,
+            "fontWeight": 400,
+            "height": 1.4,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.primary"
+          }
+        },
+        "semiBold": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 20,
+            "fontWeight": 600,
+            "height": 1.4,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.primary"
+          }
+        }
+      },
+      "body": {
+        "regular": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 16,
+            "fontWeight": 400,
+            "height": 1.5,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.primary"
+          }
+        }
+      },
+      "label": {
+        "regular": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 14,
+            "fontWeight": 400,
+            "height": 1.4,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.subtle"
+          }
+        }
+      }
+    }
+  },
+  "dark": {
+    "$variables": {
+      "color": {
+        "brand": { "primary": "#A5B4FC", "container": "#312E81" },
+        "foreground": {
+          "primary": "#F9FAFB",
+          "subtle": "#9CA3AF",
+          "inverse": "#111827"
+        },
+        "canvas": { "primary": "#111827" },
+        "surface": { "card": "#1F2937" },
+        "action": { "filled": "#A5B4FC" },
+        "feedback": { "success": "#34D399", "danger": "#F87171" }
+      },
+      "font": { "family": { "primary": "Roboto" } }
+    },
+    "color": {
+      "brand": {
+        "primary": { "$type": "color", "$value": "$color.brand.primary" },
+        "container": { "$type": "color", "$value": "$color.brand.container" }
+      },
+      "foreground": {
+        "primary": { "$type": "color", "$value": "$color.foreground.primary" },
+        "subtle": { "$type": "color", "$value": "$color.foreground.subtle" },
+        "inverse": { "$type": "color", "$value": "$color.foreground.inverse" }
+      },
+      "canvas": {
+        "primary": { "$type": "color", "$value": "$color.canvas.primary" }
+      },
+      "surface": {
+        "card": { "$type": "color", "$value": "$color.surface.card" }
+      },
+      "action": {
+        "filled": { "$type": "color", "$value": "$color.action.filled" }
+      },
+      "feedback": {
+        "success": { "$type": "color", "$value": "$color.feedback.success" },
+        "danger": { "$type": "color", "$value": "$color.feedback.danger" }
+      }
+    },
+    "sizes": {
+      "padding": {
+        "sm": { "$type": "number", "$value": 8 },
+        "md": { "$type": "number", "$value": 16 },
+        "lg": { "$type": "number", "$value": 24 }
+      },
+      "spacing": {
+        "sm": { "$type": "number", "$value": 8 },
+        "md": { "$type": "number", "$value": 16 },
+        "xl": { "$type": "number", "$value": 32 }
+      },
+      "radius": {
+        "sm": { "$type": "number", "$value": 4 },
+        "md": { "$type": "number", "$value": 8 }
+      }
+    },
+    "typography": {
+      "display": {
+        "regular": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 32,
+            "fontWeight": 400,
+            "height": 1.2,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.primary"
+          }
+        },
+        "semiBold": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 32,
+            "fontWeight": 600,
+            "height": 1.2,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.primary"
+          }
+        }
+      },
+      "title": {
+        "regular": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 20,
+            "fontWeight": 400,
+            "height": 1.4,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.primary"
+          }
+        },
+        "semiBold": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 20,
+            "fontWeight": 600,
+            "height": 1.4,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.primary"
+          }
+        }
+      },
+      "body": {
+        "regular": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 16,
+            "fontWeight": 400,
+            "height": 1.5,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.primary"
+          }
+        }
+      },
+      "label": {
+        "regular": {
+          "$type": "typography",
+          "$value": {
+            "fontSize": 14,
+            "fontWeight": 400,
+            "height": 1.4,
+            "fontFamily": "$font.family.primary",
+            "color": "$color.foreground.subtle"
+          }
+        }
+      }
+    }
+  }
+}

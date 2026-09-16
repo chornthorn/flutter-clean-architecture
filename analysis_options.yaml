@@ -1,0 +1,7 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  # Generated sources are not ours to lint: `design_builder` and `injectify`
+  # overwrite them wholesale, and their style is the generator's business.
+  exclude:
+    - "**/*.g.dart"

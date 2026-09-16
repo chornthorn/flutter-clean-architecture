@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "kaisel": {
+      "source": "Mastersam07/kaisel",
+      "sourceType": "github",
+      "skillPath": "skills/kaisel/SKILL.md",
+      "computedHash": "ec5d55f03114a7b00adf007abc5fc731e3313f7036c0f80019b7887e97416ef1"
+    }
+  }
+}
