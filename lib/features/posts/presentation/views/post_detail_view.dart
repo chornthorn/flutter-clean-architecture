@@ -70,13 +70,15 @@ class PostDetailView extends StatelessWidget {
     PostDetailViewModel viewModel,
     AsyncState<Post?> state,
   ) {
-    final theme = context.theme;
-
     // `AsyncData*` first: the reloading and refreshing states implement `AsyncLoading`.
     return switch (state) {
       AsyncData<Post?>(:final value) when value != null => _buildPost(
         context,
         value,
+      ),
+      AsyncData<Post?>() => const AppNotice(
+        icon: Icons.search_off_outlined,
+        message: 'Post not found.',
       ),
       AsyncError<Post?>(:final error) => AppNotice(
         icon: error is NetworkException
@@ -89,14 +91,7 @@ class PostDetailView extends StatelessWidget {
           onPressed: () => viewModel.load(id),
         ),
       ),
-      // No post and no error means the id resolved to nothing, not worth a retry.
-      AsyncData<Post?>() => const AppNotice(
-        icon: Icons.search_off_outlined,
-        message: 'Post not found.',
-      ),
-      AsyncLoading<Post?>() => Center(
-        child: CircularProgressIndicator(color: theme.colors.brand.primary),
-      ),
+      _ => const Center(child: CircularProgressIndicator()),
     };
   }
 
@@ -104,17 +99,27 @@ class PostDetailView extends StatelessWidget {
     final theme = context.theme;
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(theme.sizes.padding.md),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // The title is the page's headline, so it sits on the canvas; the body is
-          // content, so it takes a card, the way a row does in the list.
-          Text(post.title, style: theme.typography.display.regular),
-          SizedBox(height: theme.sizes.spacing.md),
+          Text(
+            post.title,
+            style: theme.typography.title.semiBold.copyWith(
+              color: theme.colors.foreground.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
           PostByline(userId: post.userId),
-          SizedBox(height: theme.sizes.spacing.xl),
-          AppCard(child: Text(post.body, style: theme.typography.body.regular)),
+          const SizedBox(height: 16),
+          AppCard(
+            child: Text(
+              post.body,
+              style: theme.typography.body.regular.copyWith(
+                color: theme.colors.foreground.subtle,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -125,6 +130,7 @@ class PostDetailView extends StatelessWidget {
     PostDetailViewModel viewModel,
     Post post,
   ) async {
+    viewModel.form.clear();
     await showDialog<void>(
       context: context,
       builder: (_) => PostFormDialog(
@@ -132,6 +138,7 @@ class PostDetailView extends StatelessWidget {
         submitLabel: 'Save',
         initialTitle: post.title,
         initialBody: post.body,
+        formController: viewModel.form,
         onSubmit: (title, body) async {
           final result = await viewModel.updatePost(
             post.id,
@@ -154,53 +161,37 @@ class PostDetailView extends StatelessWidget {
     PostDetailViewModel viewModel,
     Post post,
   ) async {
-    final theme = context.theme;
-
-    // Deleting is not undoable, so it asks first.
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: theme.colors.surface.card,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(theme.sizes.radius.md),
-        ),
-        // The icon carries the danger colour, not the button: the token is a fill,
-        // and its inverse pair sits under the contrast a label needs.
-        icon: Icon(Icons.delete_outline, color: theme.colors.feedback.danger),
-        title: Text(
-          'Delete this post?',
-          style: theme.typography.title.semiBold,
-        ),
-        content: Text(
-          'It will be gone from the list.',
-          style: theme.typography.label.regular,
-        ),
+        title: const Text('Delete this post?'),
+        content: Text('Are you sure you want to delete "${post.title}"?'),
         actions: [
-          AppTextButton(
-            label: 'Cancel',
+          TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
           ),
-          AppFilledButton(
-            label: 'Delete',
+          FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
 
     if (confirmed != true) return;
+    if (!context.mounted) return;
 
     final result = await viewModel.deletePost(post.id);
 
-    if (!context.mounted) return;
-
-    if (result.isSuccess) {
-      if (result case ActionSuccess(:final message) when message != null) {
+    if (result case ActionSuccess(:final message) when message != null) {
+      if (context.mounted) {
         AppToast.showSuccess(context, message);
       }
+    }
+
+    if (result.isSuccess && context.mounted) {
       Navigator.of(context).pop();
-    } else if (result case ActionFailure(:final message)) {
-      AppToast.showError(context, message);
     }
   }
 }

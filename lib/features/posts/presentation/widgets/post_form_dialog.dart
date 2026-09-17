@@ -19,6 +19,7 @@ class PostFormDialog extends StatefulWidget {
     required this.heading,
     required this.submitLabel,
     required this.onSubmit,
+    this.formController,
     this.initialTitle = '',
     this.initialBody = '',
   });
@@ -30,6 +31,10 @@ class PostFormDialog extends StatefulWidget {
   // Answers the result of the write: success or failure message/fields.
   final Future<ActionResult> Function(String title, String body) onSubmit;
 
+  /// Optional form controller provided by the ViewModel. If not provided,
+  /// the dialog creates and manages its own internal [AppFormController].
+  final AppFormController? formController;
+
   final String initialTitle;
   final String initialBody;
 
@@ -40,7 +45,8 @@ class PostFormDialog extends StatefulWidget {
 class _PostFormDialogState extends State<PostFormDialog> {
   late final TextEditingController _titleController;
   late final TextEditingController _bodyController;
-  final _formController = AppFormController();
+  late final AppFormController _formController;
+  late final bool _ownsController;
   late String _title;
   var _submitting = false;
   String? _errorMessage;
@@ -48,6 +54,8 @@ class _PostFormDialogState extends State<PostFormDialog> {
   @override
   void initState() {
     super.initState();
+    _ownsController = widget.formController == null;
+    _formController = widget.formController ?? AppFormController();
     _title = widget.initialTitle;
     _titleController = TextEditingController(text: widget.initialTitle)
       ..addListener(() {
@@ -62,7 +70,9 @@ class _PostFormDialogState extends State<PostFormDialog> {
   void dispose() {
     _titleController.dispose();
     _bodyController.dispose();
-    _formController.dispose();
+    if (_ownsController) {
+      _formController.dispose();
+    }
     super.dispose();
   }
 
@@ -89,7 +99,11 @@ class _PostFormDialogState extends State<PostFormDialog> {
         _submitting = false;
         _errorMessage = result.fieldErrors.isEmpty ? result.message : null;
       });
-      _formController.bind(result);
+      // If the controller was internally owned, bind it here.
+      // If provided by the ViewModel, the ViewModel already performed binding.
+      if (_ownsController) {
+        _formController.bind(result);
+      }
       return;
     }
 

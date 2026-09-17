@@ -5,13 +5,14 @@ import 'package:signals/signals_flutter.dart';
 import '../../../../core/async/cancellation.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/presentation/action_result.dart';
+import '../../../../core/presentation/form/app_form_controller.dart';
 import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/delete_post_command.dart';
 import '../../domain/usecases/get_post_query.dart';
 import '../../domain/usecases/update_post_command.dart';
 
-// State for one post: one signal per use case, per `docs/architecture.md`.
+// State for the post detail page: one signal per use case, per `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
 class PostDetailViewModel implements ViewModel {
   PostDetailViewModel(this._dispatcher);
@@ -26,6 +27,9 @@ class PostDetailViewModel implements ViewModel {
   // Settled, not loading: no write has run yet.
   final _update = asyncSignal<void>(AsyncState.data(null));
   final _delete = asyncSignal<void>(AsyncState.data(null));
+
+  /// Form controller managing input validation and server error binding.
+  final form = AppFormController();
 
   ReadonlySignal<AsyncState<Post?>> get post => _post;
   ReadonlySignal<AsyncState<void>> get update => _update;
@@ -65,6 +69,7 @@ class PostDetailViewModel implements ViewModel {
       if (_isDisposed) return const ActionResult.success();
       _post.setValue(updated);
       _update.setValue(null);
+      form.clear();
       return const ActionResult.success('Post updated successfully.');
     } catch (error, stackTrace) {
       if (_isDisposed) {
@@ -77,7 +82,9 @@ class PostDetailViewModel implements ViewModel {
       final fieldErrors = error is ValidationException
           ? error.fieldErrors
           : const <String, String>{};
-      return ActionResult.failure(message, fieldErrors: fieldErrors);
+      final result = ActionResult.failure(message, fieldErrors: fieldErrors);
+      form.bind(result);
+      return result;
     }
   }
 
@@ -111,5 +118,6 @@ class PostDetailViewModel implements ViewModel {
     _post.dispose();
     _update.dispose();
     _delete.dispose();
+    form.dispose();
   }
 }

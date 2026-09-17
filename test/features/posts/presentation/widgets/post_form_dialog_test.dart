@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/presentation/action_result.dart';
+import 'package:flutter_x/core/presentation/form/app_form_controller.dart';
 import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
 
 import '../../../../app/view_host.dart';
@@ -14,6 +15,7 @@ void main() {
     String submitLabel = 'Create',
     String initialTitle = '',
     String initialBody = '',
+    AppFormController? formController,
   }) async {
     await tester.pumpWidget(
       hostShell(
@@ -28,6 +30,7 @@ void main() {
                   initialTitle: initialTitle,
                   initialBody: initialBody,
                   onSubmit: onSubmit,
+                  formController: formController,
                 ),
               ),
               child: const Text('open'),
@@ -168,5 +171,37 @@ void main() {
         expect(submitCalled, isTrue);
       },
     );
+
+    testWidgets('should integrate with ViewModel-provided formController', (
+      tester,
+    ) async {
+      final form = AppFormController();
+      addTearDown(form.dispose);
+
+      await openDialog(
+        tester,
+        (title, body) async {
+          final result = const ActionResult.failure(
+            'Server validation failed',
+            fieldErrors: {'title': 'Server says title already taken'},
+          );
+          // ViewModel binds the result directly
+          form.bind(result);
+          return result;
+        },
+        formController: form,
+      );
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Title'),
+        'Valid Title',
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Create'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Server says title already taken'), findsOneWidget);
+    });
   });
 }

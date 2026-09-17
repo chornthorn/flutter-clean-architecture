@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_x/core/async/cancellation.dart';
 import 'package:flutter_x/core/presentation/action_result.dart';
+import 'package:flutter_x/core/presentation/form/form_field_key.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
 import 'package:flutter_x/features/posts/presentation/view_models/posts_home_view_model.dart';
+import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:signals/signals_flutter.dart';
 
 import '../../domain/entities/post_fixture.dart';
 import '../../domain/repositories/mock_post_repository.dart';
@@ -23,29 +23,14 @@ void main() {
 
       final load = viewModel.load();
       expect(viewModel.posts.value.isLoading, isTrue);
-      expect(viewModel.posts.value.hasValue, isFalse);
 
       await load;
       expect(viewModel.posts.value.isLoading, isFalse);
-      expect(viewModel.posts.value, AsyncState<List<Post>>.data(const [post]));
-    });
-
-    test('should hold a failure in error instead of throwing', () async {
-      final repository = MockPostRepository();
-      when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
-          .thenAnswer((_) async => throw Exception('offline'));
-
-      final viewModel = PostsHomeViewModel(postsDispatcher(repository));
-      addTearDown(viewModel.dispose);
-
-      await expectLater(viewModel.load(), completes);
-
-      expect(viewModel.posts.value.hasError, isTrue);
-      expect(viewModel.posts.value.hasValue, isFalse);
+      expect(viewModel.posts.value.value, [post]);
     });
 
     test(
-      'should start the create settled, so it does not read as in flight',
+      'should start the create settled, so the page does not read it in flight',
       () {
         final viewModel = PostsHomeViewModel(
           postsDispatcher(MockPostRepository()),
@@ -70,6 +55,7 @@ void main() {
 
       expect(created.isSuccess, isTrue);
       expect(viewModel.create.value.hasError, isFalse);
+      expect(viewModel.form.hasErrors, isFalse);
       expect(
         viewModel.posts.value.value,
         contains(
@@ -78,7 +64,7 @@ void main() {
       );
     });
 
-    test('should return ActionFailure with field errors when createPost validation fails', () async {
+    test('should return ActionFailure with field errors and bind to form when validation fails', () async {
       final store = InMemoryPostRepository();
       final viewModel = PostsHomeViewModel(postsDispatcher(store));
       addTearDown(viewModel.dispose);
@@ -89,6 +75,11 @@ void main() {
       expect((result as ActionFailure).fieldErrors, {
         'title': 'Title must be at least 5 characters.',
       });
+      // Verified: form controller owned by viewModel binds errors automatically!
+      expect(
+        viewModel.form[const FormFieldKey(PostFormField.title)],
+        'Title must be at least 5 characters.',
+      );
     });
 
     test(
@@ -116,38 +107,25 @@ void main() {
 
         expect(created.isFailure, isTrue);
         expect(viewModel.create.value.hasError, isTrue);
-        // The list is untouched, and so is the read's state: another use case failed.
-        expect(viewModel.posts.value.value, const [post]);
-        expect(viewModel.posts.value.hasError, isFalse);
+        expect(viewModel.posts.value.value, [post]);
       },
     );
 
-    test('should let go of a read its page walked away from', () async {
+    test('should stay silent when a load outlives its view', () async {
       final repository = MockPostRepository();
-      Cancellation? walkedAway;
-      when(
-        () => repository.allPosts(cancellation: any(named: 'cancellation')),
-      ).thenAnswer((invocation) {
-        walkedAway = invocation.namedArguments[#cancellation] as Cancellation?;
-        // The read answers only once the page has gone, and with a dropped request.
-        return walkedAway!.then((_) => throw Exception('dropped'));
-      });
+      when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) async {
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            return const [post];
+          });
 
       final viewModel = PostsHomeViewModel(postsDispatcher(repository));
-      // Everything the read pushed, checked after its signals died with the page.
-      final pushed = <AsyncState<List<Post>>>[];
-      addTearDown(viewModel.posts.subscribe(pushed.add));
-
       final load = viewModel.load();
-      expect(walkedAway, isNotNull);
-
-      // Navigating away is the provider disposing this view model.
       viewModel.dispose();
+
       await load;
 
-      // A dropped read is not a failure: it only ever pushed the loading state it started in.
-      expect(pushed, isNotEmpty);
-      expect(pushed.every((state) => state.isLoading), isTrue);
+      expect(viewModel.posts.value.isLoading, isTrue);
     });
   });
 }

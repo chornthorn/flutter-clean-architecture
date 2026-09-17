@@ -5,6 +5,7 @@ import 'package:signals/signals_flutter.dart';
 import '../../../../core/async/cancellation.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/presentation/action_result.dart';
+import '../../../../core/presentation/form/app_form_controller.dart';
 import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/create_post_command.dart';
@@ -27,6 +28,9 @@ class PostsHomeViewModel implements ViewModel {
 
   // Settled, not loading: no write has run yet.
   final _create = asyncSignal<void>(AsyncState.data(null));
+
+  /// Form controller managing input validation and server error binding.
+  final form = AppFormController();
 
   ReadonlySignal<AsyncState<List<Post>>> get posts => _posts;
   ReadonlySignal<AsyncState<void>> get create => _create;
@@ -63,6 +67,7 @@ class PostsHomeViewModel implements ViewModel {
       if (_isDisposed) return const ActionResult.success();
       _posts.setValue(posts);
       _create.setValue(null);
+      form.clear();
       return const ActionResult.success('Post created successfully.');
     } catch (error, stackTrace) {
       if (_isDisposed) {
@@ -75,7 +80,9 @@ class PostsHomeViewModel implements ViewModel {
       final fieldErrors = error is ValidationException
           ? error.fieldErrors
           : const <String, String>{};
-      return ActionResult.failure(message, fieldErrors: fieldErrors);
+      final result = ActionResult.failure(message, fieldErrors: fieldErrors);
+      form.bind(result);
+      return result;
     }
   }
 
@@ -87,5 +94,6 @@ class PostsHomeViewModel implements ViewModel {
     _cancellation.cancel();
     _posts.dispose();
     _create.dispose();
+    form.dispose();
   }
 }
