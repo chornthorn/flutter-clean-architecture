@@ -3,6 +3,8 @@ import 'package:injectify/injectify.dart';
 import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/async/cancellation.dart';
+import '../../../../core/error/app_exception.dart';
+import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/create_post_command.dart';
@@ -39,13 +41,16 @@ class PostsHomeViewModel implements ViewModel {
       if (_isDisposed) return;
       _posts.setValue(posts);
     } catch (error, stackTrace) {
-      if (_isDisposed) return;
+      if (_isDisposed || error is CancelledException) return;
       _posts.setError(error, stackTrace);
     }
   }
 
-  // Answers whether it worked, so the form knows whether to close.
-  Future<bool> createPost({required String title, required String body}) async {
+  // Answers whether it worked, so the form knows whether to close and what to report.
+  Future<ActionResult> createPost({
+    required String title,
+    required String body,
+  }) async {
     _create.setLoading();
 
     try {
@@ -55,14 +60,22 @@ class PostsHomeViewModel implements ViewModel {
       final posts = await _dispatcher.query(
         GetPostsQuery(cancellation: _cancellation.token),
       );
-      if (_isDisposed) return true;
+      if (_isDisposed) return const ActionResult.success();
       _posts.setValue(posts);
       _create.setValue(null);
-      return true;
+      return const ActionResult.success('Post created successfully.');
     } catch (error, stackTrace) {
-      if (_isDisposed) return false;
+      if (_isDisposed) {
+        return const ActionResult.failure('Could not create post.');
+      }
       _create.setError(error, stackTrace);
-      return false;
+      final message = error is AppException
+          ? error.message
+          : 'Could not create post.';
+      final fieldErrors = error is ValidationException
+          ? error.fieldErrors
+          : const <String, String>{};
+      return ActionResult.failure(message, fieldErrors: fieldErrors);
     }
   }
 

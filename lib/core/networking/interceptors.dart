@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-// The cross-cutting layer: where auth, retry or metrics interceptors go.
+import 'error_interceptor.dart';
+
+// The cross-cutting layer: where auth, retry, metrics, and error normalization go.
 List<Interceptor> networkInterceptors({bool logRequests = kDebugMode}) => [
   if (logRequests)
     // No bodies or headers: that is where tokens and personal data travel.
@@ -11,4 +13,5 @@ List<Interceptor> networkInterceptors({bool logRequests = kDebugMode}) => [
       requestHeader: false,
       responseHeader: false,
     ),
+  const ErrorInterceptor(),
 ];

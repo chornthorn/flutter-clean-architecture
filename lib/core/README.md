@@ -6,26 +6,57 @@ it — one feature's code belongs inside that feature.
 ```
 lib/core/
   networking/
-    network_client.dart  the Dio every feature's endpoints shares, with its
-                         timeouts and base URL. Bound in `provider.dart` —
-                         features take it from the container, not from here.
-    interceptors.dart    the cross-cutting layer: logging today, auth or retry
-                         when they are needed. Nothing per-endpoint belongs here.
-  design_system/
-    theme-spec.schema.json  names the token groups design_builder parses
-    app.tokens.json         the token values, per mode — edit here
-    app_theme.g.dart        generated — AppTheme and its provider
-    components/             the shared controls every screen builds from
-  async/
-    cancellation.dart       the signal a screen hands down with its reads, so a
-                            request is dropped when the screen goes away
+    network_client.dart    the Dio every feature's endpoints shares, with its
+                           timeouts and base URL. Bound in `provider.dart` —
+                           features take it from the container, not from here.
+    interceptors.dart      the cross-cutting layer: error mapping, logging.
+                           Nothing per-endpoint belongs here.
+    error_interceptor.dart transforms HTTP errors and responses into typed AppExceptions.
+    safe_call.dart         Future<T>.guard() extension unwrapping DioException.
+  error/
+    app_exception.dart     plain Dart application exception hierarchy (NetworkException,
+                           ValidationException, UnauthorizedException, NotFoundException, etc.).
   presentation/
-    view_model.dart         the lifecycle a page's state holder owes the route
-                            that owns it — the one interface every view model
-                            implements, and nothing else
-  storage/                  arrives with the first persisted data: the database or
-                            key-value stack features' repositories sit on
+    action_result.dart     ActionResult<T> (ActionSuccess, ActionFailure) for UI operations.
+    view_model.dart        the lifecycle a page's state holder owes the route
+                           that owns it — the one interface every view model
+                           implements, and nothing else.
+  design_system/
+    theme-spec.schema.json names the token groups design_builder parses
+    app.tokens.json        the token values, per mode — edit here
+    app_theme.g.dart       generated — AppTheme and its provider
+    components/            the shared controls every screen builds from (AppToast, etc.)
+  async/
+    cancellation.dart      the signal a screen hands down with its reads, so a
+                           request is dropped when the screen goes away
+  storage/                 arrives with the first persisted data: the database or
+                           key-value stack features' repositories sit on
 ```
+
+## Error Handling Architecture
+
+The architecture separates error responsibilities cleanly across layers without `throw mapDioErrorToFailure(error)` boilerplate:
+
+```
+[Dio / Network] -> [ErrorInterceptor] -> [AppException]
+                          |
+                   [Repository (.guard())] -> Domain Entities / AppException
+                          |
+                   [ViewModel / UseCases] -> ActionResult (Success / Failure)
+                          |
+                   [UI View / Dialog] -> AppToast / Inline AppNotice
+```
+
+1. **Dio ErrorInterceptor (`core/networking/error_interceptor.dart`)**:
+   Intercepts network errors, timeouts, and HTTP status codes (400, 401, 403, 404, 422, 5xx), parses backend error envelopes (e.g. `{"message": "...", "errors": {...}}`), and attaches a strongly typed `AppException` to `DioException.error`.
+2. **Safe Call Extension (`core/networking/safe_call.dart`)**:
+   Repositories call `.guard()` on Dio futures. This un-boxes `DioException` and re-throws the attached `AppException`. Repositories do not contain manual `try / catch DioException` boilerplate unless handling domain-specific semantics (e.g. 404 returning `null`).
+3. **Domain Validation (`core/error/app_exception.dart`)**:
+   Domain business rules throw `ValidationException(message: ..., fieldErrors: ...)`. Because this class is pure Dart, Domain remains isolated from Flutter or IO.
+4. **Action Outcomes (`core/presentation/action_result.dart`)**:
+   Commands and ViewModels return `ActionResult` (`ActionSuccess`, `ActionFailure`), encapsulating user-facing messages and field error maps.
+5. **UI Layer (`core/design_system/components/app_toast.dart`)**:
+   Views never inspect HTTP codes or stack traces. They display `AppToast.showSuccess` / `AppToast.showError` for transient operations, and show `AppNotice` with `error.message` for persistent view states.
 
 ## Design tokens
 
@@ -59,7 +90,7 @@ can do that. Screens call `context.themeNotifier.toggleMode()`.
 A `Future` cannot be cancelled — awaiting one only waits. So a read started by a
 page that is then popped keeps running: the socket is read, the payload decoded,
 the result handed to a view model nobody is watching. `dispose` stops the
-*notification*, not the work.
+_notification_, not the work.
 
 `async/cancellation.dart` is what stops the work. A screen holds one source, hands
 its token down with every read it starts, and cancels where its scope ends — a
@@ -102,7 +133,7 @@ request nobody wants stops occupying a connection.
 
 Every path takes a token — `PostApi`'s five endpoints and every method on
 `PostRepository` — because any request can be dropped at the transport. Whether a
-caller *should* drop one is the caller's decision, and the shipped callers draw the
+caller _should_ drop one is the caller's decision, and the shipped callers draw the
 line at reads: a read dropped on the way out only wastes an answer nobody would
 have seen, while a write dropped mid-flight may still land on the server, leaving
 the app and the server disagreeing about what happened with nobody left to tell.
@@ -136,9 +167,7 @@ Two rules:
 - `core/` must not import `features/`. It is the foundation — features depend on
   it, never the other way round. `test/architecture_test.dart` enforces this.
 - Features reach into `core/` from their `infrastructure/` layer, never from
-  `domain/` — with one exception: `async/cancellation.dart`. That file is plain
-  Dart over `dart:async` and nothing else, and the rule it would otherwise break
-  exists to keep IO and Flutter out of Domain, which a `Future` is not.
-  `test/architecture_test.dart` enforces the boundary: Domain may import that
-  file and no other `core/` file.
-- Presentation may import `core/` for the design system and for cancellation.
+  `domain/` — with two exceptions: `async/cancellation.dart` and `core/error/app_exception.dart`.
+  These files are plain Dart over `dart:core`/`dart:async` with zero Flutter or IO dependencies.
+  `test/architecture_test.dart` enforces this boundary.
+- Presentation may import `core/` for the design system, action results, and cancellation.

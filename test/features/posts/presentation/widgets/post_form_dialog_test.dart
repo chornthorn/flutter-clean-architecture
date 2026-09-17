@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/core/presentation/action_result.dart';
 import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
 
 import '../../../../app/view_host.dart';
@@ -8,7 +9,7 @@ void main() {
   // Opens the dialog the way a page does, over a live navigator.
   Future<void> openDialog(
     WidgetTester tester,
-    Future<bool> Function(String title, String body) onSubmit, {
+    Future<ActionResult> Function(String title, String body) onSubmit, {
     String heading = 'New post',
     String submitLabel = 'Create',
     String initialTitle = '',
@@ -43,7 +44,10 @@ void main() {
     testWidgets('should not offer to submit a post with no title', (
       tester,
     ) async {
-      await openDialog(tester, (title, body) async => true);
+      await openDialog(
+        tester,
+        (title, body) async => const ActionResult.success(),
+      );
 
       final submit = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'Create'),
@@ -57,7 +61,7 @@ void main() {
     ) async {
       await openDialog(
         tester,
-        (title, body) async => true,
+        (title, body) async => const ActionResult.success(),
         heading: 'Edit post',
         submitLabel: 'Save',
         initialTitle: 'First post',
@@ -81,7 +85,7 @@ void main() {
       await openDialog(tester, (title, body) async {
         sentTitle = title;
         sentBody = body;
-        return true;
+        return const ActionResult.success();
       });
 
       await tester.enterText(
@@ -102,7 +106,11 @@ void main() {
     testWidgets('should stay open and say so when the write fails', (
       tester,
     ) async {
-      await openDialog(tester, (title, body) async => false);
+      await openDialog(
+        tester,
+        (title, body) async =>
+            const ActionResult.failure('Could not save the post.'),
+      );
 
       await tester.enterText(
         find.widgetWithText(TextField, 'Title'),

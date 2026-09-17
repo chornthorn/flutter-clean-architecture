@@ -69,7 +69,7 @@ void main() {
         body: 'A new body',
       );
 
-      expect(created, isTrue);
+      expect(created.isSuccess, isTrue);
       expect(viewModel.create.value.hasError, isFalse);
       expect(
         viewModel.posts.value.value,
@@ -80,7 +80,7 @@ void main() {
     });
 
     test(
-      'should keep the failure and answer false when a create fails',
+      'should keep the failure and answer failure when a create fails',
       () async {
         final store = MockPostRepository();
         when(
@@ -103,7 +103,7 @@ void main() {
           body: 'A new body',
         );
 
-        expect(created, isFalse);
+        expect(created.isFailure, isTrue);
         expect(viewModel.create.value.hasError, isTrue);
         // The list is untouched, and so is the read's state: another use case failed.
         expect(viewModel.posts.value.value, const [post]);

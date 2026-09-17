@@ -45,31 +45,37 @@ void main() {
     ], describedAs: 'lib/core/');
   });
 
-  test('should keep features/*/domain/ to the one core file it may reach', () {
-    // Domain is plain Dart, and the one file in `core/` that is plain Dart too —
-    // with no IO in it — is the cancellation signal a read is handed.
-    const allowed = 'core/async/cancellation.dart';
-    final offenders = <String>[];
-    var scanned = 0;
+  test(
+    'should keep features/*/domain/ to the plain Dart core files it may reach',
+    () {
+      // Domain is plain Dart, and the files in `core/` that are plain Dart too —
+      // with no IO or Flutter in them — are cancellation and the exception hierarchy.
+      const allowed = [
+        'core/async/cancellation.dart',
+        'core/error/app_exception.dart',
+      ];
+      final offenders = <String>[];
+      var scanned = 0;
 
-    for (final file in _featureFilesIn('domain')) {
-      scanned++;
-      for (final uri in _importsOf(file)) {
-        if (uri.contains('core/') && !uri.endsWith(allowed)) {
-          offenders.add('${file.path} imports $uri');
+      for (final file in _featureFilesIn('domain')) {
+        scanned++;
+        for (final uri in _importsOf(file)) {
+          if (uri.contains('core/') && !allowed.any(uri.endsWith)) {
+            offenders.add('${file.path} imports $uri');
+          }
         }
       }
-    }
 
-    // Guards against the check silently passing because it looked at nothing.
-    expect(
-      scanned,
-      greaterThan(0),
-      reason:
-          'No files found under features/*/domain/ — are these paths right?',
-    );
-    expect(offenders, isEmpty, reason: 'Offending imports: $offenders');
-  });
+      // Guards against the check silently passing because it looked at nothing.
+      expect(
+        scanned,
+        greaterThan(0),
+        reason:
+            'No files found under features/*/domain/ — are these paths right?',
+      );
+      expect(offenders, isEmpty, reason: 'Offending imports: $offenders');
+    },
+  );
 }
 
 void _expectNoForbiddenImports(

@@ -7,46 +7,47 @@ import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_card.dart';
 import '../../../../core/design_system/components/app_notice.dart';
 import '../../../../core/design_system/components/app_scaffold.dart';
+import '../../../../core/design_system/components/app_toast.dart';
+import '../../../../core/error/app_exception.dart';
+import '../../../../core/presentation/action_result.dart';
 import '../../domain/entities/post.dart';
 import '../view_models/post_detail_view_model.dart';
 import '../widgets/post_byline.dart';
 import '../widgets/post_form_dialog.dart';
 
-// One post, looked up by the id carried on `PostDetail`.
+// Reads one post from `PostDetailViewModel` through signals: rebuilds when a
+// signal emits, not when the view model says so.
 class PostDetailView extends StatelessWidget {
   const PostDetailView({super.key, required this.id});
 
+  // The id is a route parameter; the view model does not hold one of its own.
   final int id;
 
   @override
   Widget build(BuildContext context) {
-    // Read once, subscribe never: `SignalBuilder` rebuilds this page off the signals read below.
+    // Read once, rebuild through the SignalBuilder below. Subscribing to the
+    // provider would rebuild the page on nothing, since the view model does not notify.
     final viewModel = context.read<PostDetailViewModel>();
 
     return SignalBuilder(
-      builder: (context) {
-        final post = viewModel.post.value;
-
-        return AppScaffold(
-          title: Text('Post $id'),
-          actions: _buildActions(context, viewModel, post),
-          body: _buildBody(context, viewModel, post),
-        );
-      },
+      builder: (context) => AppScaffold(
+        title: Text('Post $id'),
+        actions: _buildActions(context, viewModel),
+        body: _buildBody(context, viewModel, viewModel.post.value),
+      ),
     );
   }
 
   List<Widget> _buildActions(
     BuildContext context,
     PostDetailViewModel viewModel,
-    AsyncState<Post?> state,
   ) {
-    // No actions until a post is on screen: the value is null while the read is
-    // in flight, after a failure, and for an id that resolved to nothing.
-    final post = state.value;
+    final post = viewModel.post.value.value;
     if (post == null) return const [];
 
-    // One write at a time; each use case's own signal says whether it is in flight.
+    // The form keeps its submit button disabled while a write is on the wire,
+    // and the page keeps its own action buttons disabled for the same reason: a
+    // second write on the same entity would conflict with the first.
     final isWriting =
         viewModel.update.value.isLoading || viewModel.delete.value.isLoading;
 
@@ -77,9 +78,11 @@ class PostDetailView extends StatelessWidget {
         context,
         value,
       ),
-      AsyncError<Post?>() => AppNotice(
-        icon: Icons.cloud_off_outlined,
-        message: 'Could not load post.',
+      AsyncError<Post?>(:final error) => AppNotice(
+        icon: error is NetworkException
+            ? Icons.wifi_off_outlined
+            : Icons.cloud_off_outlined,
+        message: error is AppException ? error.message : 'Could not load post.',
         isFailure: true,
         action: AppFilledButton(
           label: 'Try again',
@@ -129,8 +132,19 @@ class PostDetailView extends StatelessWidget {
         submitLabel: 'Save',
         initialTitle: post.title,
         initialBody: post.body,
-        onSubmit: (title, body) =>
-            viewModel.updatePost(post.id, title: title, body: body),
+        onSubmit: (title, body) async {
+          final result = await viewModel.updatePost(
+            post.id,
+            title: title,
+            body: body,
+          );
+          if (result case ActionSuccess(:final message) when message != null) {
+            if (context.mounted) {
+              AppToast.showSuccess(context, message);
+            }
+          }
+          return result;
+        },
       ),
     );
   }
@@ -176,10 +190,17 @@ class PostDetailView extends StatelessWidget {
 
     if (confirmed != true) return;
 
-    final deleted = await viewModel.deletePost(post.id);
+    final result = await viewModel.deletePost(post.id);
 
-    if (deleted && context.mounted) {
+    if (!context.mounted) return;
+
+    if (result.isSuccess) {
+      if (result case ActionSuccess(:final message) when message != null) {
+        AppToast.showSuccess(context, message);
+      }
       Navigator.of(context).pop();
+    } else if (result case ActionFailure(:final message)) {
+      AppToast.showError(context, message);
     }
   }
 }

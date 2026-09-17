@@ -89,7 +89,7 @@ void main() {
         body: 'Edited body',
       );
 
-      expect(saved, isTrue);
+      expect(saved.isSuccess, isTrue);
       expect(viewModel.update.value.hasError, isFalse);
       expect(viewModel.post.value.value?.title, 'Edited title');
       expect(viewModel.post.value.value?.body, 'Edited body');
@@ -104,55 +104,56 @@ void main() {
         final viewModel = PostDetailViewModel(postsDispatcher(store));
         addTearDown(viewModel.dispose);
 
-        expect(
-          await viewModel.updatePost(
-            1,
-            title: 'Edited title',
-            body: 'Edited body',
-          ),
-          isTrue,
+        final result = await viewModel.updatePost(
+          1,
+          title: 'Edited title',
+          body: 'Edited body',
         );
+        expect(result.isSuccess, isTrue);
         expect((await store.postById(1))?.title, 'Edited title');
       },
     );
 
-    test('should keep the failure and answer false when an edit fails', () async {
-      final store = MockPostRepository();
-      when(
-        () => store.postById(1, cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async => post);
-      when(
-        () => store.updatePost(
-          id: any(named: 'id'),
-          title: any(named: 'title'),
-          body: any(named: 'body'),
-        ),
-      ).thenAnswer((_) async => throw Exception('offline'));
+    test(
+      'should keep the failure and answer failure when an edit fails',
+      () async {
+        final store = MockPostRepository();
+        when(
+          () => store.postById(1, cancellation: any(named: 'cancellation')),
+        ).thenAnswer((_) async => post);
+        when(
+          () => store.updatePost(
+            id: any(named: 'id'),
+            title: any(named: 'title'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = PostDetailViewModel(postsDispatcher(store));
-      addTearDown(viewModel.dispose);
-      await viewModel.load(1);
+        final viewModel = PostDetailViewModel(postsDispatcher(store));
+        addTearDown(viewModel.dispose);
+        await viewModel.load(1);
 
-      final saved = await viewModel.updatePost(
-        1,
-        title: 'Edited title',
-        body: 'Edited body',
-      );
+        final saved = await viewModel.updatePost(
+          1,
+          title: 'Edited title',
+          body: 'Edited body',
+        );
 
-      expect(saved, isFalse);
-      expect(viewModel.update.value.hasError, isTrue);
-      // What was on screen is untouched, and so is the read's state: another use case failed.
-      expect(viewModel.post.value.value, post);
-      expect(viewModel.post.value.hasError, isFalse);
-    });
+        expect(saved.isFailure, isTrue);
+        expect(viewModel.update.value.hasError, isTrue);
+        // What was on screen is untouched, and so is the read's state: another use case failed.
+        expect(viewModel.post.value.value, post);
+        expect(viewModel.post.value.hasError, isFalse);
+      },
+    );
 
-    test('should delete through the command and answer true', () async {
+    test('should delete through the command and answer success', () async {
       final store = InMemoryPostRepository();
       final viewModel = PostDetailViewModel(postsDispatcher(store));
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
-      expect(await viewModel.deletePost(1), isTrue);
+      expect((await viewModel.deletePost(1)).isSuccess, isTrue);
       expect(await store.postById(1), isNull);
     });
 
@@ -163,13 +164,13 @@ void main() {
         final viewModel = PostDetailViewModel(postsDispatcher(store));
         addTearDown(viewModel.dispose);
 
-        expect(await viewModel.deletePost(1), isTrue);
+        expect((await viewModel.deletePost(1)).isSuccess, isTrue);
         expect(await store.postById(1), isNull);
       },
     );
 
     test(
-      'should keep the failure and answer false when a delete fails',
+      'should keep the failure and answer failure when a delete fails',
       () async {
         final store = MockPostRepository();
         when(
@@ -183,7 +184,7 @@ void main() {
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
 
-        expect(await viewModel.deletePost(1), isFalse);
+        expect((await viewModel.deletePost(1)).isFailure, isTrue);
         expect(viewModel.delete.value.hasError, isTrue);
         expect(viewModel.post.value.value, post);
         expect(viewModel.post.value.hasError, isFalse);
@@ -211,7 +212,7 @@ void main() {
 
       inFlight.complete();
 
-      expect(await deleting, isTrue);
+      expect((await deleting).isSuccess, isTrue);
       expect(viewModel.delete.value.isLoading, isFalse);
       expect(viewModel.delete.value.hasError, isFalse);
     });

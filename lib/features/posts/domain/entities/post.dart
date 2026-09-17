@@ -1,3 +1,5 @@
+import '../../../../core/error/app_exception.dart';
+
 // A post from the catalog at jsonplaceholder.typicode.com.
 class Post {
   const Post({
@@ -32,7 +34,10 @@ class Post {
 String cleanedTitle(String title) {
   final cleaned = title.trim();
   if (cleaned.isEmpty) {
-    throw ArgumentError.value(title, 'title', 'A post needs a title');
+    throw const ValidationException(
+      message: 'A post needs a title.',
+      fieldErrors: {'title': 'A post needs a title'},
+    );
   }
   return cleaned;
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_failure_line.dart';
+import '../../../../core/presentation/action_result.dart';
 
 // Collects a post and hands it to the page, which owns the write call.
 class PostFormDialog extends StatefulWidget {
@@ -19,8 +20,8 @@ class PostFormDialog extends StatefulWidget {
 
   final String submitLabel;
 
-  // Answers whether the write worked.
-  final Future<bool> Function(String title, String body) onSubmit;
+  // Answers the result of the write: success or failure message/fields.
+  final Future<ActionResult> Function(String title, String body) onSubmit;
 
   final String initialTitle;
   final String initialBody;
@@ -33,7 +34,8 @@ class _PostFormDialogState extends State<PostFormDialog> {
   late final _title = TextEditingController(text: widget.initialTitle);
   late final _body = TextEditingController(text: widget.initialBody);
   bool _isSubmitting = false;
-  bool _failed = false;
+  String? _errorMessage;
+  Map<String, String> _fieldErrors = const {};
 
   @override
   void dispose() {
@@ -45,22 +47,28 @@ class _PostFormDialogState extends State<PostFormDialog> {
   Future<void> _submit() async {
     setState(() {
       _isSubmitting = true;
-      _failed = false;
+      _errorMessage = null;
+      _fieldErrors = const {};
     });
 
-    final saved = await widget.onSubmit(_title.text, _body.text);
+    final result = await widget.onSubmit(_title.text, _body.text);
 
     // The page can be gone by now if the dialog was dismissed mid-flight.
     if (!mounted) return;
 
-    if (saved) {
+    if (result.isSuccess) {
       Navigator.of(context).pop();
       return;
     }
 
     setState(() {
       _isSubmitting = false;
-      _failed = true;
+      if (result is ActionFailure) {
+        _errorMessage = result.message;
+        _fieldErrors = result.fieldErrors;
+      } else {
+        _errorMessage = 'Could not save the post.';
+      }
     });
   }
 
@@ -81,18 +89,26 @@ class _PostFormDialogState extends State<PostFormDialog> {
             controller: _title,
             style: theme.typography.body.regular,
             cursorColor: theme.colors.brand.primary,
-            decoration: _fieldDecoration(theme, 'Title'),
+            decoration: _fieldDecoration(
+              theme,
+              'Title',
+              errorText: _fieldErrors['title'],
+            ),
           ),
           SizedBox(height: theme.sizes.spacing.md),
           TextField(
             controller: _body,
             style: theme.typography.body.regular,
             cursorColor: theme.colors.brand.primary,
-            decoration: _fieldDecoration(theme, 'Body'),
+            decoration: _fieldDecoration(
+              theme,
+              'Body',
+              errorText: _fieldErrors['body'],
+            ),
           ),
-          if (_failed) ...[
+          if (_errorMessage != null) ...[
             SizedBox(height: theme.sizes.spacing.md),
-            const AppFailureLine(message: 'Could not save the post.'),
+            AppFailureLine(message: _errorMessage!),
           ],
         ],
       ),
@@ -115,7 +131,11 @@ class _PostFormDialogState extends State<PostFormDialog> {
   }
 
   // `InputDecoration` would otherwise take its outline and focus colours from the scheme.
-  InputDecoration _fieldDecoration(AppTheme theme, String label) {
+  InputDecoration _fieldDecoration(
+    AppTheme theme,
+    String label, {
+    String? errorText,
+  }) {
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(theme.sizes.radius.md),
       borderSide: BorderSide(color: theme.colors.surface.border),
@@ -123,6 +143,7 @@ class _PostFormDialogState extends State<PostFormDialog> {
 
     return InputDecoration(
       labelText: label,
+      errorText: errorText,
       labelStyle: theme.typography.label.regular,
       floatingLabelStyle: theme.typography.label.regular.copyWith(
         color: theme.colors.brand.primary,

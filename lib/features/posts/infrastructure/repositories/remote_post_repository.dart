@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:injectify/injectify.dart';
 
 import '../../../../core/async/cancellation.dart';
+import '../../../../core/error/app_exception.dart';
+import '../../../../core/networking/safe_call.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../dtos/create_post_dto.dart';
@@ -18,21 +20,22 @@ class RemotePostRepository implements PostRepository {
 
   @override
   Future<List<Post>> allPosts({Cancellation? cancellation}) async {
-    final posts = await _api.allPosts(cancelToken: _tokenFor(cancellation));
+    final posts = await _api
+        .allPosts(cancelToken: _tokenFor(cancellation))
+        .guard();
     return [for (final post in posts) post.toDomain()];
   }
 
   @override
   Future<Post?> postById(int id, {Cancellation? cancellation}) async {
     try {
-      return (await _api.postById(
-        id,
-        cancelToken: _tokenFor(cancellation),
-      )).toDomain();
-    } on DioException catch (error) {
-      // The contract's "no such post" is the API's 404; anything else is a real failure.
-      if (error.response?.statusCode == 404) return null;
-      rethrow;
+      final post = await _api
+          .postById(id, cancelToken: _tokenFor(cancellation))
+          .guard();
+      return post.toDomain();
+    } on NotFoundException {
+      // The contract's "no such post" is 404; anything else is a failure.
+      return null;
     }
   }
 
@@ -43,10 +46,12 @@ class RemotePostRepository implements PostRepository {
     required String body,
     Cancellation? cancellation,
   }) async {
-    final created = await _api.createPost(
-      CreatePostDto(userId: userId, title: title, body: body),
-      cancelToken: _tokenFor(cancellation),
-    );
+    final created = await _api
+        .createPost(
+          CreatePostDto(userId: userId, title: title, body: body),
+          cancelToken: _tokenFor(cancellation),
+        )
+        .guard();
     return created.toDomain();
   }
 
@@ -57,22 +62,23 @@ class RemotePostRepository implements PostRepository {
     required String body,
     Cancellation? cancellation,
   }) async {
-    final updated = await _api.updatePost(
-      id,
-      UpdatePostDto(title: title, body: body),
-      cancelToken: _tokenFor(cancellation),
-    );
+    final updated = await _api
+        .updatePost(
+          id,
+          UpdatePostDto(title: title, body: body),
+          cancelToken: _tokenFor(cancellation),
+        )
+        .guard();
     return updated.toDomain();
   }
 
   @override
   Future<void> deletePost(int id, {Cancellation? cancellation}) async {
     try {
-      await _api.deletePost(id, cancelToken: _tokenFor(cancellation));
-    } on DioException catch (error) {
+      await _api.deletePost(id, cancelToken: _tokenFor(cancellation)).guard();
+    } on NotFoundException {
       // Already gone is the outcome the caller asked for.
-      if (error.response?.statusCode == 404) return;
-      rethrow;
+      return;
     }
   }
 

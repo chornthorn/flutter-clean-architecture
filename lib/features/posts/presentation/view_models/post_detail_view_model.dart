@@ -3,6 +3,8 @@ import 'package:injectify/injectify.dart';
 import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/async/cancellation.dart';
+import '../../../../core/error/app_exception.dart';
+import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/delete_post_command.dart';
@@ -39,13 +41,14 @@ class PostDetailViewModel implements ViewModel {
       if (_isDisposed) return;
       _post.setValue(post);
     } catch (error, stackTrace) {
-      if (_isDisposed) return;
+      if (_isDisposed || error is CancelledException) return;
       _post.setError(error, stackTrace);
     }
   }
 
-  // Answers whether it worked, so the form knows whether to close.
-  Future<bool> updatePost(
+  // Returns an ActionResult so the view knows whether it worked, what message to
+  // alert or toast, and any validation field errors.
+  Future<ActionResult> updatePost(
     int id, {
     required String title,
     required String body,
@@ -59,30 +62,43 @@ class PostDetailViewModel implements ViewModel {
       final updated = await _dispatcher.query(
         GetPostQuery(id, cancellation: _cancellation.token),
       );
-      if (_isDisposed) return true;
+      if (_isDisposed) return const ActionResult.success();
       _post.setValue(updated);
       _update.setValue(null);
-      return true;
+      return const ActionResult.success('Post updated successfully.');
     } catch (error, stackTrace) {
-      if (_isDisposed) return false;
+      if (_isDisposed) {
+        return const ActionResult.failure('Could not update post.');
+      }
       _update.setError(error, stackTrace);
-      return false;
+      final message = error is AppException
+          ? error.message
+          : 'Could not update post.';
+      final fieldErrors = error is ValidationException
+          ? error.fieldErrors
+          : const <String, String>{};
+      return ActionResult.failure(message, fieldErrors: fieldErrors);
     }
   }
 
-  // Answers whether it worked, so the page knows whether to leave.
-  Future<bool> deletePost(int id) async {
+  // Returns an ActionResult so the page knows whether to navigate and show feedback.
+  Future<ActionResult> deletePost(int id) async {
     _delete.setLoading();
 
     try {
       await _dispatcher.command(DeletePostCommand(id));
-      if (_isDisposed) return true;
+      if (_isDisposed) return const ActionResult.success();
       _delete.setValue(null);
-      return true;
+      return const ActionResult.success('Post deleted successfully.');
     } catch (error, stackTrace) {
-      if (_isDisposed) return false;
+      if (_isDisposed) {
+        return const ActionResult.failure('Could not delete post.');
+      }
       _delete.setError(error, stackTrace);
-      return false;
+      final message = error is AppException
+          ? error.message
+          : 'Could not delete post.';
+      return ActionResult.failure(message);
     }
   }
 

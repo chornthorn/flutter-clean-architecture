@@ -4,75 +4,10 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/core/error/app_exception.dart';
 import 'package:flutter_x/core/networking/network_client.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/remote_post_repository.dart';
-
-// Answers from a canned payload instead of a socket, so the generated client runs
-// with no network.
-class _FakeAdapter implements HttpClientAdapter {
-  _FakeAdapter(this.respond);
-
-  final ResponseBody Function(RequestOptions options) respond;
-
-  final List<String> requestedPaths = [];
-  final List<String> requestedMethods = [];
-  final List<Object?> requestedBodies = [];
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    requestedPaths.add(options.path);
-    requestedMethods.add(options.method);
-    requestedBodies.add(options.data);
-    return respond(options);
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
-
-// Holds a request open until it is dropped, so a test can watch a cancellation
-// arrive instead of racing it.
-class _PendingAdapter implements HttpClientAdapter {
-  Future<void>? cancelFuture;
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) {
-    this.cancelFuture = cancelFuture;
-    final pending = Completer<ResponseBody>();
-
-    // What a real adapter does with a dropped request: raise it as cancelled.
-    cancelFuture?.whenComplete(
-      () => pending.completeError(
-        DioException.requestCancelled(
-          requestOptions: options,
-          reason: 'the caller walked away',
-        ),
-      ),
-    );
-    return pending.future;
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
-
-ResponseBody _json(Object payload, {int status = 200}) =>
-    ResponseBody.fromString(
-      jsonEncode(payload),
-      status,
-      headers: {
-        Headers.contentTypeHeader: [Headers.jsonContentType],
-      },
-    );
 
 void main() {
   const listPayload = [
@@ -138,16 +73,7 @@ void main() {
       walkedAway.complete();
 
       // The read reports a cancellation, which is how the page tells it from a failure.
-      await expectLater(
-        read,
-        throwsA(
-          isA<DioException>().having(
-            (error) => error.type,
-            'type',
-            DioExceptionType.cancel,
-          ),
-        ),
-      );
+      await expectLater(read, throwsA(isA<CancelledException>()));
     });
 
     // Writes carry the token too; dropping one is the caller's call — see `core/README.md`.
@@ -170,7 +96,7 @@ void main() {
 
       walkedAway.complete();
 
-      await expectLater(write, throwsA(isA<DioException>()));
+      await expectLater(write, throwsA(isA<CancelledException>()));
     });
 
     test('should read one post by id', () async {
@@ -197,7 +123,10 @@ void main() {
         (options) => _json(const {'error': 'boom'}, status: 500),
       );
 
-      await expectLater(repository.postById(1), throwsA(isA<DioException>()));
+      await expectLater(
+        repository.postById(1),
+        throwsA(isA<ServerException>()),
+      );
     });
 
     test('should POST the create body the server expects', () async {
@@ -247,7 +176,7 @@ void main() {
 
       await expectLater(
         repository.createPost(userId: 1, title: 'A title', body: 'A body'),
-        throwsA(isA<DioException>()),
+        throwsA(isA<ValidationException>()),
       );
     });
 
@@ -310,7 +239,59 @@ void main() {
         (_) => _json(const {'error': 'boom'}, status: 500),
       );
 
-      await expectLater(repository.deletePost(3), throwsA(isA<DioException>()));
+      await expectLater(
+        repository.deletePost(3),
+        throwsA(isA<ServerException>()),
+      );
     });
   });
+}
+
+ResponseBody _json(Object? body, {int status = 200}) => ResponseBody.fromString(
+  jsonEncode(body),
+  status,
+  headers: {
+    Headers.contentTypeHeader: [Headers.jsonContentType],
+  },
+);
+
+class _FakeAdapter implements HttpClientAdapter {
+  _FakeAdapter(this._respond);
+
+  final ResponseBody Function(RequestOptions options) _respond;
+  final List<String> requestedPaths = [];
+  final List<String> requestedMethods = [];
+  final List<dynamic> requestedBodies = [];
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requestedPaths.add(options.path);
+    requestedMethods.add(options.method);
+    if (options.data != null) requestedBodies.add(options.data);
+    return _respond(options);
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _PendingAdapter implements HttpClientAdapter {
+  Future<void>? cancelFuture;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    this.cancelFuture = cancelFuture;
+    return Completer<ResponseBody>().future;
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

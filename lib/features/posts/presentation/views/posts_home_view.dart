@@ -8,6 +8,9 @@ import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_notice.dart';
 import '../../../../core/design_system/components/app_scaffold.dart';
+import '../../../../core/design_system/components/app_toast.dart';
+import '../../../../core/error/app_exception.dart';
+import '../../../../core/presentation/action_result.dart';
 import '../../domain/entities/post.dart';
 import '../../posts_module.dart';
 import '../view_models/posts_home_view_model.dart';
@@ -74,9 +77,13 @@ class PostsHomeView extends StatelessWidget {
           );
         },
       ),
-      AsyncError<List<Post>>() => AppNotice(
-        icon: Icons.cloud_off_outlined,
-        message: 'Could not load posts.',
+      AsyncError<List<Post>>(:final error) => AppNotice(
+        icon: error is NetworkException
+            ? Icons.wifi_off_outlined
+            : Icons.cloud_off_outlined,
+        message: error is AppException
+            ? error.message
+            : 'Could not load posts.',
         isFailure: true,
         action: AppFilledButton(label: 'Try again', onPressed: viewModel.load),
       ),
@@ -111,8 +118,17 @@ class PostsHomeView extends StatelessWidget {
         builder: (_) => PostFormDialog(
           heading: 'New post',
           submitLabel: 'Create',
-          onSubmit: (title, body) =>
-              viewModel.createPost(title: title, body: body),
+          onSubmit: (title, body) async {
+            final result = await viewModel.createPost(title: title, body: body);
+            if (result case ActionSuccess(
+              :final message,
+            ) when message != null) {
+              if (context.mounted) {
+                AppToast.showSuccess(context, message);
+              }
+            }
+            return result;
+          },
         ),
       );
 }

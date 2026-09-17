@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/core/error/app_exception.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
 import 'package:flutter_x/features/posts/domain/usecases/create_post_command.dart';
 import 'package:mocktail/mocktail.dart';
@@ -59,7 +60,7 @@ void main() {
         handler.execute(
           const CreatePostCommand(userId: 1, title: '   ', body: 'A body'),
         ),
-        throwsArgumentError,
+        throwsA(isA<ValidationException>()),
       );
 
       verifyNever(
