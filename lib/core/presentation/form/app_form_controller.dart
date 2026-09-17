@@ -17,6 +17,7 @@ export 'form_field_key.dart';
 /// - Automatic bidirectional synchronization between text editing controllers and signals.
 /// - Automatic server-side error clearing when a user modifies text.
 /// - Stores server-side error mapping bindable directly to [ActionResult].
+/// - Manages submission state ([isSubmitting]) and general error message ([errorMessage]) reactively.
 /// - Works seamlessly with [AppFormScope] and [AppTextField].
 /// - Uses [FormFieldKey] extension type for zero-cost type-safe field lookups.
 class AppFormController extends ChangeNotifier {
@@ -24,9 +25,9 @@ class AppFormController extends ChangeNotifier {
     Map<String, String> initialErrors = const {},
     GlobalKey<FormState>? formKey,
     Map<dynamic, String> initialValues = const {},
-  ]) : _errors = Map<String, String>.from(initialErrors),
-       _initialValues = {},
-       formKey = formKey ?? GlobalKey<FormState>() {
+  ])  : _errors = Map<String, String>.from(initialErrors),
+        _initialValues = {},
+        formKey = formKey ?? GlobalKey<FormState>() {
     if (initialValues.isNotEmpty) {
       setValues(initialValues);
     }
@@ -37,8 +38,8 @@ class AppFormController extends ChangeNotifier {
     this.formKey, [
     Map<String, String> initialErrors = const {},
     Map<dynamic, String> initialValues = const {},
-  ]) : _errors = Map<String, String>.from(initialErrors),
-       _initialValues = {} {
+  ])  : _errors = Map<String, String>.from(initialErrors),
+        _initialValues = {} {
     if (initialValues.isNotEmpty) {
       setValues(initialValues);
     }
@@ -56,6 +57,12 @@ class AppFormController extends ChangeNotifier {
   /// Key to attach to the Flutter [Form].
   final GlobalKey<FormState> formKey;
 
+  /// Whether the form is currently submitting an asynchronous action.
+  final Signal<bool> isSubmitting = sig.signal<bool>(false);
+
+  /// General form error message (not tied to a specific field).
+  final Signal<String?> errorMessage = sig.signal<String?>(null);
+
   final Map<String, String> _errors;
   final Map<String, String> _initialValues;
   final Map<String, TextEditingController> _controllers = {};
@@ -63,21 +70,34 @@ class AppFormController extends ChangeNotifier {
   final Map<String, VoidCallback> _signalEffects = {};
 
   /// Direct access to the underlying [FormState], or null if not yet mounted.
-  FormState? get formState => formKey.currentState;
+  FormState? get formState {
+    try {
+      return formKey.currentState;
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Validates every descendant [FormField] in the form tree.
   ///
-  /// Returns true if all fields are valid, false otherwise.
-  bool validate() => formState?.validate() ?? false;
+  /// Returns true if all fields are valid, or true if not yet attached to a widget tree.
+  /// Returns false if attached and any field fails validation.
+  bool validate() => formState?.validate() ?? true;
 
   /// Calls [FormFieldState.save] on every descendant field.
-  void save() => formState?.save();
+  void save() {
+    try {
+      formState?.save();
+    } catch (_) {}
+  }
 
   /// Resets every descendant [FormField] back to initial values,
   /// restores managed controllers to their initial values,
   /// and clears all server-side errors.
   void reset() {
-    formState?.reset();
+    try {
+      formState?.reset();
+    } catch (_) {}
     for (final entry in _controllers.entries) {
       final initial = _initialValues[entry.key] ?? '';
       if (entry.value.text != initial) {
@@ -265,24 +285,50 @@ class AppFormController extends ChangeNotifier {
     }
   }
 
-  /// Clears all field errors and notifies listeners.
+  /// Clears all field errors, resets general [errorMessage], and notifies listeners.
   void clear() {
     if (_errors.isNotEmpty) {
       _errors.clear();
       notifyListeners();
     }
+    errorMessage.value = null;
   }
 
-  /// Convenience method to bind field errors from an [ActionResult].
+  /// Convenience method to bind field errors and general error from an [ActionResult].
   ///
-  /// If [result] is an [ActionFailure] with [ActionFailure.fieldErrors],
-  /// replaces the current errors and notifies. If [result] is [ActionSuccess],
-  /// clears all errors.
+  /// If [result] is an [ActionFailure]:
+  /// - populates field errors from [ActionFailure.fieldErrors]
+  /// - sets [errorMessage] to [ActionFailure.message] if there are no field errors.
+  /// If [result] is [ActionSuccess]:
+  /// - clears all field errors and resets [errorMessage] to null.
   void bind(ActionResult result) {
     if (result is ActionFailure) {
       setErrors(result.fieldErrors);
+      errorMessage.value = result.fieldErrors.isEmpty ? result.message : null;
     } else if (result is ActionSuccess) {
       clear();
+      errorMessage.value = null;
+    }
+  }
+
+  /// Executes an asynchronous [action] with form validation and submission tracking.
+  ///
+  /// 1. Validates the form. If validation fails, returns null.
+  /// 2. Sets [isSubmitting] to true and clears [errorMessage].
+  /// 3. Awaits [action] and automatically calls [bind] with the result.
+  /// 4. Resets [isSubmitting] to false.
+  /// 5. Returns the [ActionResult].
+  Future<ActionResult?> submit(Future<ActionResult> Function() action) async {
+    if (!validate()) return null;
+
+    isSubmitting.value = true;
+    errorMessage.value = null;
+    try {
+      final result = await action();
+      bind(result);
+      return result;
+    } finally {
+      isSubmitting.value = false;
     }
   }
 
@@ -297,6 +343,8 @@ class AppFormController extends ChangeNotifier {
     }
     _controllers.clear();
     _signals.clear();
+    isSubmitting.dispose();
+    errorMessage.dispose();
     super.dispose();
   }
 }

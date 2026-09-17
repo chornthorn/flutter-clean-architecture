@@ -18,6 +18,12 @@ void main() {
     AppFormController? formController,
   }) async {
     final effectiveController = formController ?? AppFormController();
+    if (initialTitle != null || initialBody != null) {
+      effectiveController.setValues({
+        PostFormField.title: ?initialTitle,
+        PostFormField.body: ?initialBody,
+      });
+    }
     addTearDown(() {
       if (formController == null) {
         effectiveController.dispose();
@@ -34,8 +40,6 @@ void main() {
                 builder: (_) => PostFormDialog(
                   heading: heading,
                   submitLabel: submitLabel,
-                  initialTitle: initialTitle,
-                  initialBody: initialBody,
                   formController: effectiveController,
                   onSubmit: () => onSubmit(effectiveController),
                 ),
@@ -192,8 +196,6 @@ void main() {
             'Server validation failed',
             fieldErrors: {'title': 'Server says title already taken'},
           );
-          // ViewModel binds the result directly
-          formCtrl.bind(result);
           return result;
         },
         formController: form,

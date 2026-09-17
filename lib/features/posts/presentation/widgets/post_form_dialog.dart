@@ -14,68 +14,23 @@ export '../forms/post_form_field.dart';
 /// Modal dialog for creating or editing a post.
 ///
 /// Driven entirely by a ViewModel-owned [AppFormController].
-class PostFormDialog extends StatefulWidget {
+class PostFormDialog extends StatelessWidget {
   const PostFormDialog({
     super.key,
     required this.heading,
     required this.submitLabel,
     required this.formController,
     required this.onSubmit,
-    this.initialTitle,
-    this.initialBody,
   });
 
   final String heading;
   final String submitLabel;
   final AppFormController formController;
   final Future<ActionResult> Function() onSubmit;
-  final String? initialTitle;
-  final String? initialBody;
 
-  @override
-  State<PostFormDialog> createState() => _PostFormDialogState();
-}
-
-class _PostFormDialogState extends State<PostFormDialog> {
-  bool _isSubmitting = false;
-  String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    final values = <dynamic, String>{};
-    if (widget.initialTitle != null && widget.initialTitle!.isNotEmpty) {
-      values[PostFormField.title] = widget.initialTitle!;
-    }
-    if (widget.initialBody != null && widget.initialBody!.isNotEmpty) {
-      values[PostFormField.body] = widget.initialBody!;
-    }
-    if (values.isNotEmpty) {
-      widget.formController.setValues(values);
-    }
-  }
-
-  Future<void> _submit() async {
-    if (!widget.formController.validate()) return;
-
-    setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
-    });
-
-    final result = await widget.onSubmit();
-
-    if (result is ActionFailure) {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-          _errorMessage = result.fieldErrors.isEmpty ? result.message : null;
-        });
-      }
-      return;
-    }
-
-    if (mounted) {
+  Future<void> _submit(BuildContext context) async {
+    final result = await formController.submit(onSubmit);
+    if (result is ActionSuccess && context.mounted) {
       Navigator.of(context).pop();
     }
   }
@@ -85,7 +40,7 @@ class _PostFormDialogState extends State<PostFormDialog> {
     final theme = context.theme;
 
     return AppFormScope(
-      controller: widget.formController,
+      controller: formController,
       options: const AppFormOptions(
         autovalidateMode: AutovalidateMode.onUserInteraction,
       ),
@@ -100,15 +55,21 @@ class _PostFormDialogState extends State<PostFormDialog> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    widget.heading,
+                    heading,
                     style: theme.typography.title.semiBold.copyWith(
                       color: theme.colors.foreground.primary,
                     ),
                   ),
-                  if (_errorMessage case final message?) ...[
-                    const SizedBox(height: 12),
-                    _buildErrorBanner(context, message),
-                  ],
+                  SignalBuilder(
+                    builder: (context) {
+                      final error = formController.errorMessage.value;
+                      if (error == null) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: _buildErrorBanner(context, error),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 16),
                   AppTextField(
                     fieldKey: const FormFieldKey(PostFormField.title),
@@ -134,22 +95,28 @@ class _PostFormDialogState extends State<PostFormDialog> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      AppOutlinedButton(
-                        label: 'Cancel',
-                        onPressed: _isSubmitting
-                            ? null
-                            : () => Navigator.of(context).pop(),
+                      SignalBuilder(
+                        builder: (context) {
+                          final isSubmitting = formController.isSubmitting.value;
+                          return AppOutlinedButton(
+                            label: 'Cancel',
+                            onPressed: isSubmitting
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                          );
+                        },
                       ),
                       const SizedBox(width: 8),
                       SignalBuilder(
                         builder: (context) {
-                          final title = widget.formController
+                          final isSubmitting = formController.isSubmitting.value;
+                          final title = formController
                               .signal(const FormFieldKey(PostFormField.title))
                               .value;
                           return AppFilledButton(
-                            label: widget.submitLabel,
-                            isEnabled: !_isSubmitting && title.trim().isNotEmpty,
-                            onPressed: _submit,
+                            label: submitLabel,
+                            isEnabled: !isSubmitting && title.trim().isNotEmpty,
+                            onPressed: () => _submit(context),
                           );
                         },
                       ),
