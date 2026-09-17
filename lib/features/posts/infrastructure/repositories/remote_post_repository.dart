@@ -3,7 +3,7 @@ import 'package:injectify/injectify.dart';
 
 import '../../../../core/async/cancellation.dart';
 import '../../../../core/error/app_exception.dart';
-import '../../../../core/networking/safe_call.dart';
+import '../../../../core/networking/repository.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../dtos/create_post_dto.dart';
@@ -13,25 +13,27 @@ import '../endpoints/post_api.dart';
 // The HTTP adapter. jsonplaceholder stores nothing it is sent — see `lib/features/README.md`.
 @Environment(Environment.prod)
 @Injectable(as: PostRepository, scope: Scope.lazySingleton)
-class RemotePostRepository implements PostRepository {
+class RemotePostRepository extends Repository implements PostRepository {
   RemotePostRepository(Dio dio) : _api = PostApi(dio);
 
   final PostApi _api;
 
   @override
   Future<List<Post>> allPosts({Cancellation? cancellation}) async {
-    final posts = await _api
-        .allPosts(cancelToken: _tokenFor(cancellation))
-        .guard();
+    final posts = await execute(
+      (token) => _api.allPosts(cancelToken: token),
+      cancellation: cancellation,
+    );
     return [for (final post in posts) post.toDomain()];
   }
 
   @override
   Future<Post?> postById(int id, {Cancellation? cancellation}) async {
     try {
-      final post = await _api
-          .postById(id, cancelToken: _tokenFor(cancellation))
-          .guard();
+      final post = await execute(
+        (token) => _api.postById(id, cancelToken: token),
+        cancellation: cancellation,
+      );
       return post.toDomain();
     } on NotFoundException {
       // The contract's "no such post" is 404; anything else is a failure.
@@ -46,12 +48,13 @@ class RemotePostRepository implements PostRepository {
     required String body,
     Cancellation? cancellation,
   }) async {
-    final created = await _api
-        .createPost(
-          CreatePostDto(userId: userId, title: title, body: body),
-          cancelToken: _tokenFor(cancellation),
-        )
-        .guard();
+    final created = await execute(
+      (token) => _api.createPost(
+        CreatePostDto(userId: userId, title: title, body: body),
+        cancelToken: token,
+      ),
+      cancellation: cancellation,
+    );
     return created.toDomain();
   }
 
@@ -62,33 +65,27 @@ class RemotePostRepository implements PostRepository {
     required String body,
     Cancellation? cancellation,
   }) async {
-    final updated = await _api
-        .updatePost(
-          id,
-          UpdatePostDto(title: title, body: body),
-          cancelToken: _tokenFor(cancellation),
-        )
-        .guard();
+    final updated = await execute(
+      (token) => _api.updatePost(
+        id,
+        UpdatePostDto(title: title, body: body),
+        cancelToken: token,
+      ),
+      cancellation: cancellation,
+    );
     return updated.toDomain();
   }
 
   @override
   Future<void> deletePost(int id, {Cancellation? cancellation}) async {
     try {
-      await _api.deletePost(id, cancelToken: _tokenFor(cancellation)).guard();
+      await execute(
+        (token) => _api.deletePost(id, cancelToken: token),
+        cancellation: cancellation,
+      );
     } on NotFoundException {
       // Already gone is the outcome the caller asked for.
       return;
     }
-  }
-
-  // `ignore`: the failure a dropped request raises reaches the caller, which is
-  // the one that knows it was a cancellation.
-  CancelToken? _tokenFor(Cancellation? cancellation) {
-    if (cancellation == null) return null;
-
-    final token = CancelToken();
-    cancellation.whenComplete(token.cancel).ignore();
-    return token;
   }
 }

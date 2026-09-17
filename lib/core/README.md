@@ -13,6 +13,8 @@ lib/core/
                            Nothing per-endpoint belongs here.
     error_interceptor.dart transforms HTTP errors and responses into typed AppExceptions.
     safe_call.dart         Future<T>.guard() extension unwrapping DioException.
+    repository.dart        abstract base class for network repositories, bridging
+                           cancellation and executing guarded API calls.
   error/
     app_exception.dart     plain Dart application exception hierarchy (NetworkException,
                            ValidationException, UnauthorizedException, NotFoundException, etc.).
@@ -40,7 +42,7 @@ The architecture separates error responsibilities cleanly across layers without 
 ```
 [Dio / Network] -> [ErrorInterceptor] -> [AppException]
                           |
-                   [Repository (.guard())] -> Domain Entities / AppException
+                   [Repository (.execute())] -> Domain Entities / AppException
                           |
                    [ViewModel / UseCases] -> ActionResult (Success / Failure)
                           |
@@ -50,12 +52,14 @@ The architecture separates error responsibilities cleanly across layers without 
 1. **Dio ErrorInterceptor (`core/networking/error_interceptor.dart`)**:
    Intercepts network errors, timeouts, and HTTP status codes (400, 401, 403, 404, 422, 5xx), parses backend error envelopes (e.g. `{"message": "...", "errors": {...}}`), and attaches a strongly typed `AppException` to `DioException.error`.
 2. **Safe Call Extension (`core/networking/safe_call.dart`)**:
-   Repositories call `.guard()` on Dio futures. This un-boxes `DioException` and re-throws the attached `AppException`. Repositories do not contain manual `try / catch DioException` boilerplate unless handling domain-specific semantics (e.g. 404 returning `null`).
-3. **Domain Validation (`core/error/app_exception.dart`)**:
+   Extension on `Future<T>.guard()` that unboxes `DioException` and re-throws the attached `AppException`.
+3. **Base Repository (`core/networking/repository.dart`)**:
+   Abstract base class `Repository` provides `execute((token) => ..., cancellation: token)` which bridges domain `Cancellation` into Dio's `CancelToken` and applies `.guard()`, eliminating transport plumbing and keeping error handling explicit.
+4. **Domain Validation (`core/error/app_exception.dart`)**:
    Domain business rules throw `ValidationException(message: ..., fieldErrors: ...)`. Because this class is pure Dart, Domain remains isolated from Flutter or IO.
-4. **Action Outcomes (`core/presentation/action_result.dart`)**:
+5. **Action Outcomes (`core/presentation/action_result.dart`)**:
    Commands and ViewModels return `ActionResult` (`ActionSuccess`, `ActionFailure`), encapsulating user-facing messages and field error maps.
-5. **UI Layer (`core/design_system/components/app_toast.dart`)**:
+6. **UI Layer (`core/design_system/components/app_toast.dart`)**:
    Views never inspect HTTP codes or stack traces. They display `AppToast.showSuccess` / `AppToast.showError` for transient operations, and show `AppNotice` with `error.message` for persistent view states.
 
 ## Design tokens
@@ -63,111 +67,104 @@ The architecture separates error responsibilities cleanly across layers without 
 No widget hardcodes a color, a spacing, or a text style. Values live in
 `app.tokens.json` and reach the UI through `app_theme.g.dart`:
 
+- `theme.colors`: primary, surface, background, outline, text, error.
+- `theme.spacing`: fine, tight, standard, double, quadruple.
+- `theme.radius`: card, button, tag.
+- `theme.typography`: headline, title, body, caption.
+
+The theme switches between light and dark without touching widget code:
+`AppThemeScope` listens to the system brightness, derives the matching token set,
+and hands it to `AppTheme.of(context)`. Widgets read tokens through the extension
+on `BuildContext`:
+
 ```dart
-final theme = context.theme;
-Container(color: theme.colors.surface.card, padding: EdgeInsets.all(theme.sizes.padding.md));
+// Preferred: read through the context extension.
+final colors = context.colors;
+final spacing = context.spacing;
+
+// Or via the inherited widget directly:
+final theme = AppTheme.of(context);
 ```
 
-Flow:
+To add a token: edit `app.tokens.json`, run `dart run build_runner build`, and use
+the generated accessor. Never read raw colors or hardcode `EdgeInsets.all(16)`.
 
-1. Edit `app.tokens.json` (both `light` and `dark`). A new **group** also needs
-   its name added to `theme-spec.schema.json` — the schema names groups, the
-   tokens supply values, and a `$type` the schema doesn't define is skipped
-   silently.
-2. `dart run build_runner build`. The output is gitignored — there is nothing to
-   commit — and `dart format` it only if you intend to read it.
-3. `flutter test`. `flutter analyze` excludes generated files, so it cannot see a
-   broken one — the test run is what compiles them. A group added to one mode and
-   not the other generates a getter with no map behind it, and only shows up
-   here.
+## View model lifecycle
 
-`AppThemeNotifier` holds the mode and is owned by `KaiselApp`, not by the
-container: a mode change has to rebuild `MaterialApp`, and only the widget tree
-can do that. Screens call `context.themeNotifier.toggleMode()`.
-
-## Cancellation
-
-A `Future` cannot be cancelled — awaiting one only waits. So a read started by a
-page that is then popped keeps running: the socket is read, the payload decoded,
-the result handed to a view model nobody is watching. `dispose` stops the
-_notification_, not the work.
-
-`async/cancellation.dart` is what stops the work. A screen holds one source, hands
-its token down with every read it starts, and cancels where its scope ends — a
-view model's `dispose`, a dialog's `State.dispose`:
+A view model is scoped to its route. When the route is pushed, the container
+creates it; when the route is popped, the container calls `dispose()`.
 
 ```dart
-final _cancellation = CancellationSource();
-
-try {
-  final posts = await _dispatcher.query(
-    GetPostsQuery(cancellation: _cancellation.token),
-  );
-  if (_isDisposed) return;
-  _posts.setValue(posts);
-} catch (error, stackTrace) {
-  // A dropped read is not a failure: there is nobody left to report it to.
-  // Everything else is.
-  if (_isDisposed) return;
-  _posts.setError(error, stackTrace);
+abstract interface class ViewModel {
+  void dispose();
 }
 ```
 
-`_posts` is the read's own signal and `_isDisposed` is the view model's flag, set
-in `dispose` just before it cancels — so the check that drops the read and the
-check that keeps a write off a disposed signal are the same one. See
-`docs/architecture.md` for the rest of the shape.
+View models hold state in `Signal`s and `Computed`s from `package:signals`. A view
+reads signals through `Watch` or `SignalBuilder` so only the widget that depends on
+a changing signal rebuilds.
 
-The source is the end that cancels; `Cancellation` — a typedef for `Future<void>`
-— is the end that travels, and the token is what goes down. A feature's `domain/`
-contract takes `{Cancellation? cancellation}` and stays plain Dart. Domain reaches
-into `core/` for that one file, which is the exception the rules at the bottom
-record; the test enforces it. The adapter is where the signal becomes
-transport-shaped — `RemotePostRepository._tokenFor` turns it into a Dio
-`CancelToken`, and `@CancelRequest()` on the endpoint parameter is what makes the
-generated client pass that token on. Without the annotation retrofit takes the
-parameter and quietly drops it.
+```dart
+// A view model exposes signals:
+class PostsHomeViewModel implements ViewModel {
+  final posts = signal<AsyncState<List<Post>>>(const AsyncLoading());
+  ...
+}
 
-What it buys: a JSON payload is not decoded into a screen that is gone, and a
-request nobody wants stops occupying a connection.
+// The view watches them:
+class PostsHomeView extends StatelessWidget {
+  Widget build(BuildContext context) {
+    return Watch((context) {
+      final state = viewModel.posts.value;
+      return switch (state) {
+        AsyncData(:final value) => PostList(value),
+        AsyncError(:final error) => AppNotice.error(error.toString()),
+        _ => const CircularProgressIndicator(),
+      };
+    });
+  }
+}
+```
 
-Every path takes a token — `PostApi`'s five endpoints and every method on
-`PostRepository` — because any request can be dropped at the transport. Whether a
-caller _should_ drop one is the caller's decision, and the shipped callers draw the
-line at reads: a read dropped on the way out only wastes an answer nobody would
-have seen, while a write dropped mid-flight may still land on the server, leaving
-the app and the server disagreeing about what happened with nobody left to tell.
-The post form keeps its submit button disabled until the call answers for the same
-reason. A caller that knows what a half-applied write means for its own data can
-hand a token to a write; nothing else has to change.
+A view model never imports Flutter widgets (`package:flutter/material.dart`,
+etc.). It imports only:
 
-## Components
+- `domain/`: entities, use cases, repository contracts.
+- `core/async/cancellation.dart`: for the token it hands to repository calls.
+- `core/presentation/view_model.dart`: the `ViewModel` interface.
+- `package:signals/signals.dart`: reactive primitives.
 
-A control two or more features need lives in `design_system/components/`; one a
-single screen needs stays beside that screen, under
-`features/<name>/presentation/widgets/`. That is the rule that moved the first
-kit out of the posts feature once the shop and the host screens needed the same
-chrome — and it is what keeps `PostTile`, `PostByline` and `PostAuthorBadge`
-where they are.
+This keeps view models testable with plain `test()` without a widget tester.
 
-Material is the bottom half of the design system, not the top. The generated
-`ThemeData` carries `brightness` and the token extension and nothing else, so a
-bare `FilledButton`, `Card`, `AppBar` or `TextField` takes its colours from
-Material's generated scheme — a palette the token set never names, which also
-survives a mode change untouched. A screen that wants the app's colours goes
-through these components; when one is missing, add it here rather than styling a
-Material widget at the call site.
+## Cancellation
 
-`test/features/posts/presentation/widgets/post_tile_test.dart` is the guard on
-that: it reads the card's fill and hairline off the theme, so a literal colour
-fails the suite.
+When a user leaves a screen, in-flight HTTP requests started by that screen are
+cancelled through `Cancellation`:
 
-Two rules:
+1. The `ViewModel` creates a `CancellationSource`.
+2. Every repository call receives `source.token`.
+3. In `dispose()`, the view model calls `source.cancel()`.
+4. The repository adapter passes the token to Dio's `CancelToken`.
 
-- `core/` must not import `features/`. It is the foundation — features depend on
-  it, never the other way round. `test/architecture_test.dart` enforces this.
-- Features reach into `core/` from their `infrastructure/` layer, never from
-  `domain/` — with two exceptions: `async/cancellation.dart` and `core/error/app_exception.dart`.
-  These files are plain Dart over `dart:core`/`dart:async` with zero Flutter or IO dependencies.
-  `test/architecture_test.dart` enforces this boundary.
-- Presentation may import `core/` for the design system, action results, and cancellation.
+```dart
+// In a view model:
+class PostsHomeViewModel implements ViewModel {
+  final _cancellation = CancellationSource();
+
+  Future<void> load() async {
+    try {
+      final posts = await _repository.allPosts(cancellation: _cancellation.token);
+      this.posts.value = AsyncData(posts);
+    } catch (e) {
+      // If cancelled because the screen was popped, ignore.
+      if (_cancellation.isCancelled) return;
+      posts.value = AsyncError(e);
+    }
+  }
+
+  @override
+  void dispose() {
+    _cancellation.cancel();
+  }
+}
+```
