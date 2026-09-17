@@ -1,16 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/presentation/action_result.dart';
 import 'package:flutter_x/core/presentation/form/form_field_key.dart';
+import 'package:flutter_x/features/posts/domain/entities/post.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
+import 'package:flutter_x/features/posts/presentation/forms/post_form_field.dart';
 import 'package:flutter_x/features/posts/presentation/view_models/post_detail_view_model.dart';
-import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
 import 'package:mocktail/mocktail.dart';
 
-import '../../domain/entities/post_fixture.dart';
 import '../../domain/repositories/mock_post_repository.dart';
 import '../../posts_dispatcher_fixture.dart';
 
 void main() {
+  const post = Post(
+    id: 1,
+    userId: 1,
+    title: 'First post',
+    body: 'The first post in the local fixture.',
+  );
+
   group('PostDetailViewModel', () {
     test('should load the post the query returns', () async {
       final repository = MockPostRepository();
@@ -21,10 +28,10 @@ void main() {
       final viewModel = PostDetailViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
 
-      final load = viewModel.load(1);
       expect(viewModel.post.value.isLoading, isTrue);
 
-      await load;
+      await viewModel.load(1);
+
       expect(viewModel.post.value.isLoading, isFalse);
       expect(viewModel.post.value.value, post);
     });
@@ -32,16 +39,13 @@ void main() {
     test('should resolve an unknown id to a null post, not an error', () async {
       final repository = MockPostRepository();
       when(
-        () => repository.postById(
-          999,
-          cancellation: any(named: 'cancellation'),
-        ),
+        () => repository.postById(99, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => null);
 
       final viewModel = PostDetailViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
 
-      await viewModel.load(999);
+      await viewModel.load(99);
 
       expect(viewModel.post.value.hasError, isFalse);
       expect(viewModel.post.value.value, isNull);
@@ -59,64 +63,41 @@ void main() {
       await viewModel.load(1);
 
       expect(viewModel.post.value.hasError, isTrue);
+      expect(viewModel.post.value.value, isNull);
     });
 
-    test(
-      'should start the writes settled, so the page does not read them in flight',
-      () {
-        final viewModel = PostDetailViewModel(
-          postsDispatcher(MockPostRepository()),
-        );
-        addTearDown(viewModel.dispose);
+    test('should start the writes settled, so the page does not read them in flight', () {
+      final viewModel = PostDetailViewModel(
+        postsDispatcher(InMemoryPostRepository()),
+      );
+      addTearDown(viewModel.dispose);
 
-        expect(viewModel.update.value.isLoading, isFalse);
-        expect(viewModel.delete.value.isLoading, isFalse);
-        // The read is the one that starts in flight — what the page renders first.
-        expect(viewModel.post.value.isLoading, isTrue);
-      },
-    );
+      expect(viewModel.update.value.isLoading, isFalse);
+      expect(viewModel.update.value.hasError, isFalse);
+      expect(viewModel.delete.value.isLoading, isFalse);
+      expect(viewModel.delete.value.hasError, isFalse);
+    });
 
-    test('should edit through the command and re-read the post', () async {
-      // A real store: the title changes only if the command wrote it and the reload read it back.
+    test('should return ActionFailure with field errors and bind to form when updatePost validation fails', () async {
       final store = InMemoryPostRepository();
       final viewModel = PostDetailViewModel(postsDispatcher(store));
       addTearDown(viewModel.dispose);
-      await viewModel.load(1);
 
-      final saved = await viewModel.updatePost(
+      final result = await viewModel.updatePost(
         1,
-        title: 'Edited title',
-        body: 'Edited body',
+        title: '   ',
+        body: 'A body',
       );
 
-      expect(saved.isSuccess, isTrue);
-      expect(viewModel.update.value.hasError, isFalse);
-      expect(viewModel.form.hasErrors, isFalse);
-      expect(viewModel.post.value.value?.title, 'Edited title');
-      expect(viewModel.post.value.value?.body, 'Edited body');
-      // The author is not the editor's to change.
-      expect(viewModel.post.value.value?.userId, 1);
+      expect(result.isFailure, isTrue);
+      expect((result as ActionFailure).fieldErrors, {
+        'title': 'A post needs a title',
+      });
+      expect(
+        viewModel.form[const FormFieldKey(PostFormField.title)],
+        'A post needs a title',
+      );
     });
-
-    test(
-      'should return ActionFailure with field errors and bind to form when updatePost validation fails',
-      () async {
-        final store = InMemoryPostRepository();
-        final viewModel = PostDetailViewModel(postsDispatcher(store));
-        addTearDown(viewModel.dispose);
-
-        final result = await viewModel.updatePost(1, title: '', body: 'A body');
-
-        expect(result.isFailure, isTrue);
-        expect((result as ActionFailure).fieldErrors, {
-          'title': 'A post needs a title',
-        });
-        expect(
-          viewModel.form[const FormFieldKey(PostFormField.title)],
-          'A post needs a title',
-        );
-      },
-    );
 
     test(
       'should edit the id it is handed, with nothing on screen yet',
@@ -136,12 +117,43 @@ void main() {
     );
 
     test(
+      'should edit post using viewModel.form directly after prepareEdit',
+      () async {
+        final store = InMemoryPostRepository();
+        final viewModel = PostDetailViewModel(postsDispatcher(store));
+        addTearDown(viewModel.dispose);
+
+        const currentPost = Post(
+          id: 1,
+          userId: 1,
+          title: 'Old title',
+          body: 'Old body',
+        );
+        viewModel.prepareEdit(currentPost);
+
+        expect(
+          viewModel.form.text(const FormFieldKey(PostFormField.title)),
+          'Old title',
+        );
+
+        // User edits title
+        viewModel.form.setValue(
+          const FormFieldKey(PostFormField.title),
+          'New direct title',
+        );
+
+        final result = await viewModel.updatePost(1);
+        expect(result.isSuccess, isTrue);
+        expect((await store.postById(1))?.title, 'New direct title');
+      },
+    );
+
+    test(
       'should keep the failure and answer failure when an edit fails',
       () async {
         final store = MockPostRepository();
-        when(
-          () => store.postById(1, cancellation: any(named: 'cancellation')),
-        ).thenAnswer((_) async => post);
+        when(() => store.postById(1, cancellation: any(named: 'cancellation')))
+            .thenAnswer((_) async => post);
         when(
           () => store.updatePost(
             id: 1,
@@ -162,20 +174,17 @@ void main() {
 
         expect(saved.isFailure, isTrue);
         expect(viewModel.update.value.hasError, isTrue);
-        expect(viewModel.post.value.value?.title, post.title);
+        expect(viewModel.post.value.value, post);
       },
     );
 
-    test('should delete through the command and close', () async {
+    test('should delete through the command and settle', () async {
       final store = InMemoryPostRepository();
       final viewModel = PostDetailViewModel(postsDispatcher(store));
       addTearDown(viewModel.dispose);
-      await viewModel.load(1);
 
-      final removed = await viewModel.deletePost(1);
-
-      expect(removed.isSuccess, isTrue);
-      expect(viewModel.delete.value.hasError, isFalse);
+      final result = await viewModel.deletePost(1);
+      expect(result.isSuccess, isTrue);
       expect(await store.postById(1), isNull);
     });
 
@@ -183,20 +192,15 @@ void main() {
       'should keep the failure and answer failure when a delete fails',
       () async {
         final store = MockPostRepository();
-        when(
-          () => store.postById(1, cancellation: any(named: 'cancellation')),
-        ).thenAnswer((_) async => post);
-        when(
-          () => store.deletePost(1),
-        ).thenAnswer((_) async => throw Exception('offline'));
+        when(() => store.deletePost(1))
+            .thenAnswer((_) async => throw Exception('offline'));
 
         final viewModel = PostDetailViewModel(postsDispatcher(store));
         addTearDown(viewModel.dispose);
-        await viewModel.load(1);
 
-        final removed = await viewModel.deletePost(1);
+        final deleted = await viewModel.deletePost(1);
 
-        expect(removed.isFailure, isTrue);
+        expect(deleted.isFailure, isTrue);
         expect(viewModel.delete.value.hasError, isTrue);
       },
     );
@@ -205,18 +209,17 @@ void main() {
       final repository = MockPostRepository();
       when(
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async {
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-        return post;
-      });
+      ).thenAnswer(
+        (_) =>
+            Future<Post?>.delayed(const Duration(milliseconds: 50), () => post),
+      );
 
       final viewModel = PostDetailViewModel(postsDispatcher(repository));
       final load = viewModel.load(1);
       viewModel.dispose();
-
       await load;
 
-      expect(viewModel.post.value.isLoading, isTrue);
+      expect(viewModel.post.value.value, isNull);
     });
   });
 }

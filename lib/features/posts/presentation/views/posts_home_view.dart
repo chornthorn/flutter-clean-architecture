@@ -3,9 +3,6 @@ import 'package:kaisel/kaisel.dart';
 import 'package:provider/provider.dart';
 import 'package:signals/signals_flutter.dart';
 
-import '../../../../app/app_route.dart';
-import '../../../../core/design_system/components/app_notice.dart';
-import '../../../../core/design_system/components/app_scaffold.dart';
 import '../../../../core/design_system/components/app_toast.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../domain/entities/post.dart';
@@ -14,55 +11,57 @@ import '../view_models/posts_home_view_model.dart';
 import '../widgets/post_form_dialog.dart';
 import '../widgets/post_tile.dart';
 
-// Reads the list from `PostsHomeViewModel` through signals: rebuilds when a
-// signal emits, not when the view model says so.
+/// The posts list screen.
+///
+/// Dispatches queries through [PostsHomeViewModel]. All mutation forms and
+/// transitions pass through here.
 class PostsHomeView extends StatelessWidget {
   const PostsHomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Read once, rebuild through the SignalBuilder below. Subscribing to the
-    // provider would rebuild the page on nothing, since the view model does not notify.
-    final viewModel = context.read<PostsHomeViewModel>();
+    final viewModel = context.watch<PostsHomeViewModel>();
 
-    return SignalBuilder(
-      builder: (context) => AppScaffold(
+    return Scaffold(
+      appBar: AppBar(
         title: const Text('Posts'),
         actions: [
           IconButton(
-            onPressed: () => _compose(context, viewModel),
             icon: const Icon(Icons.add),
             tooltip: 'New post',
-          ),
-          IconButton(
-            onPressed: () => context.router<AppRoute>().pop(),
-            icon: const Icon(Icons.close),
-            tooltip: 'Exit posts',
+            onPressed: () => _compose(context, viewModel),
           ),
         ],
-        body: _buildBody(context, viewModel, viewModel.posts.value),
+      ),
+      body: SignalBuilder(
+        builder: (context) {
+          final state = viewModel.posts.value;
+          return state.map(
+            data: (posts) => _buildList(context, viewModel, posts),
+            error: (error, _) => _buildError(context, viewModel, error),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            reloading: () => const Center(child: CircularProgressIndicator()),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildBody(
+  Widget _buildError(
     BuildContext context,
     PostsHomeViewModel viewModel,
-    AsyncState<List<Post>> state,
+    Object error,
   ) {
-    // `AsyncData*` first: the reloading and refreshing states implement `AsyncLoading`.
-    return switch (state) {
-      AsyncData<List<Post>>(:final value) => _buildList(context, viewModel, value),
-      AsyncError<List<Post>>() => AppNotice(
-        icon: Icons.cloud_off_outlined,
-        message: 'Could not load posts.',
-        action: TextButton(
-          onPressed: viewModel.load,
-          child: const Text('Try again'),
-        ),
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Could not load posts.'),
+          const SizedBox(height: 12),
+          FilledButton(onPressed: viewModel.load, child: const Text('Retry')),
+        ],
       ),
-      _ => const Center(child: CircularProgressIndicator()),
-    };
+    );
   }
 
   Widget _buildList(
@@ -71,10 +70,7 @@ class PostsHomeView extends StatelessWidget {
     List<Post> posts,
   ) {
     if (posts.isEmpty) {
-      return const AppNotice(
-        icon: Icons.inbox_outlined,
-        message: 'No posts yet.',
-      );
+      return const Center(child: Text('No posts yet.'));
     }
 
     // `RefreshIndicator` holds the pull gesture; `viewModel.load()` re-runs the query.
@@ -112,17 +108,16 @@ class PostsHomeView extends StatelessWidget {
   }
 
   Future<void> _compose(BuildContext context, PostsHomeViewModel viewModel) {
-    viewModel.form.clear();
+    viewModel.prepareCreate();
     return showDialog<void>(
       context: context,
       builder: (_) => PostFormDialog(
         heading: 'New post',
         submitLabel: 'Create',
         formController: viewModel.form,
-        onSubmit: (title, body) async {
-          final result = await viewModel.createPost(title: title, body: body);
-          if (result case ActionSuccess(:final message)
-              when message != null) {
+        onSubmit: () async {
+          final result = await viewModel.createPost();
+          if (result case ActionSuccess(:final message) when message != null) {
             if (context.mounted) {
               AppToast.showSuccess(context, message);
             }

@@ -11,6 +11,7 @@ import '../../domain/entities/post.dart';
 import '../../domain/usecases/delete_post_command.dart';
 import '../../domain/usecases/get_post_query.dart';
 import '../../domain/usecases/update_post_command.dart';
+import '../forms/post_form_field.dart';
 
 // State for the post detail page: one signal per use case, per `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
@@ -28,12 +29,21 @@ class PostDetailViewModel implements ViewModel {
   final _update = asyncSignal<void>(AsyncState.data(null));
   final _delete = asyncSignal<void>(AsyncState.data(null));
 
-  /// Form controller managing input validation and server error binding.
+  /// Form controller managing input values, controllers, signals, and server error binding.
   final form = AppFormController();
 
   ReadonlySignal<AsyncState<Post?>> get post => _post;
   ReadonlySignal<AsyncState<void>> get update => _update;
   ReadonlySignal<AsyncState<void>> get delete => _delete;
+
+  /// Pre-populates the form controller with post fields for editing.
+  void prepareEdit(Post post) {
+    form.clear();
+    form.setValues({
+      PostFormField.title: post.title,
+      PostFormField.body: post.body,
+    });
+  }
 
   Future<void> load(int id) async {
     _post.setLoading();
@@ -52,16 +62,18 @@ class PostDetailViewModel implements ViewModel {
 
   // Returns an ActionResult so the view knows whether it worked, what message to
   // alert or toast, and any validation field errors.
-  Future<ActionResult> updatePost(
-    int id, {
-    required String title,
-    required String body,
-  }) async {
+  // Reads directly from [form] if title and body are not explicitly passed.
+  Future<ActionResult> updatePost(int id, {String? title, String? body}) async {
+    final effectiveTitle =
+        (title ?? form.text(const FormFieldKey(PostFormField.title))).trim();
+    final effectiveBody =
+        (body ?? form.text(const FormFieldKey(PostFormField.body))).trim();
+
     _update.setLoading();
 
     try {
       await _dispatcher.command(
-        UpdatePostCommand(id: id, title: title, body: body),
+        UpdatePostCommand(id: id, title: effectiveTitle, body: effectiveBody),
       );
       final updated = await _dispatcher.query(
         GetPostQuery(id, cancellation: _cancellation.token),

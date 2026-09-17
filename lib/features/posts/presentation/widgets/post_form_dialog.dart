@@ -1,175 +1,196 @@
 import 'package:flutter/material.dart';
+import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
+import '../../../../core/design_system/components/app_card.dart';
 import '../../../../core/design_system/components/app_text_field.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/form/app_form_scope.dart';
+import '../forms/post_form_field.dart';
 
-/// Form fields for [PostFormDialog], implementing [FormFieldKeyBase].
-enum PostFormField with FormFieldKeyMixin {
-  title,
-  body;
-}
+export '../forms/post_form_field.dart';
 
-// Collects a post and hands it to the page, which owns the write call.
+/// Modal dialog for creating or editing a post.
+///
+/// Driven entirely by a ViewModel-owned [AppFormController].
 class PostFormDialog extends StatefulWidget {
   const PostFormDialog({
     super.key,
     required this.heading,
     required this.submitLabel,
+    required this.formController,
     required this.onSubmit,
-    this.formController,
-    this.initialTitle = '',
-    this.initialBody = '',
+    this.initialTitle,
+    this.initialBody,
   });
 
   final String heading;
-
   final String submitLabel;
-
-  // Answers the result of the write: success or failure message/fields.
-  final Future<ActionResult> Function(String title, String body) onSubmit;
-
-  /// Optional form controller provided by the ViewModel. If not provided,
-  /// the dialog creates and manages its own internal [AppFormController].
-  final AppFormController? formController;
-
-  final String initialTitle;
-  final String initialBody;
+  final AppFormController formController;
+  final Future<ActionResult> Function() onSubmit;
+  final String? initialTitle;
+  final String? initialBody;
 
   @override
   State<PostFormDialog> createState() => _PostFormDialogState();
 }
 
 class _PostFormDialogState extends State<PostFormDialog> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _bodyController;
-  late final AppFormController _formController;
-  late final bool _ownsController;
-  late String _title;
-  var _submitting = false;
+  bool _isSubmitting = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _ownsController = widget.formController == null;
-    _formController = widget.formController ?? AppFormController();
-    _title = widget.initialTitle;
-    _titleController = TextEditingController(text: widget.initialTitle)
-      ..addListener(() {
-        if (_title != _titleController.text) {
-          setState(() => _title = _titleController.text);
-        }
-      });
-    _bodyController = TextEditingController(text: widget.initialBody);
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _bodyController.dispose();
-    if (_ownsController) {
-      _formController.dispose();
+    final values = <dynamic, String>{};
+    if (widget.initialTitle != null && widget.initialTitle!.isNotEmpty) {
+      values[PostFormField.title] = widget.initialTitle!;
     }
-    super.dispose();
+    if (widget.initialBody != null && widget.initialBody!.isNotEmpty) {
+      values[PostFormField.body] = widget.initialBody!;
+    }
+    if (values.isNotEmpty) {
+      widget.formController.setValues(values);
+    }
   }
 
   Future<void> _submit() async {
-    final formValid = _formController.validate();
-    if (!formValid) {
-      return;
-    }
+    if (!widget.formController.validate()) return;
 
     setState(() {
-      _submitting = true;
+      _isSubmitting = true;
       _errorMessage = null;
     });
 
-    final result = await widget.onSubmit(
-      _titleController.text.trim(),
-      _bodyController.text.trim(),
-    );
-
-    if (!mounted) return;
+    final result = await widget.onSubmit();
 
     if (result is ActionFailure) {
-      setState(() {
-        _submitting = false;
-        _errorMessage = result.fieldErrors.isEmpty ? result.message : null;
-      });
-      // If the controller was internally owned, bind it here.
-      // If provided by the ViewModel, the ViewModel already performed binding.
-      if (_ownsController) {
-        _formController.bind(result);
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _errorMessage = result.fieldErrors.isEmpty ? result.message : null;
+        });
       }
       return;
     }
 
-    Navigator.of(context).pop(true);
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
 
-    return AlertDialog(
-      title: Text(widget.heading),
-      content: SingleChildScrollView(
-        child: AppFormScope(
-          controller: _formController,
-          options: const AppFormOptions(
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (_errorMessage case final message?) ...[
-                Text(
-                  message,
-                  style: theme.typography.body.regular.copyWith(
-                    color: theme.colors.feedback.danger,
+    return AppFormScope(
+      controller: widget.formController,
+      options: const AppFormOptions(
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: AppCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    widget.heading,
+                    style: theme.typography.title.semiBold.copyWith(
+                      color: theme.colors.foreground.primary,
+                    ),
                   ),
-                ),
-                SizedBox(height: theme.sizes.spacing.md),
-              ],
-              AppTextField(
-                fieldKey: const FormFieldKey(PostFormField.title),
-                controller: _titleController,
-                label: 'Title',
-                validator: (value) {
-                  final trimmed = value?.trim() ?? '';
-                  if (trimmed.length < 5) {
-                    return 'Title must be at least 5 characters.';
-                  }
-                  return null;
-                },
+                  if (_errorMessage case final message?) ...[
+                    const SizedBox(height: 12),
+                    _buildErrorBanner(context, message),
+                  ],
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    fieldKey: const FormFieldKey(PostFormField.title),
+                    label: 'Title',
+                    hintText: 'Give your post a title',
+                    validator: (value) {
+                      final trimmed = (value ?? '').trim();
+                      if (trimmed.isEmpty) return 'Title cannot be empty.';
+                      if (trimmed.length < 5) {
+                        return 'Title must be at least 5 characters.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  const AppTextField(
+                    fieldKey: FormFieldKey(PostFormField.body),
+                    label: 'Body',
+                    hintText: 'Write something...',
+                    maxLines: 4,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      AppOutlinedButton(
+                        label: 'Cancel',
+                        onPressed: _isSubmitting
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                      ),
+                      const SizedBox(width: 8),
+                      SignalBuilder(
+                        builder: (context) {
+                          final title = widget.formController
+                              .signal(const FormFieldKey(PostFormField.title))
+                              .value;
+                          return AppFilledButton(
+                            label: widget.submitLabel,
+                            isLoading: _isSubmitting,
+                            onPressed: title.trim().isEmpty || _isSubmitting
+                                ? null
+                                : _submit,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              SizedBox(height: theme.sizes.spacing.md),
-              AppTextField(
-                fieldKey: const FormFieldKey(PostFormField.body),
-                controller: _bodyController,
-                label: 'Body',
-                maxLines: 4,
-              ),
-            ],
+            ),
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed:
-              _submitting ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+    );
+  }
+
+  Widget _buildErrorBanner(BuildContext context, String message) {
+    final theme = context.theme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colors.state.error.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: theme.colors.state.error.withValues(alpha: 0.3),
         ),
-        AppFilledButton(
-          label: widget.submitLabel,
-          isEnabled: _title.trim().isNotEmpty && !_submitting,
-          onPressed: _submit,
-        ),
-      ],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: 18, color: theme.colors.state.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.typography.caption.regular.copyWith(
+                color: theme.colors.state.error,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

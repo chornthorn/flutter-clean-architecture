@@ -22,6 +22,23 @@ abstract interface class FormFieldKeyBase {
   String get key;
 }
 
+/// A raw string implementation of [FormFieldKeyBase].
+final class RawFormFieldKey implements FormFieldKeyBase {
+  const RawFormFieldKey(this.key);
+
+  @override
+  final String key;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RawFormFieldKey && other.key == key ||
+      other is FormFieldKeyBase && other.key == key;
+
+  @override
+  int get hashCode => key.hashCode;
+}
+
 /// Optional mixin for enums implementing [FormFieldKeyBase] that default [key] to [Enum.name].
 mixin FormFieldKeyMixin on Enum implements FormFieldKeyBase {
   @override
@@ -41,6 +58,9 @@ mixin SnakeCaseFormFieldKeyMixin on Enum implements FormFieldKeyBase {
 /// [FormFieldKeyBase] can be used as form field keys.
 extension type const FormFieldKey(FormFieldKeyBase field)
     implements FormFieldKeyBase {
+  /// Creates a form field key from a raw string [key].
+  factory FormFieldKey.raw(String key) => FormFieldKey(RawFormFieldKey(key));
+
   /// Backwards-compatible alias for [key].
   String get name => field.key;
 
@@ -49,5 +69,4 @@ extension type const FormFieldKey(FormFieldKeyBase field)
 
   /// The camelCase representation of [key] (e.g. `is_available` -> `isAvailable`).
   String get camelCase => formFieldKeyToCamelCase(field.key);
-
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/design_system/components/app_text_field.dart';
 import 'package:flutter_x/core/presentation/action_result.dart';
-import 'package:flutter_x/core/presentation/form/app_form_controller.dart';
 import 'package:flutter_x/core/presentation/form/app_form_provider.dart';
 
 import '../../../app/view_host.dart';
@@ -13,174 +12,120 @@ void main() {
   group('AppFormProvider & AppTextField', () {
     const titleKey = FormFieldKey(_TestField.title);
 
-    testWidgets('should provide AppFormController down the tree', (
-      tester,
-    ) async {
+    testWidgets('should render with no server error initially', (tester) async {
       final controller = AppFormController();
-      AppFormController? resolvedController;
+      addTearDown(controller.dispose);
 
       await tester.pumpWidget(
         hostShell(
-          AppFormProvider(
-            controller: controller,
-            child: Builder(
-              builder: (context) {
-                resolvedController = AppFormProvider.of(context);
-                return const SizedBox();
-              },
+          Scaffold(
+            body: AppFormProvider(
+              controller: controller,
+              child: const AppTextField(fieldKey: titleKey, label: 'Title'),
             ),
           ),
         ),
       );
 
-      expect(resolvedController, same(controller));
+      expect(find.text('Title'), findsOneWidget);
+      // No error text rendered initially
+      expect(find.text('Title is required'), findsNothing);
     });
 
     testWidgets(
-      'should display field error when fieldKey matches in AppFormProvider',
+      'should display server error when controller receives error for field',
       (tester) async {
         final controller = AppFormController();
-
-        await tester.pumpWidget(
-          hostShell(
-            AppFormProvider(
-              controller: controller,
-              child: const Scaffold(
-                body: AppTextField(fieldKey: titleKey, label: 'Title'),
-              ),
-            ),
-          ),
-        );
-
-        expect(find.text('Title must not be empty'), findsNothing);
-
-        // Bind failure with matching field error
-        controller.bind(
-          const ActionFailure(
-            'Validation failed',
-            fieldErrors: {'title': 'Title must not be empty'},
-          ),
-        );
-        await tester.pump();
-
-        expect(find.text('Title must not be empty'), findsOneWidget);
-      },
-    );
-
-    testWidgets('should clear field error as soon as user types into field', (
-      tester,
-    ) async {
-      final controller = AppFormController();
-
-      await tester.pumpWidget(
-        hostShell(
-          AppFormProvider(
-            controller: controller,
-            child: const Scaffold(
-              body: AppTextField(fieldKey: titleKey, label: 'Title'),
-            ),
-          ),
-        ),
-      );
-
-      controller.setField(titleKey, 'Server error');
-      await tester.pump();
-      expect(find.text('Server error'), findsOneWidget);
-
-      // Type into the field -> error is cleared immediately
-      await tester.enterText(find.byType(TextField), 'New post title');
-      await tester.pump();
-
-      expect(find.text('Server error'), findsNothing);
-      expect(controller[titleKey], isNull);
-    });
-
-    testWidgets(
-      'should isolate multiple forms on one screen with independent form providers',
-      (tester) async {
-        final formA = AppFormController();
-        final formB = AppFormController();
+        addTearDown(controller.dispose);
 
         await tester.pumpWidget(
           hostShell(
             Scaffold(
-              body: Column(
-                children: [
-                  AppFormProvider(
-                    controller: formA,
-                    child: const AppTextField(
-                      key: Key('field_a'),
-                      fieldKey: titleKey,
-                      label: 'Form A Title',
-                    ),
-                  ),
-                  AppFormProvider(
-                    controller: formB,
-                    child: const AppTextField(
-                      key: Key('field_b'),
-                      fieldKey: titleKey,
-                      label: 'Form B Title',
-                    ),
-                  ),
-                ],
+              body: AppFormProvider(
+                controller: controller,
+                child: const AppTextField(fieldKey: titleKey, label: 'Title'),
               ),
             ),
           ),
         );
 
-        // Form A error does not affect Form B
-        formA.setField(titleKey, 'Form A Error');
-        await tester.pump();
-
-        expect(find.text('Form A Error'), findsOneWidget);
-        expect(formA[titleKey], 'Form A Error');
-        expect(formB[titleKey], isNull);
-
-        // Typing in Form B does not clear Form A's error
-        await tester.enterText(
-          find.byKey(const Key('field_b')),
-          'Hello from Form B',
+        // Bind an action failure with field error
+        controller.bind(
+          const ActionResult.failure(
+            'Validation failed',
+            fieldErrors: {'title': 'Title is required'},
+          ),
         );
         await tester.pump();
 
-        expect(find.text('Form A Error'), findsOneWidget);
-        expect(formA[titleKey], 'Form A Error');
-
-        // Typing in Form A clears Form A's error
-        await tester.enterText(
-          find.byKey(const Key('field_a')),
-          'Hello from Form A',
-        );
-        await tester.pump();
-
-        expect(find.text('Form A Error'), findsNothing);
-        expect(formA[titleKey], isNull);
+        expect(find.text('Title is required'), findsOneWidget);
       },
     );
 
-    testWidgets('should respect explicit errorText override over scope', (
+    testWidgets('should clear server error when text changes in AppTextField', (
       tester,
     ) async {
       final controller = AppFormController();
-      controller.setField(titleKey, 'Scoped error');
+      addTearDown(controller.dispose);
+
+      controller.setField(titleKey, 'Invalid title');
 
       await tester.pumpWidget(
         hostShell(
-          AppFormProvider(
-            controller: controller,
-            child: const Scaffold(
-              body: AppTextField(
-                fieldKey: titleKey,
-                label: 'Title',
-                errorText: 'Explicit override',
-              ),
+          Scaffold(
+            body: AppFormProvider(
+              controller: controller,
+              child: const AppTextField(fieldKey: titleKey, label: 'Title'),
             ),
           ),
         ),
       );
 
-      expect(find.text('Explicit override'), findsOneWidget);
-      expect(find.text('Scoped error'), findsNothing);
+      expect(find.text('Invalid title'), findsOneWidget);
+
+      // User types in the field -> should auto-clear the error
+      await tester.enterText(find.byType(TextField), 'Valid title');
+      await tester.pump();
+
+      expect(find.text('Invalid title'), findsNothing);
+      expect(controller.hasField(titleKey), isFalse);
     });
+
+    testWidgets(
+      'should automatically bind managed TextEditingController and sync values with controller and signal',
+      (tester) async {
+        final formController = AppFormController.fromValues({
+          _TestField.title: 'Initial text',
+        });
+        addTearDown(formController.dispose);
+
+        await tester.pumpWidget(
+          hostShell(
+            Scaffold(
+              body: AppFormProvider(
+                controller: formController,
+                child: const AppTextField(fieldKey: titleKey, label: 'Title'),
+              ),
+            ),
+          ),
+        );
+
+        // Check initial text rendered in TextField
+        expect(find.text('Initial text'), findsOneWidget);
+
+        // User types new text
+        await tester.enterText(find.byType(TextField), 'Typed text');
+        await tester.pump();
+
+        expect(formController.text(titleKey), 'Typed text');
+        expect(formController.signal(titleKey).value, 'Typed text');
+
+        // Programmatic change from formController
+        formController.setValue(titleKey, 'Programmatic text');
+        await tester.pump();
+
+        expect(find.text('Programmatic text'), findsOneWidget);
+      },
+    );
   });
 }

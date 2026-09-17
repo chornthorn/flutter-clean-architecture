@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/presentation/action_result.dart';
 import 'package:flutter_x/core/presentation/form/app_form_controller.dart';
+import 'package:flutter_x/core/presentation/form/form_field_key.dart';
 import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
+import 'package:flutter_x/features/posts/presentation/widgets/post_form_field.dart';
 
 import '../../../../app/view_host.dart';
 
@@ -10,13 +12,20 @@ void main() {
   // Opens the dialog the way a page does, over a live navigator.
   Future<void> openDialog(
     WidgetTester tester,
-    Future<ActionResult> Function(String title, String body) onSubmit, {
+    Future<ActionResult> Function(AppFormController form) onSubmit, {
     String heading = 'New post',
     String submitLabel = 'Create',
-    String initialTitle = '',
-    String initialBody = '',
+    String? initialTitle,
+    String? initialBody,
     AppFormController? formController,
   }) async {
+    final effectiveController = formController ?? AppFormController();
+    addTearDown(() {
+      if (formController == null) {
+        effectiveController.dispose();
+      }
+    });
+
     await tester.pumpWidget(
       hostShell(
         Builder(
@@ -29,8 +38,8 @@ void main() {
                   submitLabel: submitLabel,
                   initialTitle: initialTitle,
                   initialBody: initialBody,
-                  onSubmit: onSubmit,
-                  formController: formController,
+                  formController: effectiveController,
+                  onSubmit: () => onSubmit(effectiveController),
                 ),
               ),
               child: const Text('open'),
@@ -47,10 +56,7 @@ void main() {
     testWidgets('should not offer to submit a post with no title', (
       tester,
     ) async {
-      await openDialog(
-        tester,
-        (title, body) async => const ActionResult.success(),
-      );
+      await openDialog(tester, (form) async => const ActionResult.success());
 
       final submit = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'Create'),
@@ -64,7 +70,7 @@ void main() {
     ) async {
       await openDialog(
         tester,
-        (title, body) async => const ActionResult.success(),
+        (form) async => const ActionResult.success(),
         heading: 'Edit post',
         submitLabel: 'Save',
         initialTitle: 'First post',
@@ -85,9 +91,9 @@ void main() {
     testWidgets('should hand over what was typed and close', (tester) async {
       String? sentTitle;
       String? sentBody;
-      await openDialog(tester, (title, body) async {
-        sentTitle = title;
-        sentBody = body;
+      await openDialog(tester, (form) async {
+        sentTitle = form.text(const FormFieldKey(PostFormField.title));
+        sentBody = form.text(const FormFieldKey(PostFormField.body));
         return const ActionResult.success();
       });
 
@@ -111,8 +117,7 @@ void main() {
     ) async {
       await openDialog(
         tester,
-        (title, body) async =>
-            const ActionResult.failure('Could not save the post.'),
+        (form) async => const ActionResult.failure('Could not save the post.'),
       );
 
       await tester.enterText(
@@ -134,7 +139,7 @@ void main() {
       'should validate title on user interaction live when typing less than 5 characters',
       (tester) async {
         bool submitCalled = false;
-        await openDialog(tester, (title, body) async {
+        await openDialog(tester, (form) async {
           submitCalled = true;
           return const ActionResult.success();
         });
@@ -178,19 +183,15 @@ void main() {
       final form = AppFormController();
       addTearDown(form.dispose);
 
-      await openDialog(
-        tester,
-        (title, body) async {
-          final result = const ActionResult.failure(
-            'Server validation failed',
-            fieldErrors: {'title': 'Server says title already taken'},
-          );
-          // ViewModel binds the result directly
-          form.bind(result);
-          return result;
-        },
-        formController: form,
-      );
+      await openDialog(tester, (formCtrl) async {
+        final result = const ActionResult.failure(
+          'Server validation failed',
+          fieldErrors: {'title': 'Server says title already taken'},
+        );
+        // ViewModel binds the result directly
+        formCtrl.bind(result);
+        return result;
+      }, formController: form);
 
       await tester.enterText(
         find.widgetWithText(TextField, 'Title'),

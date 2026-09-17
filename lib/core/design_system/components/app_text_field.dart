@@ -12,6 +12,8 @@ export '../../presentation/form/form_field_key.dart';
 ///   `autovalidateMode`, `onSaved`, `formKey.currentState!.validate()`).
 /// - Inherits [AutovalidateMode] from [AppFormScope] options if not specified on the field.
 /// - When [fieldKey] is provided:
+///   - Automatically binds to the managed [TextEditingController] from the enclosing [AppFormProvider]
+///     if [controller] is not explicitly supplied.
 ///   - Automatically displays server-side errors from the enclosing [AppFormProvider].
 ///   - Automatically clears server errors as soon as the user starts editing.
 /// - Error precedence: explicit [errorText] -> client [validator] -> server [fieldKey] error.
@@ -39,10 +41,11 @@ class AppTextField extends StatelessWidget {
     this.focusNode,
   });
 
-  /// The form field identifier used to look up server errors from [AppFormProvider].
+  /// The form field identifier used to look up server errors and controllers from [AppFormProvider].
   final FormFieldKey? fieldKey;
 
-  /// Controls the text being edited.
+  /// Controls the text being edited. If null and [fieldKey] is provided, resolves
+  /// the managed controller from the enclosing [AppFormProvider].
   final TextEditingController? controller;
 
   /// An optional initial value. Should only be set if [controller] is null.
@@ -107,6 +110,18 @@ class AppTextField extends StatelessWidget {
         ? formProvider[fieldKey!]
         : null;
 
+    // Resolve managed controller from enclosing AppFormProvider if not explicitly provided
+    final effectiveController =
+        controller ??
+        (fieldKey != null && formProvider != null
+            ? formProvider.controller(fieldKey!, initialValue)
+            : null);
+
+    // Flutter's TextFormField asserts that initialValue is null when controller is provided.
+    final effectiveInitialValue = effectiveController != null
+        ? null
+        : initialValue;
+
     // Precedence: explicit errorText -> server error (validator handled by TextFormField)
     final effectiveErrorText = errorText ?? serverError;
 
@@ -128,8 +143,8 @@ class AppTextField extends StatelessWidget {
     );
 
     return TextFormField(
-      controller: controller,
-      initialValue: initialValue,
+      controller: effectiveController,
+      initialValue: effectiveInitialValue,
       focusNode: focusNode,
       autovalidateMode: effectiveAutovalidateMode,
       validator: validator,
@@ -170,6 +185,8 @@ class AppTextField extends StatelessWidget {
         focusedErrorBorder: errorBorder.copyWith(
           borderSide: BorderSide(color: theme.colors.feedback.danger, width: 2),
         ),
+        filled: true,
+        fillColor: theme.colors.surface.card,
       ),
     );
   }

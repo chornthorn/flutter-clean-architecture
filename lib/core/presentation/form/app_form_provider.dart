@@ -1,7 +1,9 @@
 import 'package:flutter/widgets.dart';
+import 'package:signals/signals_flutter.dart';
 
 import 'app_form_controller.dart';
 
+export 'app_form_controller.dart';
 export 'form_field_key.dart';
 
 /// Scopes an [AppFormController] to a subtree, enabling forms on the same
@@ -39,5 +41,19 @@ class AppFormProvider extends InheritedNotifier<AppFormController> {
   /// Clears the server error for [fieldKey] in the enclosing [AppFormProvider].
   static void clearErrorOf(BuildContext context, FormFieldKey fieldKey) {
     maybeOf(context)?.clearField(fieldKey);
+  }
+
+  /// Resolves or creates the [TextEditingController] for [fieldKey] from the enclosing [AppFormProvider].
+  static TextEditingController? controllerOf(
+    BuildContext context,
+    FormFieldKey fieldKey, [
+    String? defaultInitialValue,
+  ]) {
+    return maybeOf(context)?.controller(fieldKey, defaultInitialValue);
+  }
+
+  /// Resolves the reactive [Signal<String>] for [fieldKey] from the enclosing [AppFormProvider].
+  static Signal<String>? signalOf(BuildContext context, FormFieldKey fieldKey) {
+    return maybeOf(context)?.signal(fieldKey);
   }
 }

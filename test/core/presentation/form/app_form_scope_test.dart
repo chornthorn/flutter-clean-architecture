@@ -5,7 +5,13 @@ import 'package:flutter_x/core/presentation/form/app_form_scope.dart';
 
 import '../../../app/view_host.dart';
 
-enum _TestScopeField with FormFieldKeyMixin { test, title, email, fullName, code }
+enum _TestScopeField with FormFieldKeyMixin {
+  test,
+  title,
+  email,
+  fullName,
+  code,
+}
 
 void main() {
   group('AppFormScope', () {

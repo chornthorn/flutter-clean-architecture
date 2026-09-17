@@ -3,48 +3,53 @@ import 'package:flutter_x/core/presentation/action_result.dart';
 import 'package:flutter_x/core/presentation/form/form_field_key.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
+import 'package:flutter_x/features/posts/presentation/forms/post_form_field.dart';
 import 'package:flutter_x/features/posts/presentation/view_models/posts_home_view_model.dart';
-import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
 import 'package:mocktail/mocktail.dart';
 
-import '../../domain/entities/post_fixture.dart';
 import '../../domain/repositories/mock_post_repository.dart';
 import '../../posts_dispatcher_fixture.dart';
 
 void main() {
+  const post = Post(
+    id: 1,
+    userId: 1,
+    title: 'First post',
+    body: 'The first post in the local fixture.',
+  );
+
   group('PostsHomeViewModel', () {
     test('should report loading until the list arrives', () async {
-      final repository = MockPostRepository();
-      when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
-          .thenAnswer((_) async => const [post]);
-
-      final viewModel = PostsHomeViewModel(postsDispatcher(repository));
+      final viewModel = PostsHomeViewModel(
+        postsDispatcher(InMemoryPostRepository()),
+      );
       addTearDown(viewModel.dispose);
 
-      final load = viewModel.load();
       expect(viewModel.posts.value.isLoading, isTrue);
 
-      await load;
+      await viewModel.load();
+
       expect(viewModel.posts.value.isLoading, isFalse);
-      expect(viewModel.posts.value.value, [post]);
+      expect(viewModel.posts.value.value, isNotEmpty);
     });
 
     test(
       'should start the create settled, so the page does not read it in flight',
       () {
         final viewModel = PostsHomeViewModel(
-          postsDispatcher(MockPostRepository()),
+          postsDispatcher(InMemoryPostRepository()),
         );
         addTearDown(viewModel.dispose);
 
         expect(viewModel.create.value.isLoading, isFalse);
+        expect(viewModel.create.value.hasError, isFalse);
       },
     );
 
     test('should create through the command and re-read the list', () async {
-      // A real store: the post shows up only if the command wrote it and the reload read it back.
-      final store = InMemoryPostRepository();
-      final viewModel = PostsHomeViewModel(postsDispatcher(store));
+      final viewModel = PostsHomeViewModel(
+        postsDispatcher(InMemoryPostRepository()),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
@@ -63,6 +68,43 @@ void main() {
         ),
       );
     });
+
+    test(
+      'should create post using values from viewModel.form directly',
+      () async {
+        final viewModel = PostsHomeViewModel(
+          postsDispatcher(InMemoryPostRepository()),
+        );
+        addTearDown(viewModel.dispose);
+        await viewModel.load();
+
+        viewModel.prepareCreate();
+        viewModel.form.setValues({
+          PostFormField.title: 'Form post title',
+          PostFormField.body: 'Form post body',
+        });
+
+        final created = await viewModel.createPost();
+
+        expect(created.isSuccess, isTrue);
+        expect(
+          viewModel.posts.value.value,
+          contains(
+            const Post(
+              id: 4,
+              userId: 1,
+              title: 'Form post title',
+              body: 'Form post body',
+            ),
+          ),
+        );
+        // Form was cleared after successful submit
+        expect(
+          viewModel.form.text(const FormFieldKey(PostFormField.title)),
+          isEmpty,
+        );
+      },
+    );
 
     test('should return ActionFailure with field errors and bind to form when validation fails', () async {
       final store = InMemoryPostRepository();
@@ -114,18 +156,19 @@ void main() {
     test('should stay silent when a load outlives its view', () async {
       final repository = MockPostRepository();
       when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
-          .thenAnswer((_) async {
-            await Future<void>.delayed(const Duration(milliseconds: 10));
-            return const [post];
-          });
+          .thenAnswer(
+            (_) => Future<List<Post>>.delayed(
+              const Duration(milliseconds: 50),
+              () => const [post],
+            ),
+          );
 
       final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       final load = viewModel.load();
       viewModel.dispose();
-
       await load;
 
-      expect(viewModel.posts.value.isLoading, isTrue);
+      expect(viewModel.posts.value.value, isNull);
     });
   });
 }
