@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
-import 'package:flutter_x/features/posts/presentation/view_models/post_detail_view_model.dart';
+import 'package:flutter_x/features/posts/presentation/view_models/post_view_model.dart';
 import 'package:flutter_x/features/posts/presentation/views/post_detail_view.dart';
 import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
 import 'package:mocktail/mocktail.dart';
@@ -21,7 +21,7 @@ void main() {
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => post);
 
-      final viewModel = PostDetailViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
@@ -41,7 +41,7 @@ void main() {
             repository.postById(999, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => null);
 
-      final viewModel = PostDetailViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load(999);
 
@@ -60,7 +60,7 @@ void main() {
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = PostDetailViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
@@ -73,7 +73,7 @@ void main() {
     });
 
     testWidgets('should edit the post through the dialog', (tester) async {
-      final viewModel = PostDetailViewModel(
+      final viewModel = PostViewModel(
         postsDispatcher(InMemoryPostRepository()),
       );
       addTearDown(viewModel.dispose);
@@ -105,7 +105,7 @@ void main() {
       tester,
     ) async {
       final store = InMemoryPostRepository();
-      final viewModel = PostDetailViewModel(postsDispatcher(store));
+      final viewModel = PostViewModel(postsDispatcher(store));
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
@@ -135,7 +135,7 @@ void main() {
       final inFlight = Completer<void>();
       when(() => store.deletePost(any())).thenAnswer((_) => inFlight.future);
 
-      final viewModel = PostDetailViewModel(postsDispatcher(store));
+      final viewModel = PostViewModel(postsDispatcher(store));
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 

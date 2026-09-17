@@ -8,13 +8,13 @@ import '../../../../core/design_system/components/app_card.dart';
 import '../../../../core/design_system/components/app_toast.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../domain/entities/post.dart';
-import '../view_models/post_detail_view_model.dart';
+import '../view_models/post_view_model.dart';
 import '../widgets/post_byline.dart';
 import '../widgets/post_form_dialog.dart';
 
 /// The post detail screen.
 ///
-/// Dispatches queries, updates, and deletes through [PostDetailViewModel].
+/// Dispatches queries, updates, and deletes through [PostViewModel].
 class PostDetailView extends StatelessWidget {
   const PostDetailView({super.key, required this.id});
 
@@ -22,7 +22,7 @@ class PostDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<PostDetailViewModel>();
+    final viewModel = context.watch<PostViewModel>();
 
     return Scaffold(
       appBar: AppBar(
@@ -77,7 +77,7 @@ class PostDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildError(BuildContext context, PostDetailViewModel viewModel) {
+  Widget _buildError(BuildContext context, PostViewModel viewModel) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -125,7 +125,7 @@ class PostDetailView extends StatelessWidget {
 
   Future<void> _edit(
     BuildContext context,
-    PostDetailViewModel viewModel,
+    PostViewModel viewModel,
     Post post,
   ) async {
     viewModel.prepareEdit(post);
@@ -150,7 +150,7 @@ class PostDetailView extends StatelessWidget {
 
   Future<void> _delete(
     BuildContext context,
-    PostDetailViewModel viewModel,
+    PostViewModel viewModel,
     Post post,
   ) async {
     final confirmed = await showDialog<bool>(

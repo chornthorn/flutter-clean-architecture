@@ -7,20 +7,20 @@ export 'app_form_provider.dart';
 export 'form_field_key.dart';
 
 /// Bundles all original Flutter [Form] parameters into a single configuration object.
-class const AppFormOptions.options({
-  final GlobalKey<FormState>? key,
-  final AutovalidateMode autovalidateMode = AutovalidateMode.disabled,
-  final VoidCallback? onChanged,
-  final bool? canPop,
-  final PopInvokedWithResultCallback<dynamic>? onPopInvokedWithResult,
-}) {
-  const factory AppFormOptions({
-    GlobalKey<FormState>? key,
-    AutovalidateMode autovalidateMode,
-    VoidCallback? onChanged,
-    bool? canPop,
-    PopInvokedWithResultCallback<dynamic>? onPopInvokedWithResult,
-  }) = AppFormOptions.options;
+class AppFormOptions {
+  const AppFormOptions({
+    this.key,
+    this.autovalidateMode = AutovalidateMode.disabled,
+    this.onChanged,
+    this.canPop,
+    this.onPopInvokedWithResult,
+  });
+
+  final GlobalKey<FormState>? key;
+  final AutovalidateMode autovalidateMode;
+  final VoidCallback? onChanged;
+  final bool? canPop;
+  final PopInvokedWithResultCallback<dynamic>? onPopInvokedWithResult;
 }
 
 /// A form-level scope widget built directly on top of Flutter's [Form].

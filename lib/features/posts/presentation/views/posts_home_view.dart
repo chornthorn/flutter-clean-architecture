@@ -8,20 +8,20 @@ import '../../../../core/design_system/components/app_toast.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../domain/entities/post.dart';
 import '../../posts_module.dart';
-import '../view_models/posts_home_view_model.dart';
+import '../view_models/post_view_model.dart';
 import '../widgets/post_form_dialog.dart';
 import '../widgets/post_tile.dart';
 
 /// The posts list screen.
 ///
-/// Dispatches queries through [PostsHomeViewModel]. All mutation forms and
+/// Dispatches queries through [PostViewModel]. All mutation forms and
 /// transitions pass through here.
 class PostsHomeView extends StatelessWidget {
   const PostsHomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<PostsHomeViewModel>();
+    final viewModel = context.watch<PostViewModel>();
 
     return Scaffold(
       appBar: AppBar(
@@ -55,7 +55,7 @@ class PostsHomeView extends StatelessWidget {
 
   Widget _buildError(
     BuildContext context,
-    PostsHomeViewModel viewModel,
+    PostViewModel viewModel,
     Object error,
   ) {
     return Center(
@@ -75,7 +75,7 @@ class PostsHomeView extends StatelessWidget {
 
   Widget _buildList(
     BuildContext context,
-    PostsHomeViewModel viewModel,
+    PostViewModel viewModel,
     List<Post> posts,
   ) {
     if (posts.isEmpty) {
@@ -104,7 +104,7 @@ class PostsHomeView extends StatelessWidget {
   // pops: a post edited on the detail screen must show the new title here too.
   Future<void> _openDetail(
     BuildContext context,
-    PostsHomeViewModel viewModel,
+    PostViewModel viewModel,
     int id,
   ) async {
     await context.pushForResult<void>(PostDetail(id));
@@ -116,7 +116,7 @@ class PostsHomeView extends StatelessWidget {
     await viewModel.load();
   }
 
-  Future<void> _compose(BuildContext context, PostsHomeViewModel viewModel) {
+  Future<void> _compose(BuildContext context, PostViewModel viewModel) {
     viewModel.prepareCreate();
     return showDialog<void>(
       context: context,

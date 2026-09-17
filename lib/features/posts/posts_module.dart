@@ -4,8 +4,7 @@ import 'package:kaisel/kaisel.dart';
 import 'package:provider/provider.dart';
 
 import '../../provider.dart';
-import 'presentation/view_models/post_detail_view_model.dart';
-import 'presentation/view_models/posts_home_view_model.dart';
+import 'presentation/view_models/post_view_model.dart';
 import 'presentation/views/post_detail_view.dart';
 import 'presentation/views/posts_home_view.dart';
 
@@ -40,13 +39,13 @@ class PostsRouterModule extends RouteModule<PostsRoute> {
   @override
   Widget buildPage(BuildContext context, PostsRoute route) => switch (route) {
     // `Provider` owns the view model's lifetime; the container does not dispose factories.
-    PostsHome() => Provider<PostsHomeViewModel>(
-      create: (_) => getIt<PostsHomeViewModel>()..load(),
+    PostsHome() => Provider<PostViewModel>(
+      create: (_) => getIt<PostViewModel>()..load(),
       dispose: (_, viewModel) => viewModel.dispose(),
       child: const PostsHomeView(),
     ),
-    PostDetail(:final id) => Provider<PostDetailViewModel>(
-      create: (_) => getIt<PostDetailViewModel>()..load(id),
+    PostDetail(:final id) => Provider<PostViewModel>(
+      create: (_) => getIt<PostViewModel>()..load(id),
       dispose: (_, viewModel) => viewModel.dispose(),
       child: PostDetailView(id: id),
     ),
