@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/design_system/components/app_text_field.dart';
+import 'package:flutter_x/core/presentation/form/app_form_controller.dart';
 import 'package:flutter_x/core/presentation/form/app_form_scope.dart';
-import 'package:flutter_x/core/presentation/form/form_error_controller.dart';
 
-import '../../../../app/view_host.dart';
+import '../../../app/view_host.dart';
 
 void main() {
   group('AppFormScope', () {
@@ -110,7 +110,7 @@ void main() {
     });
 
     testWidgets('should prioritize client validator over server error', (tester) async {
-      final controller = FormErrorController();
+      final controller = AppFormController();
 
       await tester.pumpWidget(
         hostShell(
@@ -163,8 +163,8 @@ void main() {
       expect(captured, isNotNull);
     });
 
-    testWidgets('should bind controller.formKey and allow validate, save, and reset via FormErrorController instance', (tester) async {
-      final controller = FormErrorController();
+    testWidgets('should bind controller.formKey and allow validate, save, and reset via AppFormController instance', (tester) async {
+      final controller = AppFormController();
       String? savedValue;
 
       await tester.pumpWidget(
@@ -215,10 +215,10 @@ void main() {
     });
 
     testWidgets(
-      'should isolate multiple forms on one screen with independent keys and error scopes',
+      'should isolate multiple forms on one screen with independent keys and form providers',
       (tester) async {
-        final controllerA = FormErrorController();
-        final controllerB = FormErrorController();
+        final controllerA = AppFormController();
+        final controllerB = AppFormController();
 
         await tester.pumpWidget(
           hostShell(
@@ -276,17 +276,17 @@ void main() {
       },
     );
 
-    testWidgets('should manage internal FormErrorController if none provided', (
+    testWidgets('should manage internal AppFormController if none provided', (
       tester,
     ) async {
-      FormErrorController? resolvedController;
+      AppFormController? resolvedController;
 
       await tester.pumpWidget(
         hostShell(
           AppFormScope(
             child: Builder(
               builder: (context) {
-                resolvedController = AppFormScope.errorsOf(context);
+                resolvedController = AppFormScope.controllerOf(context);
                 return const SizedBox();
               },
             ),

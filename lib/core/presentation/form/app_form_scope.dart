@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import 'form_error_controller.dart';
-import 'form_error_scope.dart';
+import 'app_form_controller.dart';
+import 'app_form_provider.dart';
 
 /// Bundles all original Flutter [Form] parameters into a single configuration object.
 class AppFormOptions {
@@ -14,7 +14,7 @@ class AppFormOptions {
   });
 
   /// Optional [GlobalKey] to override the form key. If null, [AppFormScope]
-  /// automatically uses the [FormErrorController.formKey].
+  /// automatically uses the [AppFormController.formKey].
   final GlobalKey<FormState>? key;
 
   /// Controls when client-side validators run on enclosed [FormField]s.
@@ -34,8 +34,8 @@ class AppFormOptions {
 ///
 /// Bundles:
 /// 1. Native Flutter [Form] functionality (client validation, save, reset) via [options].
-/// 2. Server-side error propagation via [controller] ([FormErrorController]).
-/// 3. Multiple-form isolation on a single screen.
+/// 2. Server-side error propagation via [controller] ([AppFormController]).
+/// 3. Multiple-form isolation on a single screen via [AppFormProvider].
 /// 4. Unified access to [FormState] directly via [controller.formKey] or [controller.validate].
 class AppFormScope extends StatefulWidget {
   const AppFormScope({
@@ -48,9 +48,9 @@ class AppFormScope extends StatefulWidget {
   /// The widget subtree containing form fields.
   final Widget child;
 
-  /// Optional server-side error controller. If omitted, an internal controller
+  /// Optional form controller. If omitted, an internal controller
   /// is created and disposed automatically with the scope.
-  final FormErrorController? controller;
+  final AppFormController? controller;
 
   /// All original Flutter [Form] options grouped cleanly under this field.
   final AppFormOptions options;
@@ -61,16 +61,16 @@ class AppFormScope extends StatefulWidget {
   /// Retrieves the Flutter [FormState], or null if not found.
   static FormState? maybeOf(BuildContext context) => Form.maybeOf(context);
 
-  /// Retrieves the [FormErrorController] for server-side error management.
-  static FormErrorController? errorsOf(BuildContext context) =>
-      FormErrorScope.maybeOf(context);
+  /// Retrieves the [AppFormController] from the nearest [AppFormProvider].
+  static AppFormController? controllerOf(BuildContext context) =>
+      AppFormProvider.maybeOf(context);
 
   @override
   State<AppFormScope> createState() => _AppFormScopeState();
 }
 
 class _AppFormScopeState extends State<AppFormScope> {
-  late FormErrorController _controller;
+  late AppFormController _controller;
   late GlobalKey<FormState> _formKey;
   bool _ownsController = false;
 
@@ -86,7 +86,7 @@ class _AppFormScopeState extends State<AppFormScope> {
       _controller = widget.controller!;
       _ownsController = false;
     } else {
-      _controller = FormErrorController();
+      _controller = AppFormController();
       _ownsController = true;
     }
   }
@@ -119,7 +119,7 @@ class _AppFormScopeState extends State<AppFormScope> {
       onChanged: widget.options.onChanged,
       canPop: widget.options.canPop,
       onPopInvokedWithResult: widget.options.onPopInvokedWithResult,
-      child: FormErrorScope(
+      child: AppFormProvider(
         controller: _controller,
         child: widget.child,
       ),

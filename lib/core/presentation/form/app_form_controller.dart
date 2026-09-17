@@ -9,15 +9,15 @@ import '../action_result.dart';
 /// - Provides [validate], [save], and [reset] convenience methods.
 /// - Stores server-side error mapping bindable directly to [ActionResult].
 /// - Works seamlessly with [AppFormScope] and [AppTextField].
-class FormErrorController extends ChangeNotifier {
-  FormErrorController([
+class AppFormController extends ChangeNotifier {
+  AppFormController([
     Map<String, String> initial = const {},
     GlobalKey<FormState>? formKey,
   ])  : _errors = Map<String, String>.from(initial),
         formKey = formKey ?? GlobalKey<FormState>();
 
   /// Named constructor to explicitly supply a custom [formKey].
-  FormErrorController.withKey(
+  AppFormController.withKey(
     this.formKey, [
     Map<String, String> initial = const {},
   ])  : _errors = Map<String, String>.from(initial);
@@ -27,8 +27,15 @@ class FormErrorController extends ChangeNotifier {
   /// The [GlobalKey<FormState>] controlling the enclosing [Form].
   final GlobalKey<FormState> formKey;
 
-  /// The current [FormState] from [formKey], or null if not currently mounted.
-  FormState? get formState => formKey.currentState;
+  /// The current [FormState] from [formKey], or null if not currently mounted
+  /// or if Flutter bindings are not initialized.
+  FormState? get formState {
+    try {
+      return formKey.currentState;
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Validates every descendant [FormField] in the form tree.
   ///

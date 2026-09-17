@@ -1,22 +1,22 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/presentation/action_result.dart';
-import 'package:flutter_x/core/presentation/form/form_error_controller.dart';
+import 'package:flutter_x/core/presentation/form/app_form_controller.dart';
 
 void main() {
-  group('FormErrorController', () {
+  group('AppFormController', () {
     test('should start empty by default', () {
-      final controller = FormErrorController();
+      final controller = AppFormController();
 
       expect(controller.hasErrors, isFalse);
       expect(controller.errors, isEmpty);
       expect(controller['title'], isNull);
       expect(controller.formKey, isNotNull);
-      expect(controller.formState, isNull); // not yet mounted
+      expect(controller.formState, isNull); // not mounted
     });
 
     test('should populate initial errors', () {
-      final controller = FormErrorController({'title': 'Too short'});
+      final controller = AppFormController({'title': 'Too short'});
 
       expect(controller.hasErrors, isTrue);
       expect(controller['title'], 'Too short');
@@ -26,13 +26,13 @@ void main() {
 
     test('should allow custom formKey via constructor or withKey', () {
       final customKey = GlobalKey<FormState>();
-      final controller = FormErrorController.withKey(customKey);
+      final controller = AppFormController.withKey(customKey);
 
       expect(controller.formKey, same(customKey));
     });
 
     test('should set and update field error and notify', () {
-      final controller = FormErrorController();
+      final controller = AppFormController();
       var notified = false;
       controller.addListener(() => notified = true);
 
@@ -43,7 +43,7 @@ void main() {
     });
 
     test('should set multiple errors at once and notify', () {
-      final controller = FormErrorController();
+      final controller = AppFormController();
       var notified = false;
       controller.addListener(() => notified = true);
 
@@ -60,7 +60,7 @@ void main() {
     });
 
     test('should clear specific field error and notify', () {
-      final controller = FormErrorController({'title': 'Required'});
+      final controller = AppFormController({'title': 'Required'});
       var notified = false;
       controller.addListener(() => notified = true);
 
@@ -71,7 +71,7 @@ void main() {
     });
 
     test('should not notify when clearing nonexistent field', () {
-      final controller = FormErrorController({'title': 'Required'});
+      final controller = AppFormController({'title': 'Required'});
       var notified = false;
       controller.addListener(() => notified = true);
 
@@ -81,7 +81,7 @@ void main() {
     });
 
     test('should clear all errors on clear and notify', () {
-      final controller = FormErrorController({'title': 'Required'});
+      final controller = AppFormController({'title': 'Required'});
       var notified = false;
       controller.addListener(() => notified = true);
 
@@ -92,7 +92,7 @@ void main() {
     });
 
     test('should populate field errors when binding ActionFailure', () {
-      final controller = FormErrorController();
+      final controller = AppFormController();
 
       controller.bind(
         const ActionFailure(
@@ -107,7 +107,7 @@ void main() {
     });
 
     test('should clear errors when binding ActionSuccess', () {
-      final controller = FormErrorController({'title': 'Required'});
+      final controller = AppFormController({'title': 'Required'});
 
       controller.bind(const ActionSuccess('Saved'));
 

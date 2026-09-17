@@ -5,8 +5,8 @@ import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_failure_line.dart';
 import '../../../../core/design_system/components/app_text_field.dart';
 import '../../../../core/presentation/action_result.dart';
+import '../../../../core/presentation/form/app_form_controller.dart';
 import '../../../../core/presentation/form/app_form_scope.dart';
-import '../../../../core/presentation/form/form_error_controller.dart';
 
 // Collects a post and hands it to the page, which owns the write call.
 class PostFormDialog extends StatefulWidget {
@@ -36,7 +36,7 @@ class PostFormDialog extends StatefulWidget {
 class _PostFormDialogState extends State<PostFormDialog> {
   late final _title = TextEditingController(text: widget.initialTitle);
   late final _body = TextEditingController(text: widget.initialBody);
-  late final _errors = FormErrorController();
+  late final _form = AppFormController();
   bool _isSubmitting = false;
   String? _errorMessage;
 
@@ -44,13 +44,13 @@ class _PostFormDialogState extends State<PostFormDialog> {
   void dispose() {
     _title.dispose();
     _body.dispose();
-    _errors.dispose();
+    _form.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    // Validates directly via the controller's formKey
-    if (!_errors.validate()) {
+    // Validates directly via the form controller's formKey
+    if (!_form.validate()) {
       return;
     }
 
@@ -58,7 +58,7 @@ class _PostFormDialogState extends State<PostFormDialog> {
       _isSubmitting = true;
       _errorMessage = null;
     });
-    _errors.clear();
+    _form.clear();
 
     final result = await widget.onSubmit(_title.text, _body.text);
 
@@ -74,7 +74,7 @@ class _PostFormDialogState extends State<PostFormDialog> {
       _isSubmitting = false;
       if (result is ActionFailure) {
         _errorMessage = result.fieldErrors.isEmpty ? result.message : null;
-        _errors.bind(result);
+        _form.bind(result);
       } else {
         _errorMessage = 'Could not save the post.';
       }
@@ -86,7 +86,7 @@ class _PostFormDialogState extends State<PostFormDialog> {
     final theme = context.theme;
 
     return AppFormScope(
-      controller: _errors,
+      controller: _form,
       options: const AppFormOptions(
         autovalidateMode: AutovalidateMode.onUserInteraction,
       ),

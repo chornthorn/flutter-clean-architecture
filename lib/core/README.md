@@ -24,9 +24,9 @@ lib/core/
                            that owns it — the one interface every view model
                            implements, and nothing else.
     form/
-      app_form_scope.dart         AppFormScope & AppFormOptions built on top of Flutter's Form.
-      form_error_controller.dart  manages server-side and field-level validation errors.
-      form_error_scope.dart       scoped InheritedNotifier isolating multiple forms on a screen.
+      app_form_scope.dart       AppFormScope & AppFormOptions built on top of Flutter's Form.
+      app_form_controller.dart  manages server-side errors and owns the Flutter formKey.
+      app_form_provider.dart    scoped InheritedNotifier isolating multiple forms on a screen.
   design_system/
     theme-spec.schema.json names the token groups design_builder parses
     app.tokens.json        the token values, per mode — edit here
@@ -64,10 +64,10 @@ The architecture separates error responsibilities cleanly across layers without 
 5. **Action Outcomes (`core/presentation/action_result.dart`)**:
    Commands and ViewModels return `ActionResult` (`ActionSuccess`, `ActionFailure`), encapsulating user-facing messages and field error maps.
 6. **Scoped Form Errors (`core/presentation/form/` & `core/design_system/components/app_text_field.dart`)**:
-   - `AppFormScope`: wraps Flutter's `Form` with all parameters bundled under `options: AppFormOptions` and bridges server errors via `FormErrorScope`.
-   - `FormErrorController`: reactive state holding field-level error messages, bindable directly to `ActionResult`.
-   - `FormErrorScope`: `InheritedNotifier` scoping error state down a widget subtree, enabling multiple forms on one screen without error collisions.
-   - `AppTextField`: design-system compliant text input that binds automatically to `FormErrorScope` by `fieldKey` and clears its server error immediately upon editing.
+   - `AppFormScope`: wraps Flutter's `Form` with all parameters bundled under `options: AppFormOptions` and bridges server errors via `AppFormProvider`. Automatically defaults `Form.key` to `controller.formKey`.
+   - `AppFormController`: reactive state holding field-level error messages and owning `formKey` (`GlobalKey<FormState>`). Provides convenience methods `validate()`, `save()`, and `reset()`.
+   - `AppFormProvider`: `InheritedNotifier` scoping form state down a widget subtree, enabling multiple forms on one screen without error collisions.
+   - `AppTextField`: design-system compliant text input that binds automatically to `AppFormProvider` by `fieldKey` and clears its server error immediately upon editing.
 7. **UI Layer (`core/design_system/components/app_toast.dart`)**:
    Views never inspect HTTP codes or stack traces. They display `AppToast.showSuccess` / `AppToast.showError` for transient operations, and show `AppNotice` with `error.message` for persistent view states.
 
