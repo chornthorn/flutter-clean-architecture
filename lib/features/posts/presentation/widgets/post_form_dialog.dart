@@ -97,7 +97,8 @@ class PostFormDialog extends StatelessWidget {
                     children: [
                       SignalBuilder(
                         builder: (context) {
-                          final isSubmitting = formController.isSubmitting.value;
+                          final isSubmitting =
+                              formController.isSubmitting.value;
                           return AppOutlinedButton(
                             label: 'Cancel',
                             onPressed: isSubmitting
@@ -109,7 +110,8 @@ class PostFormDialog extends StatelessWidget {
                       const SizedBox(width: 8),
                       SignalBuilder(
                         builder: (context) {
-                          final isSubmitting = formController.isSubmitting.value;
+                          final isSubmitting =
+                              formController.isSubmitting.value;
                           final title = formController
                               .signal(const FormFieldKey(PostFormField.title))
                               .value;

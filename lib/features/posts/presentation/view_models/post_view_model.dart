@@ -94,21 +94,17 @@ class PostViewModel implements ViewModel {
     }
   }
 
-  Future<ActionResult> createPost({String? title, String? body}) async {
-    final effectiveTitle =
-        (title ?? createFormController.text(const FormFieldKey(PostFormField.title))).trim();
-    final effectiveBody =
-        (body ?? createFormController.text(const FormFieldKey(PostFormField.body))).trim();
+  // The form controller is the one source of truth for what the user typed,
+  // so the view only has to say "submit".
+  Future<ActionResult> createPost() async {
+    final title = _formValue(createFormController, PostFormField.title);
+    final body = _formValue(createFormController, PostFormField.body);
 
     _create.setLoading();
 
     try {
       await _dispatcher.command(
-        CreatePostCommand(
-          userId: _authorId,
-          title: effectiveTitle,
-          body: effectiveBody,
-        ),
+        CreatePostCommand(userId: _authorId, title: title, body: body),
       );
       final posts = await _dispatcher.query(
         GetPostsQuery(cancellation: _cancellation.token),
@@ -135,17 +131,15 @@ class PostViewModel implements ViewModel {
     }
   }
 
-  Future<ActionResult> updatePost(int id, {String? title, String? body}) async {
-    final effectiveTitle =
-        (title ?? updateFormController.text(const FormFieldKey(PostFormField.title))).trim();
-    final effectiveBody =
-        (body ?? updateFormController.text(const FormFieldKey(PostFormField.body))).trim();
+  Future<ActionResult> updatePost(int id) async {
+    final title = _formValue(updateFormController, PostFormField.title);
+    final body = _formValue(updateFormController, PostFormField.body);
 
     _update.setLoading();
 
     try {
       await _dispatcher.command(
-        UpdatePostCommand(id: id, title: effectiveTitle, body: effectiveBody),
+        UpdatePostCommand(id: id, title: title, body: body),
       );
       final updated = await _dispatcher.query(
         GetPostQuery(id, cancellation: _cancellation.token),
@@ -191,6 +185,10 @@ class PostViewModel implements ViewModel {
       return ActionResult.failure(message);
     }
   }
+
+  // `getValue` trims, and answers null only when no field was ever seeded.
+  String _formValue(AppFormController controller, PostFormField field) =>
+      controller.getValue(FormFieldKey(field)) ?? '';
 
   // The provider calls this when the page unmounts. A disposed signal throws on a
   // write, which is what the guards above are for.

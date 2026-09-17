@@ -22,8 +22,10 @@ enum _TestCustomField implements FormFieldKeyBase {
   final String key;
 }
 
-enum _TestSnakeCaseField with SnakeCaseFormFieldKeyMixin implements FormFieldKeyBase {
-  isAvailable;
+enum _TestSnakeCaseField
+    with SnakeCaseFormFieldKeyMixin
+    implements FormFieldKeyBase {
+  isAvailable,
 }
 
 void main() {
@@ -106,7 +108,10 @@ void main() {
     });
 
     test('should clear individual field error and notify', () {
-      final controller = AppFormController({'title': 'Error', 'body': 'Body error'});
+      final controller = AppFormController({
+        'title': 'Error',
+        'body': 'Body error',
+      });
       addTearDown(controller.dispose);
 
       var notified = false;
@@ -132,7 +137,10 @@ void main() {
     });
 
     test('should clear all errors and notify listeners', () {
-      final controller = AppFormController({'title': 'Error 1', 'body': 'Error 2'});
+      final controller = AppFormController({
+        'title': 'Error 1',
+        'body': 'Error 2',
+      });
       addTearDown(controller.dispose);
 
       var notified = false;
@@ -188,9 +196,7 @@ void main() {
     });
 
     test('should look up backend camelCase key for snake_case field', () {
-      final controller = AppFormController({
-        'isAvailable': 'Must be true',
-      });
+      final controller = AppFormController({'isAvailable': 'Must be true'});
       addTearDown(controller.dispose);
 
       const fieldKey = FormFieldKey(_TestSnakeCaseField.isAvailable);
@@ -199,20 +205,23 @@ void main() {
       expect(controller.hasField(fieldKey), isTrue);
     });
 
-    test('should respect custom string key on enum implementing FormFieldKeyBase', () {
-      final controller = AppFormController({
-        'post_title': 'Title required from backend',
-        'author_email': 'Email invalid from backend',
-      });
-      addTearDown(controller.dispose);
+    test(
+      'should respect custom string key on enum implementing FormFieldKeyBase',
+      () {
+        final controller = AppFormController({
+          'post_title': 'Title required from backend',
+          'author_email': 'Email invalid from backend',
+        });
+        addTearDown(controller.dispose);
 
-      const titleKey = FormFieldKey(_TestCustomField.postTitle);
-      const emailKey = FormFieldKey(_TestCustomField.authorEmail);
+        const titleKey = FormFieldKey(_TestCustomField.postTitle);
+        const emailKey = FormFieldKey(_TestCustomField.authorEmail);
 
-      expect(controller[titleKey], 'Title required from backend');
-      expect(controller[emailKey], 'Email invalid from backend');
-      expect(controller.hasField(titleKey), isTrue);
-    });
+        expect(controller[titleKey], 'Title required from backend');
+        expect(controller[emailKey], 'Email invalid from backend');
+        expect(controller.hasField(titleKey), isTrue);
+      },
+    );
 
     test('should initialize and read initial values via fromValues', () {
       final controller = AppFormController.fromValues({
@@ -224,22 +233,28 @@ void main() {
       expect(controller.text(titleKey), 'Initial Title');
       expect(controller.text(bodyKey), 'Initial Body');
       expect(controller.getValue(titleKey), 'Initial Title');
+      controller.setValue(titleKey, '  Trimmed Title  ');
+      expect(controller.getValue(titleKey), 'Trimmed Title');
+      expect(controller.getValue(emailKey), isNull);
     });
 
-    test('should set and get values dynamically via setValue and setValues', () {
-      final controller = AppFormController();
-      addTearDown(controller.dispose);
+    test(
+      'should set and get values dynamically via setValue and setValues',
+      () {
+        final controller = AppFormController();
+        addTearDown(controller.dispose);
 
-      controller.setValue(titleKey, 'Hello');
-      expect(controller.text(titleKey), 'Hello');
+        controller.setValue(titleKey, 'Hello');
+        expect(controller.text(titleKey), 'Hello');
 
-      controller.setValues({
-        _TestField.title: 'Updated Hello',
-        _TestField.body: 'World',
-      });
-      expect(controller.text(titleKey), 'Updated Hello');
-      expect(controller.text(bodyKey), 'World');
-    });
+        controller.setValues({
+          _TestField.title: 'Updated Hello',
+          _TestField.body: 'World',
+        });
+        expect(controller.text(titleKey), 'Updated Hello');
+        expect(controller.text(bodyKey), 'World');
+      },
+    );
 
     test('should manage and lazily create TextEditingController and Signal per field', () {
       final controller = AppFormController();
@@ -252,25 +267,28 @@ void main() {
       expect(sig.value, 'Default Val');
     });
 
-    test('should synchronize bidirectional changes between Controller and Signal', () {
-      final controller = AppFormController();
-      addTearDown(controller.dispose);
+    test(
+      'should synchronize bidirectional changes between Controller and Signal',
+      () {
+        final controller = AppFormController();
+        addTearDown(controller.dispose);
 
-      final textCtrl = controller.controller(titleKey);
-      final sig = controller.signal(titleKey);
+        final textCtrl = controller.controller(titleKey);
+        final sig = controller.signal(titleKey);
 
-      textCtrl.text = 'From Controller';
-      expect(sig.value, 'From Controller');
-      expect(controller.text(titleKey), 'From Controller');
+        textCtrl.text = 'From Controller';
+        expect(sig.value, 'From Controller');
+        expect(controller.text(titleKey), 'From Controller');
 
-      sig.value = 'From Signal';
-      expect(textCtrl.text, 'From Signal');
-      expect(controller.text(titleKey), 'From Signal');
+        sig.value = 'From Signal';
+        expect(textCtrl.text, 'From Signal');
+        expect(controller.text(titleKey), 'From Signal');
 
-      controller.setValue(titleKey, 'Updated Programmatically');
-      expect(textCtrl.text, 'Updated Programmatically');
-      expect(sig.value, 'Updated Programmatically');
-    });
+        controller.setValue(titleKey, 'Updated Programmatically');
+        expect(textCtrl.text, 'Updated Programmatically');
+        expect(sig.value, 'Updated Programmatically');
+      },
+    );
 
     test('should auto-clear field error when typing in managed controller', () {
       final controller = AppFormController();
@@ -353,14 +371,17 @@ void main() {
       expect(controller.text(rawKey), 'Dynamic value');
     });
 
-    test('should set errorMessage when binding ActionFailure with no field errors', () {
-      final controller = AppFormController();
-      addTearDown(controller.dispose);
+    test(
+      'should set errorMessage when binding ActionFailure with no field errors',
+      () {
+        final controller = AppFormController();
+        addTearDown(controller.dispose);
 
-      controller.bind(const ActionFailure('Something went wrong'));
-      expect(controller.errorMessage.value, 'Something went wrong');
-      expect(controller.hasErrors, isFalse);
-    });
+        controller.bind(const ActionFailure('Something went wrong'));
+        expect(controller.errorMessage.value, 'Something went wrong');
+        expect(controller.hasErrors, isFalse);
+      },
+    );
 
     test('should keep errorMessage null when binding ActionFailure with field errors', () {
       final controller = AppFormController();

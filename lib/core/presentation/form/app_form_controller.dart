@@ -25,9 +25,9 @@ class AppFormController extends ChangeNotifier {
     Map<String, String> initialErrors = const {},
     GlobalKey<FormState>? formKey,
     Map<dynamic, String> initialValues = const {},
-  ])  : _errors = Map<String, String>.from(initialErrors),
-        _initialValues = {},
-        formKey = formKey ?? GlobalKey<FormState>() {
+  ]) : _errors = Map<String, String>.from(initialErrors),
+       _initialValues = {},
+       formKey = formKey ?? GlobalKey<FormState>() {
     if (initialValues.isNotEmpty) {
       setValues(initialValues);
     }
@@ -38,8 +38,8 @@ class AppFormController extends ChangeNotifier {
     this.formKey, [
     Map<String, String> initialErrors = const {},
     Map<dynamic, String> initialValues = const {},
-  ])  : _errors = Map<String, String>.from(initialErrors),
-        _initialValues = {} {
+  ]) : _errors = Map<String, String>.from(initialErrors),
+       _initialValues = {} {
     if (initialValues.isNotEmpty) {
       setValues(initialValues);
     }
@@ -155,8 +155,12 @@ class AppFormController extends ChangeNotifier {
     return _findInitialValue(fieldKey) ?? '';
   }
 
-  /// Alias for [text].
-  String getValue(FormFieldKey fieldKey) => text(fieldKey);
+  /// Returns the current text string for [fieldKey], or null if not found.
+  String? getValue(FormFieldKey fieldKey) {
+    final ctrl = _controllers[fieldKey.key];
+    if (ctrl != null) return ctrl.text.trim();
+    return _findInitialValue(fieldKey)?.trim();
+  }
 
   /// Sets or updates the text value for [fieldKey].
   void setValue(FormFieldKey fieldKey, String value) {

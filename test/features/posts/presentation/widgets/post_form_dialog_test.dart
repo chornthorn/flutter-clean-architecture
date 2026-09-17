@@ -58,10 +58,7 @@ void main() {
     testWidgets('should not offer to submit a post with no title', (
       tester,
     ) async {
-      await openDialog(
-        tester,
-        (form) async => const ActionResult.success(),
-      );
+      await openDialog(tester, (form) async => const ActionResult.success());
 
       final submit = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'Create'),
@@ -122,8 +119,7 @@ void main() {
     ) async {
       await openDialog(
         tester,
-        (form) async =>
-            const ActionResult.failure('Could not save the post.'),
+        (form) async => const ActionResult.failure('Could not save the post.'),
       );
 
       await tester.enterText(
@@ -189,17 +185,13 @@ void main() {
       final form = AppFormController();
       addTearDown(form.dispose);
 
-      await openDialog(
-        tester,
-        (formCtrl) async {
-          final result = const ActionResult.failure(
-            'Server validation failed',
-            fieldErrors: {'title': 'Server says title already taken'},
-          );
-          return result;
-        },
-        formController: form,
-      );
+      await openDialog(tester, (formCtrl) async {
+        final result = const ActionResult.failure(
+          'Server validation failed',
+          fieldErrors: {'title': 'Server says title already taken'},
+        );
+        return result;
+      }, formController: form);
 
       await tester.enterText(
         find.widgetWithText(TextField, 'Title'),

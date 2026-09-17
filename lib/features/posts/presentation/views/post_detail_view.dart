@@ -4,7 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
+import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_card.dart';
+import '../../../../core/design_system/components/app_notice.dart';
+import '../../../../core/design_system/components/app_scaffold.dart';
 import '../../../../core/design_system/components/app_toast.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../domain/entities/post.dart';
@@ -24,103 +27,84 @@ class PostDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = context.watch<PostViewModel>();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Post $id'),
-        actions: [
-          SignalBuilder(
-            builder: (context) {
-              final post = viewModel.post.value.value;
-              if (post == null) return const SizedBox.shrink();
+    return SignalBuilder(
+      builder: (context) {
+        final state = viewModel.post.value;
+        final post = state.value;
 
-              final isWriting =
-                  viewModel.update.value.isLoading ||
-                  viewModel.delete.value.isLoading;
-
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    tooltip: 'Edit post',
-                    onPressed: isWriting
-                        ? null
-                        : () => _edit(context, viewModel, post),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    tooltip: 'Delete post',
-                    onPressed: isWriting
-                        ? null
-                        : () => _delete(context, viewModel, post),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-      body: SignalBuilder(
-        builder: (context) {
-          final state = viewModel.post.value;
-
-          return state.map(
-            data: (post) => post == null
-                ? const Center(child: Text('Post not found.'))
-                : _buildPost(context, post),
-            error: (error, _) => _buildError(context, viewModel),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            reloading: () => const Center(child: CircularProgressIndicator()),
-          );
-        },
-      ),
+        return AppScaffold(
+          title: Text('Post $id'),
+          actions: [
+            if (post != null) ...[
+              IconButton(
+                tooltip: 'Delete post',
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => _delete(context, viewModel, post),
+              ),
+              IconButton(
+                tooltip: 'Edit post',
+                icon: const Icon(Icons.edit_outlined),
+                onPressed: () => _edit(context, viewModel, post),
+              ),
+            ],
+          ],
+          body: _buildBody(context, viewModel, state),
+        );
+      },
     );
   }
 
-  Widget _buildError(BuildContext context, PostViewModel viewModel) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Could not load post.'),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: () => viewModel.load(id),
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPost(BuildContext context, Post post) {
+  Widget _buildBody(
+    BuildContext context,
+    PostViewModel viewModel,
+    AsyncState<Post?> state,
+  ) {
     final theme = context.theme;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            post.title,
-            style: theme.typography.title.semiBold.copyWith(
-              color: theme.colors.foreground.primary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          PostByline(userId: post.userId),
-          const SizedBox(height: 16),
-          AppCard(
-            child: Text(
-              post.body,
-              style: theme.typography.body.regular.copyWith(
-                color: theme.colors.foreground.subtle,
+    return switch (state) {
+      AsyncData<Post?>(:final value) when value == null => const AppNotice(
+        icon: Icons.article_outlined,
+        message: 'Post not found.',
+      ),
+      AsyncData<Post?>(:final value) => Padding(
+        padding: EdgeInsets.all(theme.sizes.padding.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value!.title,
+                    style: theme.typography.title.semiBold,
+                  ),
+                  SizedBox(height: theme.sizes.spacing.sm),
+                  PostByline(userId: value.userId),
+                  const Divider(height: 24),
+                  Text(
+                    value.body,
+                    style: theme.typography.body.regular,
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
+      AsyncError<Post?>() => AppNotice(
+        icon: Icons.cloud_off_outlined,
+        message: 'Could not load post.',
+        isFailure: true,
+        action: AppFilledButton(
+          label: 'Try again',
+          onPressed: () => viewModel.load(id),
+        ),
+      ),
+      AsyncLoading<Post?>() => Center(
+        child: CircularProgressIndicator(color: theme.colors.brand.primary),
+      ),
+    };
   }
 
   Future<void> _edit(
@@ -171,18 +155,18 @@ class PostDetailView extends StatelessWidget {
       ),
     );
 
-    if (confirmed != true) return;
-
-    final result = await viewModel.deletePost(post.id);
-    if (!context.mounted) return;
-
-    if (result.isSuccess) {
+    if (confirmed == true && context.mounted) {
+      final result = await viewModel.deletePost(post.id);
       if (result case ActionSuccess(:final message) when message != null) {
-        AppToast.showSuccess(context, message);
+        if (context.mounted) {
+          AppToast.showSuccess(context, message);
+          context.pop();
+        }
+      } else if (result case ActionFailure(:final message)) {
+        if (context.mounted) {
+          AppToast.showError(context, message);
+        }
       }
-      context.pop();
-    } else if (result case ActionFailure(:final message)) {
-      AppToast.showError(context, message);
     }
   }
 }
