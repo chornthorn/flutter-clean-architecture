@@ -12,7 +12,7 @@ lib/core/
     interceptors.dart      the cross-cutting layer: error mapping, logging.
                            Nothing per-endpoint belongs here.
     error_interceptor.dart transforms HTTP errors and responses into typed AppExceptions.
-    safe_call.dart         Future<T>.guard() extension unwrapping DioException.
+    try_safe_call.dart     Future<T>.guard() extension unwrapping DioException.
     repository.dart        abstract base class for network repositories, bridging
                            cancellation and executing guarded API calls.
   error/
@@ -51,7 +51,7 @@ The architecture separates error responsibilities cleanly across layers without 
 
 1. **Dio ErrorInterceptor (`core/networking/error_interceptor.dart`)**:
    Intercepts network errors, timeouts, and HTTP status codes (400, 401, 403, 404, 422, 5xx), parses backend error envelopes (e.g. `{"message": "...", "errors": {...}}`), and attaches a strongly typed `AppException` to `DioException.error`.
-2. **Safe Call Extension (`core/networking/safe_call.dart`)**:
+2. **Safe Call Extension (`core/networking/try_safe_call.dart`)**:
    Extension on `Future<T>.guard()` that unboxes `DioException` and re-throws the attached `AppException`.
 3. **Base Repository (`core/networking/repository.dart`)**:
    Abstract base class `Repository` provides `execute((token) => ..., cancellation: token)` which bridges domain `Cancellation` into Dio's `CancelToken` and applies `.guard()`, eliminating transport plumbing and keeping error handling explicit.

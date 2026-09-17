@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../async/cancellation.dart';
-import 'safe_call.dart';
+import 'try_safe_call.dart';
 
 /// Base repository for network-driven data sources.
 ///

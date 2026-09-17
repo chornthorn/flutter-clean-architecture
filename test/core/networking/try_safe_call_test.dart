@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/error/app_exception.dart';
-import 'package:flutter_x/core/networking/safe_call.dart';
+import 'package:flutter_x/core/networking/try_safe_call.dart';
 
 void main() {
   group('GuardFuture extension', () {
