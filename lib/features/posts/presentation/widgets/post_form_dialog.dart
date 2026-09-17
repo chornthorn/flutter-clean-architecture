@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_failure_line.dart';
+import '../../../../core/design_system/components/app_text_field.dart';
 import '../../../../core/presentation/action_result.dart';
+import '../../../../core/presentation/form/app_form_scope.dart';
+import '../../../../core/presentation/form/form_error_controller.dart';
 
 // Collects a post and hands it to the page, which owns the write call.
 class PostFormDialog extends StatefulWidget {
@@ -33,23 +36,29 @@ class PostFormDialog extends StatefulWidget {
 class _PostFormDialogState extends State<PostFormDialog> {
   late final _title = TextEditingController(text: widget.initialTitle);
   late final _body = TextEditingController(text: widget.initialBody);
+  late final _errors = FormErrorController();
   bool _isSubmitting = false;
   String? _errorMessage;
-  Map<String, String> _fieldErrors = const {};
 
   @override
   void dispose() {
     _title.dispose();
     _body.dispose();
+    _errors.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
+    // Validates directly via the controller's formKey
+    if (!_errors.validate()) {
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
-      _fieldErrors = const {};
     });
+    _errors.clear();
 
     final result = await widget.onSubmit(_title.text, _body.text);
 
@@ -64,8 +73,8 @@ class _PostFormDialogState extends State<PostFormDialog> {
     setState(() {
       _isSubmitting = false;
       if (result is ActionFailure) {
-        _errorMessage = result.message;
-        _fieldErrors = result.fieldErrors;
+        _errorMessage = result.fieldErrors.isEmpty ? result.message : null;
+        _errors.bind(result);
       } else {
         _errorMessage = 'Could not save the post.';
       }
@@ -76,82 +85,58 @@ class _PostFormDialogState extends State<PostFormDialog> {
   Widget build(BuildContext context) {
     final theme = context.theme;
 
-    return AlertDialog(
-      backgroundColor: theme.colors.surface.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(theme.sizes.radius.md),
+    return AppFormScope(
+      controller: _errors,
+      options: const AppFormOptions(
+        autovalidateMode: AutovalidateMode.onUserInteraction,
       ),
-      title: Text(widget.heading, style: theme.typography.title.semiBold),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _title,
-            style: theme.typography.body.regular,
-            cursorColor: theme.colors.brand.primary,
-            decoration: _fieldDecoration(
-              theme,
-              'Title',
-              errorText: _fieldErrors['title'],
+      child: AlertDialog(
+        backgroundColor: theme.colors.surface.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(theme.sizes.radius.md),
+        ),
+        title: Text(widget.heading, style: theme.typography.title.semiBold),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppTextField(
+              fieldKey: 'title',
+              controller: _title,
+              label: 'Title',
+              validator: (value) {
+                if (value == null || value.trim().length < 5) {
+                  return 'Title must be at least 5 characters.';
+                }
+                return null;
+              },
             ),
-          ),
-          SizedBox(height: theme.sizes.spacing.md),
-          TextField(
-            controller: _body,
-            style: theme.typography.body.regular,
-            cursorColor: theme.colors.brand.primary,
-            decoration: _fieldDecoration(
-              theme,
-              'Body',
-              errorText: _fieldErrors['body'],
-            ),
-          ),
-          if (_errorMessage != null) ...[
             SizedBox(height: theme.sizes.spacing.md),
-            AppFailureLine(message: _errorMessage!),
+            AppTextField(
+              fieldKey: 'body',
+              controller: _body,
+              label: 'Body',
+            ),
+            if (_errorMessage != null) ...[
+              SizedBox(height: theme.sizes.spacing.md),
+              AppFailureLine(message: _errorMessage!),
+            ],
           ],
-        ],
-      ),
-      actions: [
-        AppTextButton(
-          label: 'Cancel',
-          onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
         ),
-        // A title the domain will reject is not worth a round trip to say so.
-        ValueListenableBuilder<TextEditingValue>(
-          valueListenable: _title,
-          builder: (context, value, _) => AppFilledButton(
-            label: widget.submitLabel,
-            isEnabled: !_isSubmitting && value.text.trim().isNotEmpty,
-            onPressed: _submit,
+        actions: [
+          AppTextButton(
+            label: 'Cancel',
+            onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
           ),
-        ),
-      ],
-    );
-  }
-
-  // `InputDecoration` would otherwise take its outline and focus colours from the scheme.
-  InputDecoration _fieldDecoration(
-    AppTheme theme,
-    String label, {
-    String? errorText,
-  }) {
-    final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(theme.sizes.radius.md),
-      borderSide: BorderSide(color: theme.colors.surface.border),
-    );
-
-    return InputDecoration(
-      labelText: label,
-      errorText: errorText,
-      labelStyle: theme.typography.label.regular,
-      floatingLabelStyle: theme.typography.label.regular.copyWith(
-        color: theme.colors.brand.primary,
-      ),
-      border: border,
-      enabledBorder: border,
-      focusedBorder: border.copyWith(
-        borderSide: BorderSide(color: theme.colors.brand.primary, width: 2),
+          // A title the domain will reject is not worth a round trip to say so.
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _title,
+            builder: (context, value, _) => AppFilledButton(
+              label: widget.submitLabel,
+              isEnabled: !_isSubmitting && value.text.trim().isNotEmpty,
+              onPressed: _submit,
+            ),
+          ),
+        ],
       ),
     );
   }

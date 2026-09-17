@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/async/cancellation.dart';
+import 'package:flutter_x/core/presentation/action_result.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
 import 'package:flutter_x/features/posts/presentation/view_models/posts_home_view_model.dart';
@@ -78,6 +79,26 @@ void main() {
         ),
       );
     });
+
+    test(
+      'should return ActionFailure with field errors when createPost validation fails',
+      () async {
+        final store = InMemoryPostRepository();
+        final viewModel = PostsHomeViewModel(postsDispatcher(store));
+        addTearDown(viewModel.dispose);
+
+        final result = await viewModel.createPost(
+          title: 'Hey',
+          body: 'A body',
+        );
+
+        expect(result.isFailure, isTrue);
+        expect(
+          (result as ActionFailure).fieldErrors,
+          {'title': 'Title must be at least 5 characters.'},
+        );
+      },
+    );
 
     test(
       'should keep the failure and answer failure when a create fails',

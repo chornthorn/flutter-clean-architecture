@@ -126,5 +126,50 @@ void main() {
       expect(find.text('Could not save the post.'), findsOneWidget);
       expect(find.text('A title'), findsOneWidget);
     });
+
+    testWidgets(
+      'should validate title on user interaction live when typing less than 5 characters',
+      (tester) async {
+        bool submitCalled = false;
+        await openDialog(
+          tester,
+          (title, body) async {
+            submitCalled = true;
+            return const ActionResult.success();
+          },
+        );
+
+        // Initially no error
+        expect(find.text('Title must be at least 5 characters.'), findsNothing);
+
+        // User types single character 'c' -> autovalidateMode.onUserInteraction triggers live
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Title'),
+          'c',
+        );
+        await tester.pump();
+
+        expect(find.text('Title must be at least 5 characters.'), findsOneWidget);
+
+        // User taps Create -> blocked by client validation
+        await tester.tap(find.text('Create'));
+        await tester.pump();
+        expect(submitCalled, isFalse);
+
+        // User types at least 5 characters -> error clears immediately
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Title'),
+          'Valid Title',
+        );
+        await tester.pump();
+
+        expect(find.text('Title must be at least 5 characters.'), findsNothing);
+
+        // Now Create succeeds
+        await tester.tap(find.text('Create'));
+        await tester.pumpAndSettle();
+        expect(submitCalled, isTrue);
+      },
+    );
   });
 }

@@ -1,6 +1,7 @@
 import 'package:cqrs/cqrs.dart';
 import 'package:injectify/injectify.dart';
 
+import '../../../../core/error/app_exception.dart';
 import '../entities/post.dart';
 import '../repositories/post_repository.dart';
 
@@ -25,9 +26,18 @@ class CreatePostCommandHandler
   final PostRepository _posts;
 
   @override
-  Future<Post> execute(CreatePostCommand command) async => _posts.createPost(
-    userId: command.userId,
-    title: cleanedTitle(command.title),
-    body: command.body.trim(),
-  );
+  Future<Post> execute(CreatePostCommand command) async {
+    final title = cleanedTitle(command.title);
+    if (title.length < 5) {
+      throw const ValidationException(
+        message: 'Title must be at least 5 characters.',
+        fieldErrors: {'title': 'Title must be at least 5 characters.'},
+      );
+    }
+    return _posts.createPost(
+      userId: command.userId,
+      title: title,
+      body: command.body.trim(),
+    );
+  }
 }

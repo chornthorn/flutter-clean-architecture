@@ -71,5 +71,30 @@ void main() {
         ),
       );
     });
+
+    test('should reject a title shorter than 5 characters', () async {
+      final future = handler.execute(
+        const CreatePostCommand(userId: 1, title: 'Hey', body: 'A body'),
+      );
+
+      await expectLater(
+        future,
+        throwsA(
+          isA<ValidationException>().having(
+            (e) => e.fieldErrors['title'],
+            'fieldErrors[title]',
+            'Title must be at least 5 characters.',
+          ),
+        ),
+      );
+
+      verifyNever(
+        () => posts.createPost(
+          userId: any(named: 'userId'),
+          title: any(named: 'title'),
+          body: any(named: 'body'),
+        ),
+      );
+    });
   });
 }
