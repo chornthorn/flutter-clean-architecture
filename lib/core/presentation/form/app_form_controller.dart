@@ -79,9 +79,6 @@ class AppFormController extends ChangeNotifier {
   }
 
   /// Validates every descendant [FormField] in the form tree.
-  ///
-  /// Returns true if all fields are valid, or true if not yet attached to a widget tree.
-  /// Returns false if attached and any field fails validation.
   bool validate() => formState?.validate() ?? true;
 
   /// Calls [FormFieldState.save] on every descendant field.
@@ -112,10 +109,6 @@ class AppFormController extends ChangeNotifier {
   }
 
   /// Obtains or creates a managed [TextEditingController] for [fieldKey].
-  ///
-  /// The controller is automatically synced with [signal] and auto-clears
-  /// server-side errors on typing. When this [AppFormController] is disposed,
-  /// all created controllers are disposed automatically.
   TextEditingController controller(
     FormFieldKey fieldKey, [
     String? defaultInitialValue,
@@ -136,10 +129,6 @@ class AppFormController extends ChangeNotifier {
   }
 
   /// Returns a reactive [Signal<String>] tracking the value of [fieldKey].
-  ///
-  /// Updates bidirectionally with the underlying [TextEditingController]:
-  /// modifying [signal.value] updates the text field, and user input updates
-  /// [signal.value].
   Signal<String> signal(FormFieldKey fieldKey) {
     return _signals.putIfAbsent(fieldKey.key, () {
       final ctrl = controller(fieldKey);
@@ -170,8 +159,6 @@ class AppFormController extends ChangeNotifier {
   String getValue(FormFieldKey fieldKey) => text(fieldKey);
 
   /// Sets or updates the text value for [fieldKey].
-  ///
-  /// Updates any existing [TextEditingController] and [Signal] for this field.
   void setValue(FormFieldKey fieldKey, String value) {
     _initialValues[fieldKey.key] = value;
     final ctrl = _controllers[fieldKey.key];
@@ -189,9 +176,6 @@ class AppFormController extends ChangeNotifier {
   }
 
   /// Updates multiple field values at once.
-  ///
-  /// Supports keys that are [FormFieldKey], [FormFieldKeyBase] (such as enums),
-  /// or [String].
   void setValues(Map<dynamic, String> values) {
     for (final entry in values.entries) {
       final k = entry.key;
@@ -236,10 +220,6 @@ class AppFormController extends ChangeNotifier {
   }
 
   /// Returns the current validation error for [fieldKey], or null if valid.
-  ///
-  /// Matches exact [fieldKey.key], and falls back to [fieldKey.snakeCase]
-  /// or [fieldKey.camelCase] to seamlessly bridge backend naming conventions
-  /// (e.g. `isAvailable` vs `is_available`).
   String? operator [](FormFieldKey fieldKey) =>
       _errors[fieldKey.key] ??
       _errors[fieldKey.snakeCase] ??
@@ -294,13 +274,17 @@ class AppFormController extends ChangeNotifier {
     errorMessage.value = null;
   }
 
+  /// Resets form fields, clears values, errors, and submission status.
+  void clearAll() {
+    try {
+      formState?.reset();
+    } catch (_) {}
+    clear();
+    clearValues();
+    isSubmitting.value = false;
+  }
+
   /// Convenience method to bind field errors and general error from an [ActionResult].
-  ///
-  /// If [result] is an [ActionFailure]:
-  /// - populates field errors from [ActionFailure.fieldErrors]
-  /// - sets [errorMessage] to [ActionFailure.message] if there are no field errors.
-  /// If [result] is [ActionSuccess]:
-  /// - clears all field errors and resets [errorMessage] to null.
   void bind(ActionResult result) {
     if (result is ActionFailure) {
       setErrors(result.fieldErrors);
@@ -312,12 +296,6 @@ class AppFormController extends ChangeNotifier {
   }
 
   /// Executes an asynchronous [action] with form validation and submission tracking.
-  ///
-  /// 1. Validates the form. If validation fails, returns null.
-  /// 2. Sets [isSubmitting] to true and clears [errorMessage].
-  /// 3. Awaits [action] and automatically calls [bind] with the result.
-  /// 4. Resets [isSubmitting] to false.
-  /// 5. Returns the [ActionResult].
   Future<ActionResult?> submit(Future<ActionResult> Function() action) async {
     if (!validate()) return null;
 

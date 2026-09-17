@@ -17,6 +17,7 @@ import '../forms/post_form_field.dart';
 
 @Injectable(scope: Scope.factory)
 class PostViewModel implements ViewModel {
+  // jsonplaceholder only echoes this back, and the demo has no signed-in user.
   static const _authorId = 1;
 
   PostViewModel(this._dispatcher);
@@ -29,6 +30,7 @@ class PostViewModel implements ViewModel {
   final _posts = asyncSignal<List<Post>>(AsyncState.loading());
   final _post = asyncSignal<Post?>(AsyncState.loading());
 
+  // Settled, not loading: no write has run yet.
   final _create = asyncSignal<void>(AsyncState.data(null));
   final _update = asyncSignal<void>(AsyncState.data(null));
   final _delete = asyncSignal<void>(AsyncState.data(null));
@@ -43,12 +45,11 @@ class PostViewModel implements ViewModel {
   ReadonlySignal<AsyncState<void>> get delete => _delete;
 
   void prepareCreate() {
-    createFormController.clear();
-    createFormController.clearValues();
+    createFormController.clearAll();
   }
 
   void prepareEdit(Post post) {
-    updateFormController.clear();
+    updateFormController.clearAll();
     updateFormController.setValues({
       PostFormField.title: post.title,
       PostFormField.body: post.body,
@@ -115,8 +116,7 @@ class PostViewModel implements ViewModel {
       if (_isDisposed) return const ActionResult.success();
       _posts.setValue(posts);
       _create.setValue(null);
-      createFormController.clear();
-      createFormController.clearValues();
+      createFormController.clearAll();
       return const ActionResult.success('Post created successfully.');
     } catch (error, stackTrace) {
       if (_isDisposed) {
@@ -192,6 +192,8 @@ class PostViewModel implements ViewModel {
     }
   }
 
+  // The provider calls this when the page unmounts. A disposed signal throws on a
+  // write, which is what the guards above are for.
   @override
   void dispose() {
     _isDisposed = true;
