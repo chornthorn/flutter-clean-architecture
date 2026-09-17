@@ -3,12 +3,30 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/presentation/action_result.dart';
 import 'package:flutter_x/core/presentation/form/app_form_controller.dart';
 
-enum _TestField { title, body }
+enum _TestField with FormFieldKeyMixin { title, body, isAvailable }
+
+enum _TestSnakeCaseField with SnakeCaseFormFieldKeyMixin { isAvailable, productCount }
+
+enum _TestCustomField implements FormFieldKeyBase {
+  postTitle('post_title'),
+  authorEmail('author_email'),
+  isAvailable('is_available'),
+  body;
+
+  const _TestCustomField([this.customKey]);
+  final String? customKey;
+
+  @override
+  String get key => customKey ?? name;
+}
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
   group('AppFormController', () {
     const titleKey = FormFieldKey(_TestField.title);
     const bodyKey = FormFieldKey(_TestField.body);
+    const isAvailableKey = FormFieldKey(_TestField.isAvailable);
 
     test('should start empty by default', () {
       final controller = AppFormController();
@@ -112,6 +130,69 @@ void main() {
 
       expect(controller.hasErrors, isFalse);
       expect(controller[titleKey], isNull);
+    });
+
+    test('should support custom string wire keys from backend differences', () {
+      final controller = AppFormController();
+      const customTitle = FormFieldKey(_TestCustomField.postTitle);
+      const customEmail = FormFieldKey(_TestCustomField.authorEmail);
+      const customAvailable = FormFieldKey(_TestCustomField.isAvailable);
+      const defaultBody = FormFieldKey(_TestCustomField.body);
+
+      expect(customTitle.key, 'post_title');
+      expect(customEmail.key, 'author_email');
+      expect(customAvailable.key, 'is_available');
+      expect(defaultBody.key, 'body');
+
+      controller.bind(
+        const ActionFailure(
+          'Validation failed',
+          fieldErrors: {
+            'post_title': 'Title is invalid',
+            'author_email': 'Email format wrong',
+            'is_available': 'Must be true or false',
+            'body': 'Body is required',
+          },
+        ),
+      );
+
+      expect(controller[customTitle], 'Title is invalid');
+      expect(controller[customEmail], 'Email format wrong');
+      expect(controller[customAvailable], 'Must be true or false');
+      expect(controller[defaultBody], 'Body is required');
+    });
+
+    test('should automatically match server snake_case is_available when enum is camelCase isAvailable', () {
+      final controller = AppFormController();
+
+      // Enum is camelCase: _TestField.isAvailable
+      expect(isAvailableKey.key, 'isAvailable');
+      expect(isAvailableKey.snakeCase, 'is_available');
+
+      // Server returns snake_case error: 'is_available'
+      controller.bind(
+        const ActionFailure(
+          'Validation failed',
+          fieldErrors: {'is_available': 'Item is currently unavailable.'},
+        ),
+      );
+
+      // Successfully matches via snakeCase fallback!
+      expect(controller.hasField(isAvailableKey), isTrue);
+      expect(controller[isAvailableKey], 'Item is currently unavailable.');
+
+      // Clearing field clears 'is_available' from errors
+      controller.clearField(isAvailableKey);
+      expect(controller.hasField(isAvailableKey), isFalse);
+      expect(controller[isAvailableKey], isNull);
+    });
+
+    test('should support SnakeCaseFormFieldKeyMixin to automatically emit snake_case keys', () {
+      const snakeField = FormFieldKey(_TestSnakeCaseField.isAvailable);
+      const countField = FormFieldKey(_TestSnakeCaseField.productCount);
+
+      expect(snakeField.key, 'is_available');
+      expect(countField.key, 'product_count');
     });
   });
 }

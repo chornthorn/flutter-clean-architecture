@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
-import '../../../../core/design_system/components/app_failure_line.dart';
 import '../../../../core/design_system/components/app_text_field.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/form/app_form_scope.dart';
 
-/// Form fields for [PostFormDialog].
-enum PostFormField {
+/// Form fields for [PostFormDialog], implementing [FormFieldKeyBase].
+enum PostFormField with FormFieldKeyMixin {
   title,
-  body,
+  body;
 }
 
 // Collects a post and hands it to the page, which owns the write call.
@@ -39,108 +38,124 @@ class PostFormDialog extends StatefulWidget {
 }
 
 class _PostFormDialogState extends State<PostFormDialog> {
-  late final _title = TextEditingController(text: widget.initialTitle);
-  late final _body = TextEditingController(text: widget.initialBody);
-  late final _form = AppFormController();
-  bool _isSubmitting = false;
+  late final TextEditingController _titleController;
+  late final TextEditingController _bodyController;
+  final _formController = AppFormController();
+  late String _title;
+  var _submitting = false;
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    _title = widget.initialTitle;
+    _titleController = TextEditingController(text: widget.initialTitle)
+      ..addListener(() {
+        if (_title != _titleController.text) {
+          setState(() => _title = _titleController.text);
+        }
+      });
+    _bodyController = TextEditingController(text: widget.initialBody);
+  }
+
+  @override
   void dispose() {
-    _title.dispose();
-    _body.dispose();
-    _form.dispose();
+    _titleController.dispose();
+    _bodyController.dispose();
+    _formController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    // Validates directly via the form controller's formKey
-    if (!_form.validate()) {
+    final formValid = _formController.validate();
+    if (!formValid) {
       return;
     }
 
     setState(() {
-      _isSubmitting = true;
+      _submitting = true;
       _errorMessage = null;
     });
-    _form.clear();
 
-    final result = await widget.onSubmit(_title.text, _body.text);
+    final result = await widget.onSubmit(
+      _titleController.text.trim(),
+      _bodyController.text.trim(),
+    );
 
-    // The page can be gone by now if the dialog was dismissed mid-flight.
     if (!mounted) return;
 
-    if (result.isSuccess) {
-      Navigator.of(context).pop();
+    if (result is ActionFailure) {
+      setState(() {
+        _submitting = false;
+        _errorMessage = result.fieldErrors.isEmpty ? result.message : null;
+      });
+      _formController.bind(result);
       return;
     }
 
-    setState(() {
-      _isSubmitting = false;
-      if (result is ActionFailure) {
-        _errorMessage = result.fieldErrors.isEmpty ? result.message : null;
-        _form.bind(result);
-      } else {
-        _errorMessage = 'Could not save the post.';
-      }
-    });
+    Navigator.of(context).pop(true);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
 
-    return AppFormScope(
-      controller: _form,
-      options: const .options(autovalidateMode: .onUserInteraction),
-      child: AlertDialog(
-        backgroundColor: theme.colors.surface.card,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(theme.sizes.radius.md),
-        ),
-        title: Text(widget.heading, style: theme.typography.title.semiBold),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppTextField(
-              fieldKey: const FormFieldKey(PostFormField.title),
-              controller: _title,
-              label: 'Title',
-              validator: (value) {
-                if (value == null || value.trim().length < 5) {
-                  return 'Title must be at least 5 characters.';
-                }
-                return null;
-              },
-            ),
-            SizedBox(height: theme.sizes.spacing.md),
-            AppTextField(
-              fieldKey: const FormFieldKey(PostFormField.body),
-              controller: _body,
-              label: 'Body',
-            ),
-            if (_errorMessage != null) ...[
+    return AlertDialog(
+      title: Text(widget.heading),
+      content: SingleChildScrollView(
+        child: AppFormScope(
+          controller: _formController,
+          options: const AppFormOptions(
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_errorMessage case final message?) ...[
+                Text(
+                  message,
+                  style: theme.typography.body.regular.copyWith(
+                    color: theme.colors.feedback.danger,
+                  ),
+                ),
+                SizedBox(height: theme.sizes.spacing.md),
+              ],
+              AppTextField(
+                fieldKey: const FormFieldKey(PostFormField.title),
+                controller: _titleController,
+                label: 'Title',
+                validator: (value) {
+                  final trimmed = value?.trim() ?? '';
+                  if (trimmed.length < 5) {
+                    return 'Title must be at least 5 characters.';
+                  }
+                  return null;
+                },
+              ),
               SizedBox(height: theme.sizes.spacing.md),
-              AppFailureLine(message: _errorMessage!),
+              AppTextField(
+                fieldKey: const FormFieldKey(PostFormField.body),
+                controller: _bodyController,
+                label: 'Body',
+                maxLines: 4,
+              ),
             ],
-          ],
+          ),
         ),
-        actions: [
-          AppTextButton(
-            label: 'Cancel',
-            onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-          ),
-          // A title the domain will reject is not worth a round trip to say so.
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: _title,
-            builder: (context, value, _) => AppFilledButton(
-              label: widget.submitLabel,
-              isEnabled: !_isSubmitting && value.text.trim().isNotEmpty,
-              onPressed: _submit,
-            ),
-          ),
-        ],
       ),
+      actions: [
+        TextButton(
+          onPressed:
+              _submitting ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        AppFilledButton(
+          label: widget.submitLabel,
+          isEnabled: _title.trim().isNotEmpty && !_submitting,
+          onPressed: _submit,
+        ),
+      ],
     );
   }
 }

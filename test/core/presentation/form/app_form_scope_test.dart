@@ -5,7 +5,7 @@ import 'package:flutter_x/core/presentation/form/app_form_scope.dart';
 
 import '../../../app/view_host.dart';
 
-enum _TestScopeField { test, title, email, name, code }
+enum _TestScopeField with FormFieldKeyMixin { test, title, email, fullName, code }
 
 void main() {
   group('AppFormScope', () {
@@ -185,7 +185,7 @@ void main() {
       'should bind controller.formKey and allow validate, save, and reset via AppFormController instance',
       (tester) async {
         final controller = AppFormController();
-        const nameKey = FormFieldKey(_TestScopeField.name);
+        const nameKey = FormFieldKey(_TestScopeField.fullName);
         String? savedValue;
 
         await tester.pumpWidget(

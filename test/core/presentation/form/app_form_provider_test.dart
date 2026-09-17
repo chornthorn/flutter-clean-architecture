@@ -7,7 +7,7 @@ import 'package:flutter_x/core/presentation/form/app_form_provider.dart';
 
 import '../../../app/view_host.dart';
 
-enum _TestField { title }
+enum _TestField with FormFieldKeyMixin { title }
 
 void main() {
   group('AppFormProvider & AppTextField', () {
