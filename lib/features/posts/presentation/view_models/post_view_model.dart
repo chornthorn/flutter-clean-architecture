@@ -23,9 +23,9 @@ class PostViewModel implements ViewModel {
   PostViewModel(this._dispatcher);
 
   final CqrsDispatcher _dispatcher;
+  // Doubles as the disposed flag: `dispose` cancels it and nothing else does, so
+  // a cancelled source means the page that started the work is gone.
   final _cancellation = CancellationSource();
-
-  bool _isDisposed = false;
 
   final _posts = asyncSignal<List<Post>>(AsyncState.loading());
   final _post = asyncSignal<Post?>(AsyncState.loading());
@@ -71,10 +71,10 @@ class PostViewModel implements ViewModel {
       final posts = await _dispatcher.query(
         GetPostsQuery(cancellation: _cancellation.token),
       );
-      if (_isDisposed) return;
+      if (_cancellation.isCancelled) return;
       _posts.setValue(posts);
     } catch (error, stackTrace) {
-      if (_isDisposed || error is CancelledException) return;
+      if (_cancellation.isCancelled || error is CancelledException) return;
       _posts.setError(error, stackTrace);
     }
   }
@@ -86,10 +86,10 @@ class PostViewModel implements ViewModel {
       final post = await _dispatcher.query(
         GetPostQuery(id, cancellation: _cancellation.token),
       );
-      if (_isDisposed) return;
+      if (_cancellation.isCancelled) return;
       _post.setValue(post);
     } catch (error, stackTrace) {
-      if (_isDisposed || error is CancelledException) return;
+      if (_cancellation.isCancelled || error is CancelledException) return;
       _post.setError(error, stackTrace);
     }
   }
@@ -109,13 +109,13 @@ class PostViewModel implements ViewModel {
       final posts = await _dispatcher.query(
         GetPostsQuery(cancellation: _cancellation.token),
       );
-      if (_isDisposed) return const ActionResult.success();
+      if (_cancellation.isCancelled) return const ActionResult.success();
       _posts.setValue(posts);
       _create.setValue(null);
       createFormController.clearAll();
       return const ActionResult.success('Post created successfully.');
     } catch (error, stackTrace) {
-      if (_isDisposed) {
+      if (_cancellation.isCancelled) {
         return const ActionResult.failure('Could not create post.');
       }
       _create.setError(error, stackTrace);
@@ -144,13 +144,13 @@ class PostViewModel implements ViewModel {
       final updated = await _dispatcher.query(
         GetPostQuery(id, cancellation: _cancellation.token),
       );
-      if (_isDisposed) return const ActionResult.success();
+      if (_cancellation.isCancelled) return const ActionResult.success();
       _post.setValue(updated);
       _update.setValue(null);
       updateFormController.clear();
       return const ActionResult.success('Post updated successfully.');
     } catch (error, stackTrace) {
-      if (_isDisposed) {
+      if (_cancellation.isCancelled) {
         return const ActionResult.failure('Could not update post.');
       }
       _update.setError(error, stackTrace);
@@ -171,11 +171,11 @@ class PostViewModel implements ViewModel {
 
     try {
       await _dispatcher.command(DeletePostCommand(id));
-      if (_isDisposed) return const ActionResult.success();
+      if (_cancellation.isCancelled) return const ActionResult.success();
       _delete.setValue(null);
       return const ActionResult.success('Post deleted successfully.');
     } catch (error, stackTrace) {
-      if (_isDisposed) {
+      if (_cancellation.isCancelled) {
         return const ActionResult.failure('Could not delete post.');
       }
       _delete.setError(error, stackTrace);
@@ -194,7 +194,6 @@ class PostViewModel implements ViewModel {
   // write, which is what the guards above are for.
   @override
   void dispose() {
-    _isDisposed = true;
     _cancellation.cancel();
     _posts.dispose();
     _post.dispose();
