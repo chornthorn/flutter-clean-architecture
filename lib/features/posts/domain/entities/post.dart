@@ -1,7 +1,9 @@
+import 'package:equatable/equatable.dart';
+
 import '../../../../core/error/app_exception.dart';
 
 // A post from the catalog at jsonplaceholder.typicode.com.
-class Post {
+class Post extends Equatable {
   const Post({
     required this.id,
     required this.userId,
@@ -15,16 +17,7 @@ class Post {
   final String body;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Post &&
-          other.id == id &&
-          other.userId == userId &&
-          other.title == title &&
-          other.body == body;
-
-  @override
-  int get hashCode => Object.hash(id, userId, title, body);
+  List<Object?> get props => [id, userId, title, body];
 
   @override
   String toString() => 'Post($id, $title)';

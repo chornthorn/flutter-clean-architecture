@@ -33,6 +33,7 @@ dependencies:
   # `ReadonlySignal` so only the view model can push state into it.
   signals: ^7.1.0
   json_annotation: ^4.12.0
+  equatable: ^3.0.0
 
 dev_dependencies:
   flutter_test:

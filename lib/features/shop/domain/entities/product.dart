@@ -1,5 +1,7 @@
+import 'package:equatable/equatable.dart';
+
 // A product in the shop catalog.
-class Product {
+class Product extends Equatable {
   const Product({required this.id, required this.name, required this.price});
 
   final String id;
@@ -7,15 +9,7 @@ class Product {
   final double price;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Product &&
-          other.id == id &&
-          other.name == name &&
-          other.price == price;
-
-  @override
-  int get hashCode => Object.hash(id, name, price);
+  List<Object?> get props => [id, name, price];
 
   @override
   String toString() => 'Product($id, $name, $price)';
