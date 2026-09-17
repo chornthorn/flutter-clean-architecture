@@ -85,9 +85,23 @@ void main() {
           isNull,
         );
 
+        // A good title is not the form: the body is still empty.
         await tester.enterText(
           find.widgetWithText(TextField, 'Title'),
           'A proper title',
+        );
+        await tester.pump();
+
+        expect(
+          tester
+              .widget<FilledButton>(find.widgetWithText(FilledButton, 'Create'))
+              .onPressed,
+          isNull,
+        );
+
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Body'),
+          'A proper body',
         );
         await tester.pump();
 
@@ -157,6 +171,10 @@ void main() {
           find.widgetWithText(TextField, 'Title'),
           'A title',
         );
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Body'),
+          'A body',
+        );
         await tester.pump();
 
         await tester.tap(find.text('Create'));
@@ -199,6 +217,7 @@ void main() {
         find.widgetWithText(TextField, 'Title'),
         'A title',
       );
+      await tester.enterText(find.widgetWithText(TextField, 'Body'), 'A body');
       await tester.pump();
 
       await tester.tap(find.text('Create'));
@@ -218,6 +237,13 @@ void main() {
           submitCalled = true;
           return const ActionResult.success();
         });
+
+        // A good body, so the title is the only thing left to satisfy.
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Body'),
+          'A body',
+        );
+        await tester.pump();
 
         // Initially no error
         expect(find.text('Title must be at least 5 characters.'), findsNothing);
@@ -270,6 +296,7 @@ void main() {
         find.widgetWithText(TextField, 'Title'),
         'Valid Title',
       );
+      await tester.enterText(find.widgetWithText(TextField, 'Body'), 'A body');
       await tester.pump();
 
       await tester.tap(find.text('Create'));
