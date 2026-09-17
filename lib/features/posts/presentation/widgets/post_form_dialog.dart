@@ -117,7 +117,8 @@ class PostFormDialog extends StatelessWidget {
                               .value;
                           return AppFilledButton(
                             label: submitLabel,
-                            isEnabled: !isSubmitting && title.trim().isNotEmpty,
+                            isEnabled: title.trim().isNotEmpty,
+                            isLoading: isSubmitting,
                             onPressed: () => _submit(context),
                           );
                         },

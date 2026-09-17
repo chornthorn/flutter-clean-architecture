@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/presentation/action_result.dart';
@@ -113,6 +115,46 @@ void main() {
       expect(sentBody, 'A body');
       expect(find.byType(PostFormDialog), findsNothing);
     });
+
+    testWidgets(
+      'should run a spinner on the button and take no second submit while the write is in flight',
+      (tester) async {
+        final inFlight = Completer<ActionResult>();
+        await openDialog(tester, (form) => inFlight.future);
+
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Title'),
+          'A title',
+        );
+        await tester.pump();
+
+        await tester.tap(find.text('Create'));
+        await tester.pump();
+
+        // The label stays, so the button still says what it is doing; the
+        // spinner says it is doing it; no press can start a second write.
+        expect(find.text('Create'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(FilledButton),
+            matching: find.byType(CircularProgressIndicator),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          tester
+              .widget<FilledButton>(find.widgetWithText(FilledButton, 'Create'))
+              .onPressed,
+          isNull,
+        );
+
+        inFlight.complete(const ActionResult.success());
+        await tester.pumpAndSettle();
+
+        expect(find.byType(PostFormDialog), findsNothing);
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+      },
+    );
 
     testWidgets('should stay open and say so when the write fails', (
       tester,
