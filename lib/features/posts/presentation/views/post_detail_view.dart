@@ -57,7 +57,7 @@ class PostDetailView extends StatelessWidget {
         tooltip: 'Edit post',
       ),
       IconButton(
-        onPressed: isWriting ? null : () => _delete(context, viewModel),
+        onPressed: isWriting ? null : () => _delete(context, viewModel, post),
         icon: const Icon(Icons.delete_outline),
         tooltip: 'Delete post',
       ),
@@ -130,7 +130,7 @@ class PostDetailView extends StatelessWidget {
         initialTitle: post.title,
         initialBody: post.body,
         onSubmit: (title, body) =>
-            viewModel.updatePost(title: title, body: body),
+            viewModel.updatePost(post.id, title: title, body: body),
       ),
     );
   }
@@ -138,6 +138,7 @@ class PostDetailView extends StatelessWidget {
   Future<void> _delete(
     BuildContext context,
     PostDetailViewModel viewModel,
+    Post post,
   ) async {
     final theme = context.theme;
 
@@ -175,7 +176,7 @@ class PostDetailView extends StatelessWidget {
 
     if (confirmed != true) return;
 
-    final deleted = await viewModel.deletePost();
+    final deleted = await viewModel.deletePost(post.id);
 
     if (deleted && context.mounted) {
       Navigator.of(context).pop();

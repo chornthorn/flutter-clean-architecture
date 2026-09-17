@@ -84,6 +84,7 @@ void main() {
       await viewModel.load(1);
 
       final saved = await viewModel.updatePost(
+        1,
         title: 'Edited title',
         body: 'Edited body',
       );
@@ -95,6 +96,25 @@ void main() {
       // The author is not the editor's to change.
       expect(viewModel.post.value.value?.userId, 1);
     });
+
+    test(
+      'should edit the id it is handed, with nothing on screen yet',
+      () async {
+        final store = InMemoryPostRepository();
+        final viewModel = PostDetailViewModel(postsDispatcher(store));
+        addTearDown(viewModel.dispose);
+
+        expect(
+          await viewModel.updatePost(
+            1,
+            title: 'Edited title',
+            body: 'Edited body',
+          ),
+          isTrue,
+        );
+        expect((await store.postById(1))?.title, 'Edited title');
+      },
+    );
 
     test('should keep the failure and answer false when an edit fails', () async {
       final store = MockPostRepository();
@@ -114,6 +134,7 @@ void main() {
       await viewModel.load(1);
 
       final saved = await viewModel.updatePost(
+        1,
         title: 'Edited title',
         body: 'Edited body',
       );
@@ -131,9 +152,21 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
-      expect(await viewModel.deletePost(), isTrue);
+      expect(await viewModel.deletePost(1), isTrue);
       expect(await store.postById(1), isNull);
     });
+
+    test(
+      'should delete the id it is handed, with nothing on screen yet',
+      () async {
+        final store = InMemoryPostRepository();
+        final viewModel = PostDetailViewModel(postsDispatcher(store));
+        addTearDown(viewModel.dispose);
+
+        expect(await viewModel.deletePost(1), isTrue);
+        expect(await store.postById(1), isNull);
+      },
+    );
 
     test(
       'should keep the failure and answer false when a delete fails',
@@ -150,7 +183,7 @@ void main() {
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
 
-        expect(await viewModel.deletePost(), isFalse);
+        expect(await viewModel.deletePost(1), isFalse);
         expect(viewModel.delete.value.hasError, isTrue);
         expect(viewModel.post.value.value, post);
         expect(viewModel.post.value.hasError, isFalse);
@@ -169,7 +202,7 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
 
-      final deleting = viewModel.deletePost();
+      final deleting = viewModel.deletePost(1);
 
       // Which write is on the wire is read off its own use case, and no other state reports it.
       expect(viewModel.delete.value.isLoading, isTrue);

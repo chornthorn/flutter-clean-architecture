@@ -5,3 +5,8 @@ analyzer:
   # overwrite them wholesale, and their style is the generator's business.
   exclude:
     - "**/*.g.dart"
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - macos/**

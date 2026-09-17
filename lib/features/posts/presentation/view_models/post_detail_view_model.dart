@@ -45,10 +45,11 @@ class PostDetailViewModel implements ViewModel {
   }
 
   // Answers whether it worked, so the form knows whether to close.
-  Future<bool> updatePost({required String title, required String body}) async {
-    final id = _postOnScreenId;
-    if (id == null) return false;
-
+  Future<bool> updatePost(
+    int id, {
+    required String title,
+    required String body,
+  }) async {
     _update.setLoading();
 
     try {
@@ -70,10 +71,7 @@ class PostDetailViewModel implements ViewModel {
   }
 
   // Answers whether it worked, so the page knows whether to leave.
-  Future<bool> deletePost() async {
-    final id = _postOnScreenId;
-    if (id == null) return false;
-
+  Future<bool> deletePost(int id) async {
     _delete.setLoading();
 
     try {
@@ -98,7 +96,4 @@ class PostDetailViewModel implements ViewModel {
     _update.dispose();
     _delete.dispose();
   }
-
-  // The id the two writes go to: null until the read lands on a post.
-  int? get _postOnScreenId => _post.value.value?.id;
 }
