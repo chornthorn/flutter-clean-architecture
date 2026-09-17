@@ -105,55 +105,49 @@ void main() {
         )..httpClientAdapter = adapter;
       });
 
-      test(
-        'should cancel in-flight request and throw CancelledException when source cancels',
-        () async {
-          final source = CancellationSource();
+      test('should cancel in-flight request and throw CancelledException when source cancels', () async {
+        final source = CancellationSource();
 
-          final inFlight = repository.execute(
-            (token) => dio.get('/items', cancelToken: token),
-            cancellation: source.token,
-          );
+        final inFlight = repository.execute(
+          (token) => dio.get('/items', cancelToken: token),
+          cancellation: source.token,
+        );
 
-          // Allow the request to reach the HTTP transport
-          await pumpEventQueue();
-          expect(adapter.hasPending('/items'), isTrue);
+        // Allow the request to reach the HTTP transport
+        await pumpEventQueue();
+        expect(adapter.hasPending('/items'), isTrue);
 
-          final expectCancelled = expectLater(
-            inFlight,
-            throwsA(
-              isA<CancelledException>().having(
-                (e) => e.message,
-                'message',
-                'The operation was cancelled.',
-              ),
+        final expectCancelled = expectLater(
+          inFlight,
+          throwsA(
+            isA<CancelledException>().having(
+              (e) => e.message,
+              'message',
+              'The operation was cancelled.',
             ),
-          );
+          ),
+        );
 
-          // User walks away / view model disposes
-          source.cancel();
+        // User walks away / view model disposes
+        source.cancel();
 
-          // Full pipeline verification:
-          // CancellationSource -> CancelToken -> Dio cancel -> ErrorInterceptor -> .guard() -> CancelledException
-          await expectCancelled;
-          expect(source.isCancelled, isTrue);
-        },
-      );
+        // Full pipeline verification:
+        // CancellationSource -> CancelToken -> Dio cancel -> ErrorInterceptor -> .guard() -> CancelledException
+        await expectCancelled;
+        expect(source.isCancelled, isTrue);
+      });
 
-      test(
-        'should abort immediately with CancelledException when pre-cancelled source is passed',
-        () async {
-          final source = CancellationSource()..cancel();
+      test('should abort immediately with CancelledException when pre-cancelled source is passed', () async {
+        final source = CancellationSource()..cancel();
 
-          final call = repository.execute(
-            (token) => dio.get('/items', cancelToken: token),
-            cancellation: source.token,
-          );
+        final call = repository.execute(
+          (token) => dio.get('/items', cancelToken: token),
+          cancellation: source.token,
+        );
 
-          await expectLater(call, throwsA(isA<CancelledException>()));
-          expect(adapter.hasPending('/items'), isFalse);
-        },
-      );
+        await expectLater(call, throwsA(isA<CancelledException>()));
+        expect(adapter.hasPending('/items'), isFalse);
+      });
 
       test(
         'should let request complete normally when source is not cancelled',
@@ -175,46 +169,43 @@ void main() {
         },
       );
 
-      test(
-        'should isolate cancellations so cancelling one request does not affect another',
-        () async {
-          final sourceA = CancellationSource();
-          final sourceB = CancellationSource();
+      test('should isolate cancellations so cancelling one request does not affect another', () async {
+        final sourceA = CancellationSource();
+        final sourceB = CancellationSource();
 
-          final callA = repository.execute(
-            (token) => dio.get('/item-a', cancelToken: token),
-            cancellation: sourceA.token,
-          );
+        final callA = repository.execute(
+          (token) => dio.get('/item-a', cancelToken: token),
+          cancellation: sourceA.token,
+        );
 
-          final callB = repository.execute(
-            (token) =>
-                dio.get<Map<String, dynamic>>('/item-b', cancelToken: token),
-            cancellation: sourceB.token,
-          );
+        final callB = repository.execute(
+          (token) =>
+              dio.get<Map<String, dynamic>>('/item-b', cancelToken: token),
+          cancellation: sourceB.token,
+        );
 
-          await pumpEventQueue();
-          expect(adapter.hasPending('/item-a'), isTrue);
-          expect(adapter.hasPending('/item-b'), isTrue);
+        await pumpEventQueue();
+        expect(adapter.hasPending('/item-a'), isTrue);
+        expect(adapter.hasPending('/item-b'), isTrue);
 
-          final expectCancelledA = expectLater(
-            callA,
-            throwsA(isA<CancelledException>()),
-          );
+        final expectCancelledA = expectLater(
+          callA,
+          throwsA(isA<CancelledException>()),
+        );
 
-          // Cancel only request A
-          sourceA.cancel();
+        // Cancel only request A
+        sourceA.cancel();
 
-          // Complete request B
-          adapter.respondJson('/item-b', {'id': 'b'});
+        // Complete request B
+        adapter.respondJson('/item-b', {'id': 'b'});
 
-          await expectCancelledA;
-          final responseB = await callB;
-          expect(responseB.data, {'id': 'b'});
+        await expectCancelledA;
+        final responseB = await callB;
+        expect(responseB.data, {'id': 'b'});
 
-          expect(sourceA.isCancelled, isTrue);
-          expect(sourceB.isCancelled, isFalse);
-        },
-      );
+        expect(sourceA.isCancelled, isTrue);
+        expect(sourceB.isCancelled, isFalse);
+      });
 
       test('should complete normally when cancellation is null', () async {
         final call = repository.execute((token) {

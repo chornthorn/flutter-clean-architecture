@@ -19,9 +19,8 @@ void main() {
       tester,
     ) async {
       final repository = MockProductRepository();
-      when(
-        () => repository.allProducts(),
-      ).thenAnswer((_) => Completer<List<Product>>().future);
+      when(() => repository.allProducts())
+          .thenAnswer((_) => Completer<List<Product>>().future);
       final viewModel = ShopHomeViewModel(shopDispatcher(repository));
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
@@ -52,9 +51,8 @@ void main() {
 
     testWidgets('should render the error state', (tester) async {
       final repository = MockProductRepository();
-      when(
-        () => repository.allProducts(),
-      ).thenAnswer((_) async => throw Exception('offline'));
+      when(() => repository.allProducts())
+          .thenAnswer((_) async => throw Exception('offline'));
       final viewModel = ShopHomeViewModel(shopDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load();

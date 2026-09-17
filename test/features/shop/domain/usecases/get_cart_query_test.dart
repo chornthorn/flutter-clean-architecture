@@ -11,18 +11,16 @@ void main() {
       final cart = MockCartRepository();
       when(() => cart.cart()).thenAnswer((_) async => const Cart(['sku-42']));
 
-      final read = await GetCartQueryHandler(
-        cart,
-      ).execute(const GetCartQuery());
+      final read = await GetCartQueryHandler(cart)
+          .execute(const GetCartQuery());
 
       expect(read, const Cart(['sku-42']));
     });
 
     test('should let a repository failure escape', () async {
       final cart = MockCartRepository();
-      when(
-        () => cart.cart(),
-      ).thenAnswer((_) async => throw Exception('offline'));
+      when(() => cart.cart())
+          .thenAnswer((_) async => throw Exception('offline'));
 
       // Holding the failure is the view model's job, not the handler's.
       await expectLater(

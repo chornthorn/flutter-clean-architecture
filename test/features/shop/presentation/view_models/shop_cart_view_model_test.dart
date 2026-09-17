@@ -14,9 +14,8 @@ void main() {
       final cart = MockCartRepository();
       when(() => cart.cart()).thenAnswer((_) async => const Cart(['sku-42']));
       final products = MockProductRepository();
-      when(
-        () => products.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => products.productById('sku-42'))
+          .thenAnswer((_) async => product);
 
       final viewModel = ShopCartViewModel(shopDispatcher(products, cart: cart));
       addTearDown(viewModel.dispose);
@@ -37,13 +36,11 @@ void main() {
     test('should add the items up without storing a second total', () async {
       final cart = MockCartRepository();
       // The same product added twice: one row per add, both in the total.
-      when(
-        () => cart.cart(),
-      ).thenAnswer((_) async => const Cart(['sku-42', 'sku-42']));
+      when(() => cart.cart())
+          .thenAnswer((_) async => const Cart(['sku-42', 'sku-42']));
       final products = MockProductRepository();
-      when(
-        () => products.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => products.productById('sku-42'))
+          .thenAnswer((_) async => product);
 
       final viewModel = ShopCartViewModel(shopDispatcher(products, cart: cart));
       addTearDown(viewModel.dispose);
@@ -72,9 +69,8 @@ void main() {
 
     test('should hold a failure in error instead of throwing', () async {
       final cart = MockCartRepository();
-      when(
-        () => cart.cart(),
-      ).thenAnswer((_) async => throw Exception('offline'));
+      when(() => cart.cart())
+          .thenAnswer((_) async => throw Exception('offline'));
 
       final viewModel = ShopCartViewModel(
         shopDispatcher(MockProductRepository(), cart: cart),
@@ -95,9 +91,8 @@ void main() {
       var ids = const ['sku-42'];
       when(() => cart.cart()).thenAnswer((_) async => Cart(ids));
       final products = MockProductRepository();
-      when(
-        () => products.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => products.productById('sku-42'))
+          .thenAnswer((_) async => product);
 
       final viewModel = ShopCartViewModel(shopDispatcher(products, cart: cart));
       addTearDown(viewModel.dispose);

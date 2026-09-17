@@ -35,9 +35,8 @@ void main() {
     });
 
     test('should append the product and announce the new count', () async {
-      when(
-        () => products.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => products.productById('sku-42'))
+          .thenAnswer((_) async => product);
       when(() => cart.cart()).thenAnswer((_) async => const Cart(['sku-99']));
 
       await handler.execute(const AddProductToCartCommand('sku-42'));

@@ -17,9 +17,8 @@ void main() {
 
     setUp(() {
       repository = MockPostRepository();
-      when(
-        () => repository.allPosts(cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async => const [post]);
+      when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) async => const [post]);
       when(
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => post);

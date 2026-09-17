@@ -19,9 +19,8 @@ void main() {
       tester,
     ) async {
       final repository = MockProductRepository();
-      when(
-        () => repository.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => repository.productById('sku-42'))
+          .thenAnswer((_) async => product);
 
       final viewModel = ShopProductViewModel(shopDispatcher(repository));
       addTearDown(viewModel.dispose);
@@ -55,9 +54,8 @@ void main() {
       tester,
     ) async {
       final repository = MockProductRepository();
-      when(
-        () => repository.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => repository.productById('sku-42'))
+          .thenAnswer((_) async => product);
 
       // Real cart: the count is the query's answer, not the button's.
       final viewModel = ShopProductViewModel(shopDispatcher(repository));
@@ -77,9 +75,8 @@ void main() {
 
     testWidgets('should report an add that failed', (tester) async {
       final repository = MockProductRepository();
-      when(
-        () => repository.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => repository.productById('sku-42'))
+          .thenAnswer((_) async => product);
       final cart = MockCartRepository();
       when(() => cart.cart()).thenAnswer((_) async => const Cart.empty());
       when(() => cart.save(any())).thenAnswer((_) async => throw Exception());

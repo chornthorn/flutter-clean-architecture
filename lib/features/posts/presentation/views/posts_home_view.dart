@@ -120,9 +120,8 @@ class PostsHomeView extends StatelessWidget {
           submitLabel: 'Create',
           onSubmit: (title, body) async {
             final result = await viewModel.createPost(title: title, body: body);
-            if (result case ActionSuccess(
-              :final message,
-            ) when message != null) {
+            if (result case ActionSuccess(:final message)
+                when message != null) {
               if (context.mounted) {
                 AppToast.showSuccess(context, message);
               }

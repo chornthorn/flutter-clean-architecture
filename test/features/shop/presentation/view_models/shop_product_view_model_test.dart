@@ -16,9 +16,8 @@ void main() {
   group('ShopProductViewModel', () {
     test('should load the product the query returns', () async {
       final repository = MockProductRepository();
-      when(
-        () => repository.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => repository.productById('sku-42'))
+          .thenAnswer((_) async => product);
 
       final viewModel = ShopProductViewModel(shopDispatcher(repository));
       addTearDown(viewModel.dispose);
@@ -34,9 +33,8 @@ void main() {
       'should resolve an unknown id to a null product, not an error',
       () async {
         final repository = MockProductRepository();
-        when(
-          () => repository.productById('no-such-sku'),
-        ).thenAnswer((_) async => null);
+        when(() => repository.productById('no-such-sku'))
+            .thenAnswer((_) async => null);
 
         final viewModel = ShopProductViewModel(shopDispatcher(repository));
         addTearDown(viewModel.dispose);
@@ -52,9 +50,8 @@ void main() {
 
     test('should hold a failure in error instead of throwing', () async {
       final repository = MockProductRepository();
-      when(
-        () => repository.productById('sku-42'),
-      ).thenAnswer((_) async => throw Exception('offline'));
+      when(() => repository.productById('sku-42'))
+          .thenAnswer((_) async => throw Exception('offline'));
 
       final viewModel = ShopProductViewModel(shopDispatcher(repository));
       addTearDown(viewModel.dispose);
@@ -65,30 +62,25 @@ void main() {
       expect(viewModel.product.value.hasValue, isFalse);
     });
 
-    test(
-      'should start the add settled, so the page does not read it in flight',
-      () {
-        final viewModel = ShopProductViewModel(
-          shopDispatcher(MockProductRepository()),
-        );
-        addTearDown(viewModel.dispose);
+    test('should start the add settled, so the page does not read it in flight', () {
+      final viewModel = ShopProductViewModel(
+        shopDispatcher(MockProductRepository()),
+      );
+      addTearDown(viewModel.dispose);
 
-        expect(viewModel.add.value.isLoading, isFalse);
-        // The read is the one that starts in flight: it is what the page renders
-        // first.
-        expect(viewModel.product.value.isLoading, isTrue);
-      },
-    );
+      expect(viewModel.add.value.isLoading, isFalse);
+      // The read is the one that starts in flight: it is what the page renders
+      // first.
+      expect(viewModel.product.value.isLoading, isTrue);
+    });
 
     test('should read the cart alongside the product', () async {
       final repository = MockProductRepository();
-      when(
-        () => repository.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => repository.productById('sku-42'))
+          .thenAnswer((_) async => product);
       final cart = MockCartRepository();
-      when(
-        () => cart.cart(),
-      ).thenAnswer((_) async => const Cart(['sku-99', 'sku-99']));
+      when(() => cart.cart())
+          .thenAnswer((_) async => const Cart(['sku-99', 'sku-99']));
 
       final viewModel = ShopProductViewModel(
         shopDispatcher(repository, cart: cart),
@@ -102,9 +94,8 @@ void main() {
 
     test('should send the command and count what the cart holds', () async {
       final repository = MockProductRepository();
-      when(
-        () => repository.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => repository.productById('sku-42'))
+          .thenAnswer((_) async => product);
 
       // Real cart: the count is read back, so a write that failed shows as stale.
       final viewModel = ShopProductViewModel(shopDispatcher(repository));
@@ -124,9 +115,8 @@ void main() {
 
     test('should hold an add failure in error, keeping the product', () async {
       final repository = MockProductRepository();
-      when(
-        () => repository.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => repository.productById('sku-42'))
+          .thenAnswer((_) async => product);
       final cart = MockCartRepository();
       when(() => cart.cart()).thenAnswer((_) async => const Cart.empty());
       when(() => cart.save(any())).thenAnswer((_) async => throw Exception());

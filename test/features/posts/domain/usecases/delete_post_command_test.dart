@@ -17,9 +17,8 @@ void main() {
 
     test('should let a store failure escape', () async {
       final posts = MockPostRepository();
-      when(
-        () => posts.deletePost(3),
-      ).thenAnswer((_) async => throw Exception('offline'));
+      when(() => posts.deletePost(3))
+          .thenAnswer((_) async => throw Exception('offline'));
 
       await expectLater(
         DeletePostCommandHandler(posts).execute(const DeletePostCommand(3)),

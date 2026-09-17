@@ -19,9 +19,8 @@ void main() {
   group('PostsHomeView', () {
     testWidgets('should show a spinner while the list loads', (tester) async {
       final repository = MockPostRepository();
-      when(
-        () => repository.allPosts(cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) => Completer<List<Post>>().future);
+      when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) => Completer<List<Post>>().future);
       final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
@@ -33,9 +32,8 @@ void main() {
 
     testWidgets('should render the posts the view model holds', (tester) async {
       final repository = MockPostRepository();
-      when(
-        () => repository.allPosts(cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async => const [post]);
+      when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) async => const [post]);
       final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load();
@@ -48,9 +46,8 @@ void main() {
 
     testWidgets('should render the error state', (tester) async {
       final repository = MockPostRepository();
-      when(
-        () => repository.allPosts(cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async => throw Exception('offline'));
+      when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) async => throw Exception('offline'));
       final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load();
@@ -62,9 +59,8 @@ void main() {
 
     testWidgets('should say so when there is nothing to show', (tester) async {
       final repository = MockPostRepository();
-      when(
-        () => repository.allPosts(cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async => const []);
+      when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) async => const []);
       final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load();
@@ -80,14 +76,13 @@ void main() {
     ) async {
       final repository = MockPostRepository();
       var attempts = 0;
-      when(
-        () => repository.allPosts(cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async {
-        attempts++;
-        // Fails once, then answers, so the retry has something to show.
-        if (attempts == 1) throw Exception('offline');
-        return const [post];
-      });
+      when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) async {
+            attempts++;
+            // Fails once, then answers, so the retry has something to show.
+            if (attempts == 1) throw Exception('offline');
+            return const [post];
+          });
       final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
       await viewModel.load();

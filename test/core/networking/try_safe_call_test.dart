@@ -10,43 +10,37 @@ void main() {
       expect(result, 'success');
     });
 
-    test(
-      'should rethrow unwrapped AppException when DioException holds AppException',
-      () async {
-        final appException = const NotFoundException(message: 'Post missing');
-        final dioException = DioException(
-          requestOptions: RequestOptions(path: '/posts/1'),
-          error: appException,
-        );
+    test('should rethrow unwrapped AppException when DioException holds AppException', () async {
+      final appException = const NotFoundException(message: 'Post missing');
+      final dioException = DioException(
+        requestOptions: RequestOptions(path: '/posts/1'),
+        error: appException,
+      );
 
-        final future = Future<String>.error(dioException).guard();
+      final future = Future<String>.error(dioException).guard();
 
-        expect(
-          future,
-          throwsA(
-            isA<NotFoundException>().having(
-              (e) => e.message,
-              'message',
-              'Post missing',
-            ),
+      expect(
+        future,
+        throwsA(
+          isA<NotFoundException>().having(
+            (e) => e.message,
+            'message',
+            'Post missing',
           ),
-        );
-      },
-    );
+        ),
+      );
+    });
 
-    test(
-      'should wrap raw DioException without AppException into UnexpectedException',
-      () async {
-        final dioException = DioException(
-          requestOptions: RequestOptions(path: '/posts/1'),
-          message: 'Something went wrong',
-        );
+    test('should wrap raw DioException without AppException into UnexpectedException', () async {
+      final dioException = DioException(
+        requestOptions: RequestOptions(path: '/posts/1'),
+        message: 'Something went wrong',
+      );
 
-        final future = Future<String>.error(dioException).guard();
+      final future = Future<String>.error(dioException).guard();
 
-        expect(future, throwsA(isA<UnexpectedException>()));
-      },
-    );
+      expect(future, throwsA(isA<UnexpectedException>()));
+    });
 
     test('should rethrow non-Dio exceptions directly', () async {
       final formatException = const FormatException('Invalid json');

@@ -23,9 +23,8 @@ void main() {
       'should return the products for the ids in the cart, in order',
       () async {
         when(() => cart.cart()).thenAnswer((_) async => const Cart(['sku-99']));
-        when(
-          () => products.productById('sku-99'),
-        ).thenAnswer((_) async => product);
+        when(() => products.productById('sku-99'))
+            .thenAnswer((_) async => product);
 
         final items = await handler.execute(const GetCartProductsQuery());
 
@@ -34,12 +33,10 @@ void main() {
     );
 
     test('should drop an id the catalog no longer has', () async {
-      when(
-        () => cart.cart(),
-      ).thenAnswer((_) async => const Cart(['sku-42', 'gone']));
-      when(
-        () => products.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => cart.cart())
+          .thenAnswer((_) async => const Cart(['sku-42', 'gone']));
+      when(() => products.productById('sku-42'))
+          .thenAnswer((_) async => product);
       when(() => products.productById('gone')).thenAnswer((_) async => null);
 
       final items = await handler.execute(const GetCartProductsQuery());

@@ -21,12 +21,10 @@ void main() {
 
     setUp(() {
       products = MockProductRepository();
-      when(
-        () => products.allProducts(),
-      ).thenAnswer((_) async => const [product]);
-      when(
-        () => products.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => products.allProducts())
+          .thenAnswer((_) async => const [product]);
+      when(() => products.productById('sku-42'))
+          .thenAnswer((_) async => product);
     });
 
     test('should dispatch every query the shop declares', () async {

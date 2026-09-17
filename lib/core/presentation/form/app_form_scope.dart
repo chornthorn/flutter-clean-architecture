@@ -109,10 +109,7 @@ class _AppFormScopeState extends State<AppFormScope> {
       onChanged: widget.options.onChanged,
       canPop: widget.options.canPop,
       onPopInvokedWithResult: widget.options.onPopInvokedWithResult,
-      child: AppFormProvider(
-        controller: _controller,
-        child: widget.child,
-      ),
+      child: AppFormProvider(controller: _controller, child: widget.child),
     );
   }
 }

@@ -118,9 +118,8 @@ void main() {
       'should keep the failure and answer failure when an edit fails',
       () async {
         final store = MockPostRepository();
-        when(
-          () => store.postById(1, cancellation: any(named: 'cancellation')),
-        ).thenAnswer((_) async => post);
+        when(() => store.postById(1, cancellation: any(named: 'cancellation')))
+            .thenAnswer((_) async => post);
         when(
           () => store.updatePost(
             id: any(named: 'id'),
@@ -173,12 +172,10 @@ void main() {
       'should keep the failure and answer failure when a delete fails',
       () async {
         final store = MockPostRepository();
-        when(
-          () => store.postById(1, cancellation: any(named: 'cancellation')),
-        ).thenAnswer((_) async => post);
-        when(
-          () => store.deletePost(any()),
-        ).thenAnswer((_) async => throw Exception('offline'));
+        when(() => store.postById(1, cancellation: any(named: 'cancellation')))
+            .thenAnswer((_) async => post);
+        when(() => store.deletePost(any()))
+            .thenAnswer((_) async => throw Exception('offline'));
 
         final viewModel = PostDetailViewModel(postsDispatcher(store));
         addTearDown(viewModel.dispose);
@@ -191,31 +188,33 @@ void main() {
       },
     );
 
-    test('should report a delete in flight over its own use case only', () async {
-      final store = MockPostRepository();
-      when(
-        () => store.postById(1, cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async => post);
-      final inFlight = Completer<void>();
-      when(() => store.deletePost(any())).thenAnswer((_) => inFlight.future);
+    test(
+      'should report a delete in flight over its own use case only',
+      () async {
+        final store = MockPostRepository();
+        when(() => store.postById(1, cancellation: any(named: 'cancellation')))
+            .thenAnswer((_) async => post);
+        final inFlight = Completer<void>();
+        when(() => store.deletePost(any())).thenAnswer((_) => inFlight.future);
 
-      final viewModel = PostDetailViewModel(postsDispatcher(store));
-      addTearDown(viewModel.dispose);
-      await viewModel.load(1);
+        final viewModel = PostDetailViewModel(postsDispatcher(store));
+        addTearDown(viewModel.dispose);
+        await viewModel.load(1);
 
-      final deleting = viewModel.deletePost(1);
+        final deleting = viewModel.deletePost(1);
 
-      // Which write is on the wire is read off its own use case, and no other state reports it.
-      expect(viewModel.delete.value.isLoading, isTrue);
-      expect(viewModel.update.value.isLoading, isFalse);
-      expect(viewModel.post.value.isLoading, isFalse);
+        // Which write is on the wire is read off its own use case, and no other state reports it.
+        expect(viewModel.delete.value.isLoading, isTrue);
+        expect(viewModel.update.value.isLoading, isFalse);
+        expect(viewModel.post.value.isLoading, isFalse);
 
-      inFlight.complete();
+        inFlight.complete();
 
-      expect((await deleting).isSuccess, isTrue);
-      expect(viewModel.delete.value.isLoading, isFalse);
-      expect(viewModel.delete.value.hasError, isFalse);
-    });
+        expect((await deleting).isSuccess, isTrue);
+        expect(viewModel.delete.value.isLoading, isFalse);
+        expect(viewModel.delete.value.hasError, isFalse);
+      },
+    );
 
     test('should let go of a read its page walked away from', () async {
       final repository = MockPostRepository();

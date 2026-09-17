@@ -129,9 +129,8 @@ void main() {
       tester,
     ) async {
       final store = MockPostRepository();
-      when(
-        () => store.postById(1, cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async => post);
+      when(() => store.postById(1, cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) async => post);
       // The delete never answers, so the page stays on the in-flight state.
       final inFlight = Completer<void>();
       when(() => store.deletePost(any())).thenAnswer((_) => inFlight.future);

@@ -15,9 +15,8 @@ void main() {
   group('PostsHomeViewModel', () {
     test('should report loading until the list arrives', () async {
       final repository = MockPostRepository();
-      when(
-        () => repository.allPosts(cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async => const [post]);
+      when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) async => const [post]);
 
       final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
@@ -33,9 +32,8 @@ void main() {
 
     test('should hold a failure in error instead of throwing', () async {
       final repository = MockPostRepository();
-      when(
-        () => repository.allPosts(cancellation: any(named: 'cancellation')),
-      ).thenAnswer((_) async => throw Exception('offline'));
+      when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) async => throw Exception('offline'));
 
       final viewModel = PostsHomeViewModel(postsDispatcher(repository));
       addTearDown(viewModel.dispose);
@@ -80,29 +78,25 @@ void main() {
       );
     });
 
-    test(
-      'should return ActionFailure with field errors when createPost validation fails',
-      () async {
-        final store = InMemoryPostRepository();
-        final viewModel = PostsHomeViewModel(postsDispatcher(store));
-        addTearDown(viewModel.dispose);
+    test('should return ActionFailure with field errors when createPost validation fails', () async {
+      final store = InMemoryPostRepository();
+      final viewModel = PostsHomeViewModel(postsDispatcher(store));
+      addTearDown(viewModel.dispose);
 
-        final result = await viewModel.createPost(title: 'Hey', body: 'A body');
+      final result = await viewModel.createPost(title: 'Hey', body: 'A body');
 
-        expect(result.isFailure, isTrue);
-        expect((result as ActionFailure).fieldErrors, {
-          'title': 'Title must be at least 5 characters.',
-        });
-      },
-    );
+      expect(result.isFailure, isTrue);
+      expect((result as ActionFailure).fieldErrors, {
+        'title': 'Title must be at least 5 characters.',
+      });
+    });
 
     test(
       'should keep the failure and answer failure when a create fails',
       () async {
         final store = MockPostRepository();
-        when(
-          () => store.allPosts(cancellation: any(named: 'cancellation')),
-        ).thenAnswer((_) async => const [post]);
+        when(() => store.allPosts(cancellation: any(named: 'cancellation')))
+            .thenAnswer((_) async => const [post]);
         when(
           () => store.createPost(
             userId: any(named: 'userId'),

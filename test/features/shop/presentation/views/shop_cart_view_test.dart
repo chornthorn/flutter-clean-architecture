@@ -16,13 +16,11 @@ void main() {
       tester,
     ) async {
       final cart = MockCartRepository();
-      when(
-        () => cart.cart(),
-      ).thenAnswer((_) async => const Cart(['sku-42', 'sku-42']));
+      when(() => cart.cart())
+          .thenAnswer((_) async => const Cart(['sku-42', 'sku-42']));
       final products = MockProductRepository();
-      when(
-        () => products.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => products.productById('sku-42'))
+          .thenAnswer((_) async => product);
 
       final viewModel = ShopCartViewModel(shopDispatcher(products, cart: cart));
       addTearDown(viewModel.dispose);
@@ -53,9 +51,8 @@ void main() {
 
     testWidgets('should report a cart that could not be read', (tester) async {
       final cart = MockCartRepository();
-      when(
-        () => cart.cart(),
-      ).thenAnswer((_) async => throw Exception('offline'));
+      when(() => cart.cart())
+          .thenAnswer((_) async => throw Exception('offline'));
 
       final viewModel = ShopCartViewModel(
         shopDispatcher(MockProductRepository(), cart: cart),
@@ -80,9 +77,8 @@ void main() {
         return const Cart(['sku-42']);
       });
       final products = MockProductRepository();
-      when(
-        () => products.productById('sku-42'),
-      ).thenAnswer((_) async => product);
+      when(() => products.productById('sku-42'))
+          .thenAnswer((_) async => product);
 
       final viewModel = ShopCartViewModel(shopDispatcher(products, cart: cart));
       addTearDown(viewModel.dispose);

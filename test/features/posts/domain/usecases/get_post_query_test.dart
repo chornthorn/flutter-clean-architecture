@@ -15,9 +15,8 @@ void main() {
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => post);
 
-      final found = await GetPostQueryHandler(
-        repository,
-      ).execute(const GetPostQuery(1));
+      final found = await GetPostQueryHandler(repository)
+          .execute(const GetPostQuery(1));
 
       expect(found, post);
     });
@@ -29,9 +28,8 @@ void main() {
             repository.postById(999, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => null);
 
-      final found = await GetPostQueryHandler(
-        repository,
-      ).execute(const GetPostQuery(999));
+      final found = await GetPostQueryHandler(repository)
+          .execute(const GetPostQuery(999));
 
       expect(found, isNull);
     });
@@ -43,13 +41,11 @@ void main() {
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => post);
 
-      await GetPostQueryHandler(
-        repository,
-      ).execute(GetPostQuery(1, cancellation: walkedAway.future));
+      await GetPostQueryHandler(repository)
+          .execute(GetPostQuery(1, cancellation: walkedAway.future));
 
-      verify(
-        () => repository.postById(1, cancellation: walkedAway.future),
-      ).called(1);
+      verify(() => repository.postById(1, cancellation: walkedAway.future))
+          .called(1);
     });
   });
 }

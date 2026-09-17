@@ -10,9 +10,8 @@ void main() {
       final auditLog = MockAuditLog();
       when(() => auditLog.append(any())).thenAnswer((_) async {});
 
-      await ProductAddedToCartAuditHandler(
-        auditLog,
-      ).handle(const ProductAddedToCartEvent('sku-42', 2));
+      await ProductAddedToCartAuditHandler(auditLog)
+          .handle(const ProductAddedToCartEvent('sku-42', 2));
 
       verify(() => auditLog.append('product.added sku-42 items=2')).called(1);
     });

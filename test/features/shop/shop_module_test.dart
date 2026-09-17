@@ -20,12 +20,10 @@ void main() {
     await configureDependencies(environment: Environment.test);
 
     repository = MockProductRepository();
-    when(
-      () => repository.allProducts(),
-    ).thenAnswer((_) async => const [product]);
-    when(
-      () => repository.productById('sku-42'),
-    ).thenAnswer((_) async => product);
+    when(() => repository.allProducts())
+        .thenAnswer((_) async => const [product]);
+    when(() => repository.productById('sku-42'))
+        .thenAnswer((_) async => product);
 
     await getIt.unregister<ProductRepository>();
     getIt.registerLazySingleton<ProductRepository>(() => repository);

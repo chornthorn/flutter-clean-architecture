@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
+import '../../../../core/design_system/components/app_buttons.dart';
+import '../../../../core/design_system/components/app_failure_line.dart';
 import '../../../../core/design_system/components/app_text_field.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/form/app_form_controller.dart';
 import '../../../../core/presentation/form/app_form_scope.dart';
 
-/// Modal dialog for creating or editing a post.
-///
-/// Features:
-/// - Uses [AppFormScope] and [AppFormController] to integrate client-side
-///   validation and server-side field error mappings.
-/// - Demonstrates form-level [AppFormOptions] with `autovalidateMode: AutovalidateMode.onUserInteraction`.
-/// - Leverages design system [AppTextField] components with automated error styling.
+// Collects a post and hands it to the page, which owns the write call.
 class PostFormDialog extends StatefulWidget {
   const PostFormDialog({
     super.key,
@@ -24,8 +20,12 @@ class PostFormDialog extends StatefulWidget {
   });
 
   final String heading;
+
   final String submitLabel;
+
+  // Answers the result of the write: success or failure message/fields.
   final Future<ActionResult> Function(String title, String body) onSubmit;
+
   final String initialTitle;
   final String initialBody;
 
@@ -87,7 +87,7 @@ class _PostFormDialogState extends State<PostFormDialog> {
 
     return AppFormScope(
       controller: _form,
-      options: const .options(autovalidateMode: AutovalidateMode.onUserInteraction),
+      options: const .options(autovalidateMode: .onUserInteraction),
       child: AlertDialog(
         backgroundColor: theme.colors.surface.card,
         shape: RoundedRectangleBorder(
@@ -102,7 +102,6 @@ class _PostFormDialogState extends State<PostFormDialog> {
               controller: _title,
               label: 'Title',
               validator: (value) {
-                // keep it here is I want to demo both client and server validation
                 if (value == null || value.trim().length < 5) {
                   return 'Title must be at least 5 characters.';
                 }
@@ -113,29 +112,23 @@ class _PostFormDialogState extends State<PostFormDialog> {
             AppTextField(fieldKey: 'body', controller: _body, label: 'Body'),
             if (_errorMessage != null) ...[
               SizedBox(height: theme.sizes.spacing.md),
-              Text(
-                _errorMessage!,
-                style: theme.typography.body.regular.copyWith(
-                  color: theme.colors.feedback.danger,
-                ),
-              ),
+              AppFailureLine(message: _errorMessage!),
             ],
           ],
         ),
         actions: [
-          TextButton(
+          AppTextButton(
+            label: 'Cancel',
             onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-            child: Text('Cancel', style: theme.typography.body.regular),
           ),
-          FilledButton(
-            onPressed: _isSubmitting ? null : _submit,
-            child: _isSubmitting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(widget.submitLabel, style: theme.typography.body.regular),
+          // A title the domain will reject is not worth a round trip to say so.
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _title,
+            builder: (context, value, _) => AppFilledButton(
+              label: widget.submitLabel,
+              isEnabled: !_isSubmitting && value.text.trim().isNotEmpty,
+              onPressed: _submit,
+            ),
           ),
         ],
       ),

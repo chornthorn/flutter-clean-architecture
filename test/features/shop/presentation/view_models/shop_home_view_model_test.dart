@@ -39,9 +39,8 @@ void main() {
 
     test('should expose the catalog read through the query', () async {
       final repository = MockProductRepository();
-      when(
-        () => repository.allProducts(),
-      ).thenAnswer((_) async => const [product]);
+      when(() => repository.allProducts())
+          .thenAnswer((_) async => const [product]);
 
       final viewModel = ShopHomeViewModel(shopDispatcher(repository));
       addTearDown(viewModel.dispose);
@@ -58,9 +57,8 @@ void main() {
 
     test('should hold a failure in error instead of throwing', () async {
       final repository = MockProductRepository();
-      when(
-        () => repository.allProducts(),
-      ).thenAnswer((_) async => throw Exception('offline'));
+      when(() => repository.allProducts())
+          .thenAnswer((_) async => throw Exception('offline'));
 
       final viewModel = ShopHomeViewModel(shopDispatcher(repository));
       addTearDown(viewModel.dispose);

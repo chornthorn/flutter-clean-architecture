@@ -19,15 +19,13 @@ void main() {
 
     test('should install the logging interceptor only when asked', () {
       expect(
-        createNetworkClient(
-          logRequests: true,
-        ).interceptors.whereType<LogInterceptor>(),
+        createNetworkClient(logRequests: true).interceptors
+            .whereType<LogInterceptor>(),
         hasLength(1),
       );
       expect(
-        createNetworkClient(
-          logRequests: false,
-        ).interceptors.whereType<LogInterceptor>(),
+        createNetworkClient(logRequests: false).interceptors
+            .whereType<LogInterceptor>(),
         isEmpty,
       );
     });
