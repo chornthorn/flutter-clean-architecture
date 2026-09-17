@@ -134,7 +134,7 @@ class PostDetailView extends StatelessWidget {
       builder: (_) => PostFormDialog(
         heading: 'Edit post',
         submitLabel: 'Save',
-        formController: viewModel.form,
+        formController: viewModel.updateFormController,
         onSubmit: () async {
           final result = await viewModel.updatePost(post.id);
           if (result case ActionSuccess(:final message) when message != null) {

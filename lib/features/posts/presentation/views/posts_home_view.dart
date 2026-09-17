@@ -123,7 +123,7 @@ class PostsHomeView extends StatelessWidget {
       builder: (_) => PostFormDialog(
         heading: 'New post',
         submitLabel: 'Create',
-        formController: viewModel.form,
+        formController: viewModel.createFormController,
         onSubmit: () async {
           final result = await viewModel.createPost();
           if (result case ActionSuccess(:final message)

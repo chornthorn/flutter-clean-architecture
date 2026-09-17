@@ -115,7 +115,7 @@ a changing signal rebuilds.
 
 ```dart
 // A view model exposes signals:
-class PostsHomeViewModel implements ViewModel {
+class PostViewModel implements ViewModel {
   final posts = signal<AsyncState<List<Post>>>(const AsyncLoading());
   ...
 }
@@ -157,7 +157,7 @@ cancelled through `Cancellation`:
 
 ```dart
 // In a view model:
-class PostsHomeViewModel implements ViewModel {
+class PostViewModel implements ViewModel {
   final _cancellation = CancellationSource();
 
   Future<void> load() async {

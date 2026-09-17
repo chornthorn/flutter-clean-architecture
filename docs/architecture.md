@@ -188,8 +188,8 @@ The route owns the view model — the container's factory scope does not dispose
 it builds:
 
 ```dart
-Provider<PostDetailViewModel>(
-  create: (_) => getIt<PostDetailViewModel>()..load(id),
+Provider<PostViewModel>(
+  create: (_) => getIt<PostViewModel>()..load(id),
   dispose: (_, viewModel) => viewModel.dispose(),
   child: PostDetailView(id: id),
 ),
