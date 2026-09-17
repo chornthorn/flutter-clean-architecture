@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/presentation/action_result.dart';
 import 'package:flutter_x/core/presentation/form/app_form_controller.dart';
-import 'package:flutter_x/core/presentation/form/form_field_key.dart';
 import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
-import 'package:flutter_x/features/posts/presentation/widgets/post_form_field.dart';
 
 import '../../../../app/view_host.dart';
 
@@ -56,7 +54,10 @@ void main() {
     testWidgets('should not offer to submit a post with no title', (
       tester,
     ) async {
-      await openDialog(tester, (form) async => const ActionResult.success());
+      await openDialog(
+        tester,
+        (form) async => const ActionResult.success(),
+      );
 
       final submit = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'Create'),
@@ -117,7 +118,8 @@ void main() {
     ) async {
       await openDialog(
         tester,
-        (form) async => const ActionResult.failure('Could not save the post.'),
+        (form) async =>
+            const ActionResult.failure('Could not save the post.'),
       );
 
       await tester.enterText(
@@ -183,15 +185,19 @@ void main() {
       final form = AppFormController();
       addTearDown(form.dispose);
 
-      await openDialog(tester, (formCtrl) async {
-        final result = const ActionResult.failure(
-          'Server validation failed',
-          fieldErrors: {'title': 'Server says title already taken'},
-        );
-        // ViewModel binds the result directly
-        formCtrl.bind(result);
-        return result;
-      }, formController: form);
+      await openDialog(
+        tester,
+        (formCtrl) async {
+          final result = const ActionResult.failure(
+            'Server validation failed',
+            fieldErrors: {'title': 'Server says title already taken'},
+          );
+          // ViewModel binds the result directly
+          formCtrl.bind(result);
+          return result;
+        },
+        formController: form,
+      );
 
       await tester.enterText(
         find.widgetWithText(TextField, 'Title'),

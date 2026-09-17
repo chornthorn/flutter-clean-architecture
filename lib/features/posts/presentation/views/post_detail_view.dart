@@ -26,7 +26,7 @@ class PostDetailView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Post'),
+        title: Text('Post $id'),
         actions: [
           SignalBuilder(
             builder: (context) {

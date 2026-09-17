@@ -3,6 +3,7 @@ import 'package:kaisel/kaisel.dart';
 import 'package:provider/provider.dart';
 import 'package:signals/signals_flutter.dart';
 
+import '../../../../app/app_route.dart';
 import '../../../../core/design_system/components/app_toast.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../domain/entities/post.dart';
@@ -31,6 +32,11 @@ class PostsHomeView extends StatelessWidget {
             tooltip: 'New post',
             onPressed: () => _compose(context, viewModel),
           ),
+          IconButton(
+            icon: const Icon(Icons.close),
+            tooltip: 'Exit posts',
+            onPressed: () => context.router<AppRoute>().pop(),
+          ),
         ],
       ),
       body: SignalBuilder(
@@ -58,7 +64,10 @@ class PostsHomeView extends StatelessWidget {
         children: [
           const Text('Could not load posts.'),
           const SizedBox(height: 12),
-          FilledButton(onPressed: viewModel.load, child: const Text('Retry')),
+          FilledButton(
+            onPressed: viewModel.load,
+            child: const Text('Try again'),
+          ),
         ],
       ),
     );
@@ -117,7 +126,8 @@ class PostsHomeView extends StatelessWidget {
         formController: viewModel.form,
         onSubmit: () async {
           final result = await viewModel.createPost();
-          if (result case ActionSuccess(:final message) when message != null) {
+          if (result case ActionSuccess(:final message)
+              when message != null) {
             if (context.mounted) {
               AppToast.showSuccess(context, message);
             }
