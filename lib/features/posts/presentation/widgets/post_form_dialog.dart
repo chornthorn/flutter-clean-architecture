@@ -42,7 +42,7 @@ class PostFormDialog extends StatelessWidget {
     return AppFormScope(
       controller: formController,
       options: const AppFormOptions(
-        autovalidateMode: AutovalidateMode.onUserInteraction,
+        autovalidateMode: AutovalidateMode.onUserInteractionIfError,
       ),
       child: Center(
         child: ConstrainedBox(
@@ -85,11 +85,16 @@ class PostFormDialog extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 12),
-                  const AppTextField(
+                  AppTextField(
                     fieldKey: FormFieldKey(PostFormField.body),
                     label: 'Body',
                     hintText: 'Write something...',
                     maxLines: 4,
+                    validator: (value) {
+                      final trimmed = (value ?? '').trim();
+                      if (trimmed.isEmpty) return 'Body cannot be empty.';
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -112,12 +117,9 @@ class PostFormDialog extends StatelessWidget {
                         builder: (context) {
                           final isSubmitting =
                               formController.isSubmitting.value;
-                          final title = formController
-                              .signal(const FormFieldKey(PostFormField.title))
-                              .value;
                           return AppFilledButton(
                             label: submitLabel,
-                            isEnabled: title.trim().isNotEmpty,
+                            isEnabled: formController.isValid.value,
                             isLoading: isSubmitting,
                             onPressed: () => _submit(context),
                           );

@@ -69,6 +69,37 @@ void main() {
       expect(submit.onPressed, isNull);
     });
 
+    testWidgets(
+      'should gate submit on the whole form, not on a non-empty field',
+      (tester) async {
+        await openDialog(tester, (form) async => const ActionResult.success());
+
+        // 'Hey' is not empty, but it is not a title this form accepts either.
+        await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Hey');
+        await tester.pump();
+
+        expect(
+          tester
+              .widget<FilledButton>(find.widgetWithText(FilledButton, 'Create'))
+              .onPressed,
+          isNull,
+        );
+
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Title'),
+          'A proper title',
+        );
+        await tester.pump();
+
+        expect(
+          tester
+              .widget<FilledButton>(find.widgetWithText(FilledButton, 'Create'))
+              .onPressed,
+          isNotNull,
+        );
+      },
+    );
+
     testWidgets('should start an edit filled in and ready to save', (
       tester,
     ) async {

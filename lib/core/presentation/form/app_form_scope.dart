@@ -109,7 +109,12 @@ class _AppFormScopeState extends State<AppFormScope> {
     return Form(
       key: _formKey,
       autovalidateMode: widget.options.autovalidateMode,
-      onChanged: widget.options.onChanged,
+      onChanged: () {
+        // Fields are live state on the Form, so the controller needs telling
+        // before it can re-judge validity for whoever gates on it.
+        _controller.markFieldChanged();
+        widget.options.onChanged?.call();
+      },
       canPop: widget.options.canPop,
       onPopInvokedWithResult: widget.options.onPopInvokedWithResult,
       child: AppFormProvider(controller: _controller, child: widget.child),

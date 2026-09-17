@@ -306,6 +306,81 @@ void main() {
       },
     );
 
+    testWidgets('should call a form with no fields valid', (tester) async {
+      final controller = AppFormController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        hostShell(
+          AppFormScope(controller: controller, child: const SizedBox()),
+        ),
+      );
+
+      expect(controller.isValid.value, isTrue);
+    });
+
+    testWidgets('should judge every field, and show no error while doing it', (
+      tester,
+    ) async {
+      final controller = AppFormController();
+      addTearDown(controller.dispose);
+      const titleKey = FormFieldKey(_TestScopeField.title);
+      const emailKey = FormFieldKey(_TestScopeField.email);
+
+      await tester.pumpWidget(
+        hostShell(
+          AppFormScope(
+            controller: controller,
+            child: Scaffold(
+              body: Column(
+                children: [
+                  AppTextField(
+                    fieldKey: titleKey,
+                    label: 'Title',
+                    validator: (value) =>
+                        (value ?? '').isEmpty ? 'Title is required' : null,
+                  ),
+                  AppTextField(
+                    fieldKey: emailKey,
+                    label: 'Email',
+                    validator: (value) =>
+                        (value ?? '').contains('@') ? null : 'Email is invalid',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Both fields are empty, and neither has been told off for it yet.
+      expect(controller.isValid.value, isFalse);
+      expect(find.text('Title is required'), findsNothing);
+      expect(find.text('Email is invalid'), findsNothing);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Title'),
+        'A title',
+      );
+      await tester.pump();
+
+      // One field passing is not the form passing.
+      expect(controller.isValid.value, isFalse);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Email'),
+        'someone@example.com',
+      );
+      await tester.pump();
+
+      expect(controller.isValid.value, isTrue);
+
+      await tester.enterText(find.widgetWithText(TextField, 'Email'), 'nope');
+      await tester.pump();
+
+      expect(controller.isValid.value, isFalse);
+    });
+
     testWidgets('should manage internal AppFormController if none provided', (
       tester,
     ) async {

@@ -51,11 +51,10 @@ class PostsHomeView extends StatelessWidget {
     final theme = context.theme;
 
     return switch (state) {
-      AsyncData<List<Post>>(:final value) when value.isEmpty =>
-        const AppNotice(
-          icon: Icons.article_outlined,
-          message: 'No posts yet.',
-        ),
+      AsyncData<List<Post>>(:final value) when value.isEmpty => const AppNotice(
+        icon: Icons.article_outlined,
+        message: 'No posts yet.',
+      ),
       AsyncData<List<Post>>(:final value) => _buildPosts(context, value),
       AsyncError<List<Post>>() => AppNotice(
         icon: Icons.cloud_off_outlined,

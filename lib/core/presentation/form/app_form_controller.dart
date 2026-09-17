@@ -1,4 +1,8 @@
 import 'package:flutter/widgets.dart';
+// The prefixed import is for the package's functions: this class has its own
+// `signal()` method, and an instance member shadows the top-level function
+// inside the class body. Types (`Signal`, `ReadonlySignal`) come from the plain
+// import below.
 import 'package:signals/signals_flutter.dart' as sig;
 import 'package:signals/signals_flutter.dart';
 
@@ -62,6 +66,25 @@ class AppFormController extends ChangeNotifier {
 
   /// General form error message (not tied to a specific field).
   final Signal<String?> errorMessage = sig.signal<String?>(null);
+
+  /// Bumped by every field change, so [isValid] re-judges the form.
+  final Signal<int> _revision = sig.signal(0);
+
+  /// Whether every field in the form currently passes the validator it declared.
+  ///
+  /// Flutter's passive check: reading it does not raise error text on fields the
+  /// user has not reached, so a submit button can gate on the whole form without
+  /// the form shouting first. True while the form holds no fields at all.
+  late final ReadonlySignal<bool> isValid = sig.computed(() {
+    // The revision is the dependency that makes this recompute; the fields
+    // themselves are live state, not signals.
+    final _ = _revision.value;
+    return formState?.fields.every((field) => field.isValid) ?? true;
+  });
+
+  /// Tells the controller the form's fields changed. [AppFormScope] wires this
+  /// to Flutter's [Form.onChanged], which every field change goes through.
+  void markFieldChanged() => _revision.value++;
 
   final Map<String, String> _errors;
   final Map<String, String> _initialValues;
@@ -325,6 +348,8 @@ class AppFormController extends ChangeNotifier {
     }
     _controllers.clear();
     _signals.clear();
+    isValid.dispose();
+    _revision.dispose();
     isSubmitting.dispose();
     errorMessage.dispose();
     super.dispose();

@@ -75,17 +75,11 @@ class PostDetailView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    value!.title,
-                    style: theme.typography.title.semiBold,
-                  ),
+                  Text(value!.title, style: theme.typography.title.semiBold),
                   SizedBox(height: theme.sizes.spacing.sm),
                   PostByline(userId: value.userId),
                   const Divider(height: 24),
-                  Text(
-                    value.body,
-                    style: theme.typography.body.regular,
-                  ),
+                  Text(value.body, style: theme.typography.body.regular),
                 ],
               ),
             ),
