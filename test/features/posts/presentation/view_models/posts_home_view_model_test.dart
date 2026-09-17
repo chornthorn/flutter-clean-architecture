@@ -87,16 +87,12 @@ void main() {
         final viewModel = PostsHomeViewModel(postsDispatcher(store));
         addTearDown(viewModel.dispose);
 
-        final result = await viewModel.createPost(
-          title: 'Hey',
-          body: 'A body',
-        );
+        final result = await viewModel.createPost(title: 'Hey', body: 'A body');
 
         expect(result.isFailure, isTrue);
-        expect(
-          (result as ActionFailure).fieldErrors,
-          {'title': 'Title must be at least 5 characters.'},
-        );
+        expect((result as ActionFailure).fieldErrors, {
+          'title': 'Title must be at least 5 characters.',
+        });
       },
     );
 

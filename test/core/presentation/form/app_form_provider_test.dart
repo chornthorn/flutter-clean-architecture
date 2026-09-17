@@ -42,10 +42,7 @@ void main() {
             AppFormProvider(
               controller: controller,
               child: Scaffold(
-                body: AppTextField(
-                  fieldKey: 'title',
-                  label: 'Title',
-                ),
+                body: AppTextField(fieldKey: 'title', label: 'Title'),
               ),
             ),
           ),
@@ -66,37 +63,33 @@ void main() {
       },
     );
 
-    testWidgets(
-      'should clear field error as soon as user types into field',
-      (tester) async {
-        final controller = AppFormController();
+    testWidgets('should clear field error as soon as user types into field', (
+      tester,
+    ) async {
+      final controller = AppFormController();
 
-        await tester.pumpWidget(
-          hostShell(
-            AppFormProvider(
-              controller: controller,
-              child: Scaffold(
-                body: AppTextField(
-                  fieldKey: 'title',
-                  label: 'Title',
-                ),
-              ),
+      await tester.pumpWidget(
+        hostShell(
+          AppFormProvider(
+            controller: controller,
+            child: Scaffold(
+              body: AppTextField(fieldKey: 'title', label: 'Title'),
             ),
           ),
-        );
+        ),
+      );
 
-        controller.setField('title', 'Server error');
-        await tester.pump();
-        expect(find.text('Server error'), findsOneWidget);
+      controller.setField('title', 'Server error');
+      await tester.pump();
+      expect(find.text('Server error'), findsOneWidget);
 
-        // Type into the field -> error is cleared immediately
-        await tester.enterText(find.byType(TextField), 'New post title');
-        await tester.pump();
+      // Type into the field -> error is cleared immediately
+      await tester.enterText(find.byType(TextField), 'New post title');
+      await tester.pump();
 
-        expect(find.text('Server error'), findsNothing);
-        expect(controller['title'], isNull);
-      },
-    );
+      expect(find.text('Server error'), findsNothing);
+      expect(controller['title'], isNull);
+    });
 
     testWidgets(
       'should isolate multiple forms on one screen with independent form providers',
@@ -161,30 +154,29 @@ void main() {
       },
     );
 
-    testWidgets(
-      'should respect explicit errorText override over scope',
-      (tester) async {
-        final controller = AppFormController();
-        controller.setField('title', 'Scoped error');
+    testWidgets('should respect explicit errorText override over scope', (
+      tester,
+    ) async {
+      final controller = AppFormController();
+      controller.setField('title', 'Scoped error');
 
-        await tester.pumpWidget(
-          hostShell(
-            AppFormProvider(
-              controller: controller,
-              child: Scaffold(
-                body: AppTextField(
-                  fieldKey: 'title',
-                  label: 'Title',
-                  errorText: 'Explicit override',
-                ),
+      await tester.pumpWidget(
+        hostShell(
+          AppFormProvider(
+            controller: controller,
+            child: Scaffold(
+              body: AppTextField(
+                fieldKey: 'title',
+                label: 'Title',
+                errorText: 'Explicit override',
               ),
             ),
           ),
-        );
+        ),
+      );
 
-        expect(find.text('Explicit override'), findsOneWidget);
-        expect(find.text('Scoped error'), findsNothing);
-      },
-    );
+      expect(find.text('Explicit override'), findsOneWidget);
+      expect(find.text('Scoped error'), findsNothing);
+    });
   });
 }

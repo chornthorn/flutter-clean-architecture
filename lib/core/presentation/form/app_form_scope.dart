@@ -4,30 +4,20 @@ import 'app_form_controller.dart';
 import 'app_form_provider.dart';
 
 /// Bundles all original Flutter [Form] parameters into a single configuration object.
-class AppFormOptions {
-  const AppFormOptions({
-    this.key,
-    this.autovalidateMode = AutovalidateMode.disabled,
-    this.onChanged,
-    this.canPop,
-    this.onPopInvokedWithResult,
-  });
-
-  /// Optional [GlobalKey] to override the form key. If null, [AppFormScope]
-  /// automatically uses the [AppFormController.formKey].
-  final GlobalKey<FormState>? key;
-
-  /// Controls when client-side validators run on enclosed [FormField]s.
-  final AutovalidateMode autovalidateMode;
-
-  /// Called whenever any enclosed field's value changes.
-  final VoidCallback? onChanged;
-
-  /// Controls whether this form's route can be popped.
-  final bool? canPop;
-
-  /// Callback fired when a pop is invoked with result.
-  final PopInvokedWithResultCallback<dynamic>? onPopInvokedWithResult;
+class const AppFormOptions.options({
+  final GlobalKey<FormState>? key,
+  final AutovalidateMode autovalidateMode = AutovalidateMode.disabled,
+  final VoidCallback? onChanged,
+  final bool? canPop,
+  final PopInvokedWithResultCallback<dynamic>? onPopInvokedWithResult,
+}) {
+  const factory AppFormOptions({
+    GlobalKey<FormState>? key,
+    AutovalidateMode autovalidateMode,
+    VoidCallback? onChanged,
+    bool? canPop,
+    PopInvokedWithResultCallback<dynamic>? onPopInvokedWithResult,
+  }) = AppFormOptions.options;
 }
 
 /// A form-level scope widget built directly on top of Flutter's [Form].

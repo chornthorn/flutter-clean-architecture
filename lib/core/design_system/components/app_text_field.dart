@@ -101,15 +101,17 @@ class AppTextField extends StatelessWidget {
     final formProvider = AppFormProvider.maybeOf(context);
 
     // Look up any active server error for this field
-    final serverError =
-        (fieldKey != null && formProvider != null) ? formProvider[fieldKey!] : null;
+    final serverError = (fieldKey != null && formProvider != null)
+        ? formProvider[fieldKey!]
+        : null;
 
     // Precedence: explicit errorText -> server error (validator handled by TextFormField)
     final effectiveErrorText = errorText ?? serverError;
 
     // Flutter's TextFormField defaults autovalidateMode to disabled if null.
     // Explicitly inherit from parent Form / AppFormScope if not specified locally.
-    final effectiveAutovalidateMode = autovalidateMode ??
+    final effectiveAutovalidateMode =
+        autovalidateMode ??
         Form.maybeOf(context)?.widget.autovalidateMode ??
         AutovalidateMode.disabled;
 
@@ -132,7 +134,9 @@ class AppTextField extends StatelessWidget {
       onSaved: onSaved,
       onChanged: (value) {
         // Auto-clear server error when the user modifies text
-        if (fieldKey != null && formProvider != null && formProvider.hasField(fieldKey!)) {
+        if (fieldKey != null &&
+            formProvider != null &&
+            formProvider.hasField(fieldKey!)) {
           formProvider.clearField(fieldKey!);
         }
         onChanged?.call(value);

@@ -13,14 +13,14 @@ class AppFormController extends ChangeNotifier {
   AppFormController([
     Map<String, String> initial = const {},
     GlobalKey<FormState>? formKey,
-  ])  : _errors = Map<String, String>.from(initial),
-        formKey = formKey ?? GlobalKey<FormState>();
+  ]) : _errors = Map<String, String>.from(initial),
+       formKey = formKey ?? GlobalKey<FormState>();
 
   /// Named constructor to explicitly supply a custom [formKey].
   AppFormController.withKey(
     this.formKey, [
     Map<String, String> initial = const {},
-  ])  : _errors = Map<String, String>.from(initial);
+  ]) : _errors = Map<String, String>.from(initial);
 
   final Map<String, String> _errors;
 

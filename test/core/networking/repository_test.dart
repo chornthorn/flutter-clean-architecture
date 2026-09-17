@@ -45,13 +45,10 @@ void main() {
         final source = CancellationSource();
         CancelToken? receivedToken;
 
-        final result = await repository.execute(
-          (token) {
-            receivedToken = token;
-            return Future.value('success');
-          },
-          cancellation: source.token,
-        );
+        final result = await repository.execute((token) {
+          receivedToken = token;
+          return Future.value('success');
+        }, cancellation: source.token);
 
         expect(result, 'success');
         expect(receivedToken, isNotNull);
@@ -153,10 +150,7 @@ void main() {
             cancellation: source.token,
           );
 
-          await expectLater(
-            call,
-            throwsA(isA<CancelledException>()),
-          );
+          await expectLater(call, throwsA(isA<CancelledException>()));
           expect(adapter.hasPending('/items'), isFalse);
         },
       );
@@ -167,7 +161,8 @@ void main() {
           final source = CancellationSource();
 
           final call = repository.execute(
-            (token) => dio.get<Map<String, dynamic>>('/items', cancelToken: token),
+            (token) =>
+                dio.get<Map<String, dynamic>>('/items', cancelToken: token),
             cancellation: source.token,
           );
 
@@ -192,7 +187,8 @@ void main() {
           );
 
           final callB = repository.execute(
-            (token) => dio.get<Map<String, dynamic>>('/item-b', cancelToken: token),
+            (token) =>
+                dio.get<Map<String, dynamic>>('/item-b', cancelToken: token),
             cancellation: sourceB.token,
           );
 
@@ -220,24 +216,18 @@ void main() {
         },
       );
 
-      test(
-        'should complete normally when cancellation is null',
-        () async {
-          final call = repository.execute(
-            (token) {
-              expect(token, isNull);
-              return dio.get<Map<String, dynamic>>('/items', cancelToken: token);
-            },
-            cancellation: null,
-          );
+      test('should complete normally when cancellation is null', () async {
+        final call = repository.execute((token) {
+          expect(token, isNull);
+          return dio.get<Map<String, dynamic>>('/items', cancelToken: token);
+        }, cancellation: null);
 
-          await pumpEventQueue();
-          adapter.respondJson('/items', {'items': []});
+        await pumpEventQueue();
+        adapter.respondJson('/items', {'items': []});
 
-          final response = await call;
-          expect(response.data, {'items': []});
-        },
-      );
+        final response = await call;
+        expect(response.data, {'items': []});
+      });
     });
   });
 }

@@ -46,70 +46,84 @@ void main() {
       expect(find.text('Error'), findsOneWidget);
     });
 
-    testWidgets('should autovalidate AppTextField immediately when autovalidateMode is always', (tester) async {
-      await tester.pumpWidget(
-        hostShell(
-          AppFormScope(
-            options: const AppFormOptions(
-              autovalidateMode: AutovalidateMode.always,
-            ),
-            child: Scaffold(
-              body: AppTextField(
-                fieldKey: 'title',
-                label: 'Title',
-                validator: (value) => (value == null || value.length < 5)
-                    ? 'Title must be at least 5 characters'
-                    : null,
+    testWidgets(
+      'should autovalidate AppTextField immediately when autovalidateMode is always',
+      (tester) async {
+        await tester.pumpWidget(
+          hostShell(
+            AppFormScope(
+              options: const AppFormOptions(
+                autovalidateMode: AutovalidateMode.always,
+              ),
+              child: Scaffold(
+                body: AppTextField(
+                  fieldKey: 'title',
+                  label: 'Title',
+                  validator: (value) => (value == null || value.length < 5)
+                      ? 'Title must be at least 5 characters'
+                      : null,
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      // Without any clicks or edits, autovalidateMode.always shows the error immediately
-      expect(find.text('Title must be at least 5 characters'), findsOneWidget);
+        // Without any clicks or edits, autovalidateMode.always shows the error immediately
+        expect(
+          find.text('Title must be at least 5 characters'),
+          findsOneWidget,
+        );
 
-      // Typing valid characters clears the error
-      await tester.enterText(find.byType(TextField), 'Hello World');
-      await tester.pump();
-      expect(find.text('Title must be at least 5 characters'), findsNothing);
-    });
+        // Typing valid characters clears the error
+        await tester.enterText(find.byType(TextField), 'Hello World');
+        await tester.pump();
+        expect(find.text('Title must be at least 5 characters'), findsNothing);
+      },
+    );
 
-    testWidgets('should autovalidate AppTextField on user interaction when autovalidateMode is onUserInteraction', (tester) async {
-      await tester.pumpWidget(
-        hostShell(
-          AppFormScope(
-            options: const AppFormOptions(
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-            ),
-            child: Scaffold(
-              body: AppTextField(
-                fieldKey: 'title',
-                label: 'Title',
-                validator: (value) => (value == null || value.length < 5)
-                    ? 'Title must be at least 5 characters'
-                    : null,
+    testWidgets(
+      'should autovalidate AppTextField on user interaction when autovalidateMode is onUserInteraction',
+      (tester) async {
+        await tester.pumpWidget(
+          hostShell(
+            AppFormScope(
+              options: const AppFormOptions(
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+              ),
+              child: Scaffold(
+                body: AppTextField(
+                  fieldKey: 'title',
+                  label: 'Title',
+                  validator: (value) => (value == null || value.length < 5)
+                      ? 'Title must be at least 5 characters'
+                      : null,
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      // On initial render, no error is shown yet
-      expect(find.text('Title must be at least 5 characters'), findsNothing);
+        // On initial render, no error is shown yet
+        expect(find.text('Title must be at least 5 characters'), findsNothing);
 
-      // As soon as user interacts/types, it validates live
-      await tester.enterText(find.byType(TextField), 'Hi');
-      await tester.pump();
-      expect(find.text('Title must be at least 5 characters'), findsOneWidget);
+        // As soon as user interacts/types, it validates live
+        await tester.enterText(find.byType(TextField), 'Hi');
+        await tester.pump();
+        expect(
+          find.text('Title must be at least 5 characters'),
+          findsOneWidget,
+        );
 
-      // Once user reaches 5 characters, error clears live
-      await tester.enterText(find.byType(TextField), 'Hello');
-      await tester.pump();
-      expect(find.text('Title must be at least 5 characters'), findsNothing);
-    });
+        // Once user reaches 5 characters, error clears live
+        await tester.enterText(find.byType(TextField), 'Hello');
+        await tester.pump();
+        expect(find.text('Title must be at least 5 characters'), findsNothing);
+      },
+    );
 
-    testWidgets('should prioritize client validator over server error', (tester) async {
+    testWidgets('should prioritize client validator over server error', (
+      tester,
+    ) async {
       final controller = AppFormController();
 
       await tester.pumpWidget(
@@ -144,7 +158,9 @@ void main() {
       expect(find.text('Email is already taken on server'), findsNothing);
     });
 
-    testWidgets('should provide FormState via AppFormScope.of(context)', (tester) async {
+    testWidgets('should provide FormState via AppFormScope.of(context)', (
+      tester,
+    ) async {
       FormState? captured;
 
       await tester.pumpWidget(
@@ -163,56 +179,60 @@ void main() {
       expect(captured, isNotNull);
     });
 
-    testWidgets('should bind controller.formKey and allow validate, save, and reset via AppFormController instance', (tester) async {
-      final controller = AppFormController();
-      String? savedValue;
+    testWidgets(
+      'should bind controller.formKey and allow validate, save, and reset via AppFormController instance',
+      (tester) async {
+        final controller = AppFormController();
+        String? savedValue;
 
-      await tester.pumpWidget(
-        hostShell(
-          AppFormScope(
-            controller: controller,
-            child: Scaffold(
-              body: AppTextField(
-                fieldKey: 'name',
-                label: 'Name',
-                validator: (val) => (val == null || val.isEmpty) ? 'Required' : null,
-                onSaved: (val) => savedValue = val,
+        await tester.pumpWidget(
+          hostShell(
+            AppFormScope(
+              controller: controller,
+              child: Scaffold(
+                body: AppTextField(
+                  fieldKey: 'name',
+                  label: 'Name',
+                  validator: (val) =>
+                      (val == null || val.isEmpty) ? 'Required' : null,
+                  onSaved: (val) => savedValue = val,
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      // controller.formKey is automatically bound to FormState
-      expect(controller.formState, isNotNull);
-      expect(controller.validate(), isFalse);
-      await tester.pump();
-      expect(find.text('Required'), findsOneWidget);
+        // controller.formKey is automatically bound to FormState
+        expect(controller.formState, isNotNull);
+        expect(controller.validate(), isFalse);
+        await tester.pump();
+        expect(find.text('Required'), findsOneWidget);
 
-      // Enter valid text
-      await tester.enterText(find.byType(TextField), 'John');
-      await tester.pump();
+        // Enter valid text
+        await tester.enterText(find.byType(TextField), 'John');
+        await tester.pump();
 
-      // validate() now succeeds
-      expect(controller.validate(), isTrue);
-      await tester.pump();
-      expect(find.text('Required'), findsNothing);
+        // validate() now succeeds
+        expect(controller.validate(), isTrue);
+        await tester.pump();
+        expect(find.text('Required'), findsNothing);
 
-      // save() calls onSaved
-      controller.save();
-      expect(savedValue, 'John');
+        // save() calls onSaved
+        controller.save();
+        expect(savedValue, 'John');
 
-      // set server error and reset()
-      controller.setField('name', 'Server issue');
-      await tester.pump();
-      expect(find.text('Server issue'), findsOneWidget);
+        // set server error and reset()
+        controller.setField('name', 'Server issue');
+        await tester.pump();
+        expect(find.text('Server issue'), findsOneWidget);
 
-      controller.reset();
-      await tester.pump();
-      // reset() clears both form fields and server errors
-      expect(find.text('Server issue'), findsNothing);
-      expect(controller.hasErrors, isFalse);
-    });
+        controller.reset();
+        await tester.pump();
+        // reset() clears both form fields and server errors
+        expect(find.text('Server issue'), findsNothing);
+        expect(controller.hasErrors, isFalse);
+      },
+    );
 
     testWidgets(
       'should isolate multiple forms on one screen with independent keys and form providers',

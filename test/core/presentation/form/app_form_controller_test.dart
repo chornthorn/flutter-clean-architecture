@@ -47,15 +47,9 @@ void main() {
       var notified = false;
       controller.addListener(() => notified = true);
 
-      controller.setErrors({
-        'title': 'Required',
-        'body': 'Too short',
-      });
+      controller.setErrors({'title': 'Required', 'body': 'Too short'});
 
-      expect(controller.errors, {
-        'title': 'Required',
-        'body': 'Too short',
-      });
+      expect(controller.errors, {'title': 'Required', 'body': 'Too short'});
       expect(notified, isTrue);
     });
 
