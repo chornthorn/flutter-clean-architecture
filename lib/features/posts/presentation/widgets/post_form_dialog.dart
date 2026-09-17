@@ -42,7 +42,7 @@ class PostFormDialog extends StatelessWidget {
     return AppFormScope(
       controller: formController,
       options: const AppFormOptions(
-        autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
       ),
       child: Center(
         child: ConstrainedBox(
