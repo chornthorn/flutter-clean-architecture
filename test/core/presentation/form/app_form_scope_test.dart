@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/design_system/components/app_text_field.dart';
-import 'package:flutter_x/core/presentation/form/app_form_controller.dart';
 import 'package:flutter_x/core/presentation/form/app_form_scope.dart';
 
 import '../../../app/view_host.dart';
+
+enum _TestScopeField { test, title, email, name, code }
 
 void main() {
   group('AppFormScope', () {
@@ -22,7 +23,7 @@ void main() {
             ),
             child: Scaffold(
               body: AppTextField(
-                fieldKey: 'test',
+                fieldKey: const FormFieldKey(_TestScopeField.test),
                 label: 'Test',
                 validator: (val) => val == 'invalid' ? 'Error' : null,
               ),
@@ -57,7 +58,7 @@ void main() {
               ),
               child: Scaffold(
                 body: AppTextField(
-                  fieldKey: 'title',
+                  fieldKey: const FormFieldKey(_TestScopeField.title),
                   label: 'Title',
                   validator: (value) => (value == null || value.length < 5)
                       ? 'Title must be at least 5 characters'
@@ -92,7 +93,7 @@ void main() {
               ),
               child: Scaffold(
                 body: AppTextField(
-                  fieldKey: 'title',
+                  fieldKey: const FormFieldKey(_TestScopeField.title),
                   label: 'Title',
                   validator: (value) => (value == null || value.length < 5)
                       ? 'Title must be at least 5 characters'
@@ -125,6 +126,7 @@ void main() {
       tester,
     ) async {
       final controller = AppFormController();
+      const emailKey = FormFieldKey(_TestScopeField.email);
 
       await tester.pumpWidget(
         hostShell(
@@ -132,7 +134,7 @@ void main() {
             controller: controller,
             child: Scaffold(
               body: AppTextField(
-                fieldKey: 'email',
+                fieldKey: emailKey,
                 label: 'Email',
                 validator: (value) => (value == null || !value.contains('@'))
                     ? 'Invalid email format'
@@ -144,7 +146,7 @@ void main() {
       );
 
       // Server returns error
-      controller.setField('email', 'Email is already taken on server');
+      controller.setField(emailKey, 'Email is already taken on server');
       await tester.pump();
       expect(find.text('Email is already taken on server'), findsOneWidget);
 
@@ -183,6 +185,7 @@ void main() {
       'should bind controller.formKey and allow validate, save, and reset via AppFormController instance',
       (tester) async {
         final controller = AppFormController();
+        const nameKey = FormFieldKey(_TestScopeField.name);
         String? savedValue;
 
         await tester.pumpWidget(
@@ -191,7 +194,7 @@ void main() {
               controller: controller,
               child: Scaffold(
                 body: AppTextField(
-                  fieldKey: 'name',
+                  fieldKey: nameKey,
                   label: 'Name',
                   validator: (val) =>
                       (val == null || val.isEmpty) ? 'Required' : null,
@@ -222,7 +225,7 @@ void main() {
         expect(savedValue, 'John');
 
         // set server error and reset()
-        controller.setField('name', 'Server issue');
+        controller.setField(nameKey, 'Server issue');
         await tester.pump();
         expect(find.text('Server issue'), findsOneWidget);
 
@@ -239,6 +242,7 @@ void main() {
       (tester) async {
         final controllerA = AppFormController();
         final controllerB = AppFormController();
+        const codeKey = FormFieldKey(_TestScopeField.code);
 
         await tester.pumpWidget(
           hostShell(
@@ -247,17 +251,17 @@ void main() {
                 children: [
                   AppFormScope(
                     controller: controllerA,
-                    child: AppTextField(
-                      key: const Key('field_a'),
-                      fieldKey: 'code',
+                    child: const AppTextField(
+                      key: Key('field_a'),
+                      fieldKey: codeKey,
                       label: 'Form A Code',
                     ),
                   ),
                   AppFormScope(
                     controller: controllerB,
-                    child: AppTextField(
-                      key: const Key('field_b'),
-                      fieldKey: 'code',
+                    child: const AppTextField(
+                      key: Key('field_b'),
+                      fieldKey: codeKey,
                       label: 'Form B Code',
                     ),
                   ),
@@ -273,26 +277,26 @@ void main() {
         expect(controllerA.formState, isNot(same(controllerB.formState)));
 
         // Error in Form A does not affect Form B
-        controllerA.setField('code', 'Invalid code in Form A');
+        controllerA.setField(codeKey, 'Invalid code in Form A');
         await tester.pump();
 
         expect(find.text('Invalid code in Form A'), findsOneWidget);
-        expect(controllerA['code'], 'Invalid code in Form A');
-        expect(controllerB['code'], isNull);
+        expect(controllerA[codeKey], 'Invalid code in Form A');
+        expect(controllerB[codeKey], isNull);
 
         // Editing Form B does not clear Form A
         await tester.enterText(find.byKey(const Key('field_b')), '999');
         await tester.pump();
 
         expect(find.text('Invalid code in Form A'), findsOneWidget);
-        expect(controllerA['code'], 'Invalid code in Form A');
+        expect(controllerA[codeKey], 'Invalid code in Form A');
 
         // Editing Form A clears only Form A
         await tester.enterText(find.byKey(const Key('field_a')), '123');
         await tester.pump();
 
         expect(find.text('Invalid code in Form A'), findsNothing);
-        expect(controllerA['code'], isNull);
+        expect(controllerA[codeKey], isNull);
       },
     );
 

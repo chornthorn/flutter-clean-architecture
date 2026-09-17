@@ -5,8 +5,13 @@ import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_failure_line.dart';
 import '../../../../core/design_system/components/app_text_field.dart';
 import '../../../../core/presentation/action_result.dart';
-import '../../../../core/presentation/form/app_form_controller.dart';
 import '../../../../core/presentation/form/app_form_scope.dart';
+
+/// Form fields for [PostFormDialog].
+enum PostFormField {
+  title,
+  body,
+}
 
 // Collects a post and hands it to the page, which owns the write call.
 class PostFormDialog extends StatefulWidget {
@@ -98,7 +103,7 @@ class _PostFormDialogState extends State<PostFormDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             AppTextField(
-              fieldKey: 'title',
+              fieldKey: const FormFieldKey(PostFormField.title),
               controller: _title,
               label: 'Title',
               validator: (value) {
@@ -109,7 +114,11 @@ class _PostFormDialogState extends State<PostFormDialog> {
               },
             ),
             SizedBox(height: theme.sizes.spacing.md),
-            AppTextField(fieldKey: 'body', controller: _body, label: 'Body'),
+            AppTextField(
+              fieldKey: const FormFieldKey(PostFormField.body),
+              controller: _body,
+              label: 'Body',
+            ),
             if (_errorMessage != null) ...[
               SizedBox(height: theme.sizes.spacing.md),
               AppFailureLine(message: _errorMessage!),

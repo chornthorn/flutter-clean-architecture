@@ -1,6 +1,9 @@
 import 'package:flutter/widgets.dart';
 
 import '../action_result.dart';
+import 'form_field_key.dart';
+
+export 'form_field_key.dart';
 
 /// State controller for managing both client-side and server-side form states.
 ///
@@ -8,6 +11,7 @@ import '../action_result.dart';
 /// - Provides [formKey] ([GlobalKey<FormState>]) to control the Flutter [Form].
 /// - Provides [validate], [save], and [reset] convenience methods.
 /// - Stores server-side error mapping bindable directly to [ActionResult].
+/// - Uses [FormFieldKey] extension type for zero-cost type-safe field lookups.
 /// - Works seamlessly with [AppFormScope] and [AppTextField].
 class AppFormController extends ChangeNotifier {
   AppFormController([
@@ -28,7 +32,7 @@ class AppFormController extends ChangeNotifier {
   final GlobalKey<FormState> formKey;
 
   /// The current [FormState] from [formKey], or null if not currently mounted
-  /// or if Flutter bindings are not initialized.
+  /// or if Flutter bindings are not initialized.\
   FormState? get formState {
     try {
       return formKey.currentState;
@@ -53,13 +57,13 @@ class AppFormController extends ChangeNotifier {
   }
 
   /// Returns the current validation error for [fieldKey], or null if valid.
-  String? operator [](String fieldKey) => _errors[fieldKey];
+  String? operator [](FormFieldKey fieldKey) => _errors[fieldKey.name];
 
   /// Whether any field currently has an error.
   bool get hasErrors => _errors.isNotEmpty;
 
   /// Whether [fieldKey] currently has an error.
-  bool hasField(String fieldKey) => _errors.containsKey(fieldKey);
+  bool hasField(FormFieldKey fieldKey) => _errors.containsKey(fieldKey.name);
 
   /// An unmodifiable view of all active field errors.
   Map<String, String> get errors => Map.unmodifiable(_errors);
@@ -73,15 +77,15 @@ class AppFormController extends ChangeNotifier {
   }
 
   /// Sets or updates the error message for [fieldKey].
-  void setField(String fieldKey, String error) {
-    _errors[fieldKey] = error;
+  void setField(FormFieldKey fieldKey, String error) {
+    _errors[fieldKey.name] = error;
     notifyListeners();
   }
 
   /// Removes the error for [fieldKey] if present and notifies listeners.
-  void clearField(String fieldKey) {
-    if (_errors.containsKey(fieldKey)) {
-      _errors.remove(fieldKey);
+  void clearField(FormFieldKey fieldKey) {
+    if (_errors.containsKey(fieldKey.name)) {
+      _errors.remove(fieldKey.name);
       notifyListeners();
     }
   }

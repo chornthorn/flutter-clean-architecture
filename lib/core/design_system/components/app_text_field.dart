@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../presentation/form/app_form_provider.dart';
 import '../app_theme.g.dart';
 
+export '../../presentation/form/form_field_key.dart';
+
 /// Design-system compliant text input built directly on Flutter's [TextFormField].
 ///
 /// Features:
@@ -38,7 +40,7 @@ class AppTextField extends StatelessWidget {
   });
 
   /// The form field identifier used to look up server errors from [AppFormProvider].
-  final String? fieldKey;
+  final FormFieldKey? fieldKey;
 
   /// Controls the text being edited.
   final TextEditingController? controller;

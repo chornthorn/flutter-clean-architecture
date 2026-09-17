@@ -7,8 +7,12 @@ import 'package:flutter_x/core/presentation/form/app_form_provider.dart';
 
 import '../../../app/view_host.dart';
 
+enum _TestField { title }
+
 void main() {
   group('AppFormProvider & AppTextField', () {
+    const titleKey = FormFieldKey(_TestField.title);
+
     testWidgets('should provide AppFormController down the tree', (
       tester,
     ) async {
@@ -41,8 +45,8 @@ void main() {
           hostShell(
             AppFormProvider(
               controller: controller,
-              child: Scaffold(
-                body: AppTextField(fieldKey: 'title', label: 'Title'),
+              child: const Scaffold(
+                body: AppTextField(fieldKey: titleKey, label: 'Title'),
               ),
             ),
           ),
@@ -72,14 +76,14 @@ void main() {
         hostShell(
           AppFormProvider(
             controller: controller,
-            child: Scaffold(
-              body: AppTextField(fieldKey: 'title', label: 'Title'),
+            child: const Scaffold(
+              body: AppTextField(fieldKey: titleKey, label: 'Title'),
             ),
           ),
         ),
       );
 
-      controller.setField('title', 'Server error');
+      controller.setField(titleKey, 'Server error');
       await tester.pump();
       expect(find.text('Server error'), findsOneWidget);
 
@@ -88,7 +92,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Server error'), findsNothing);
-      expect(controller['title'], isNull);
+      expect(controller[titleKey], isNull);
     });
 
     testWidgets(
@@ -104,17 +108,17 @@ void main() {
                 children: [
                   AppFormProvider(
                     controller: formA,
-                    child: AppTextField(
-                      key: const Key('field_a'),
-                      fieldKey: 'title',
+                    child: const AppTextField(
+                      key: Key('field_a'),
+                      fieldKey: titleKey,
                       label: 'Form A Title',
                     ),
                   ),
                   AppFormProvider(
                     controller: formB,
-                    child: AppTextField(
-                      key: const Key('field_b'),
-                      fieldKey: 'title',
+                    child: const AppTextField(
+                      key: Key('field_b'),
+                      fieldKey: titleKey,
                       label: 'Form B Title',
                     ),
                   ),
@@ -125,12 +129,12 @@ void main() {
         );
 
         // Form A error does not affect Form B
-        formA.setField('title', 'Form A Error');
+        formA.setField(titleKey, 'Form A Error');
         await tester.pump();
 
         expect(find.text('Form A Error'), findsOneWidget);
-        expect(formA['title'], 'Form A Error');
-        expect(formB['title'], isNull);
+        expect(formA[titleKey], 'Form A Error');
+        expect(formB[titleKey], isNull);
 
         // Typing in Form B does not clear Form A's error
         await tester.enterText(
@@ -140,7 +144,7 @@ void main() {
         await tester.pump();
 
         expect(find.text('Form A Error'), findsOneWidget);
-        expect(formA['title'], 'Form A Error');
+        expect(formA[titleKey], 'Form A Error');
 
         // Typing in Form A clears Form A's error
         await tester.enterText(
@@ -150,7 +154,7 @@ void main() {
         await tester.pump();
 
         expect(find.text('Form A Error'), findsNothing);
-        expect(formA['title'], isNull);
+        expect(formA[titleKey], isNull);
       },
     );
 
@@ -158,15 +162,15 @@ void main() {
       tester,
     ) async {
       final controller = AppFormController();
-      controller.setField('title', 'Scoped error');
+      controller.setField(titleKey, 'Scoped error');
 
       await tester.pumpWidget(
         hostShell(
           AppFormProvider(
             controller: controller,
-            child: Scaffold(
+            child: const Scaffold(
               body: AppTextField(
-                fieldKey: 'title',
+                fieldKey: titleKey,
                 label: 'Title',
                 errorText: 'Explicit override',
               ),
