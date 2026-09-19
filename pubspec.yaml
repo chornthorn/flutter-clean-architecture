@@ -9,20 +9,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # Pinned to a commit: the repo publishes no tags, so a ref is the only
-  # reproducible choice. Bump this deliberately.
+  # Pinned to local workspace for development/testing
   cqrs:
-    git:
-      url: https://github.com/chornthorn/cqrs-dart.git
-      path: packages/cqrs
-      ref: f497decc2e8defd90f525eb8f54e131014ebab96
+    path: /Users/thorn/Documents/Workspaces/open_source/cqrs-dart/packages/cqrs
   # A regular dependency, not a dev one: the annotations live in this package
   # and `lib/` imports them.
   cqrs_codegen:
-    git:
-      url: https://github.com/chornthorn/cqrs-dart.git
-      path: packages/cqrs_codegen
-      ref: f497decc2e8defd90f525eb8f54e131014ebab96
+    path: /Users/thorn/Documents/Workspaces/open_source/cqrs-dart/packages/cqrs_codegen
   get_it: ^9.2.1
   injectify: ^0.1.0
   kaisel: ^1.1.0
@@ -45,17 +38,21 @@ dev_dependencies:
   design_builder: ^1.0.1
   retrofit_generator: ^10.2.9
   json_serializable: ^6.14.1
+  # Finders for widget tests. `patrolTest` (native automation) would need
+  # `patrol_cli` and native project setup; neither is configured.
+  patrol: ^4.10.0
 
 # `cqrs_codegen` declares its sibling `cqrs` as a hosted dependency, and pub
 # refuses to unify that with the git source above. The name `cqrs` on pub.dev is
 # also an unrelated package, so this override is what keeps the generator and the
 # runtime on the same commit.
 dependency_overrides:
+  # `patrol_log`, behind `patrol`, pins `equatable ^2.1.0`, but the only
+  # equatable API it touches is `with Equatable`, which 3.x keeps. Drop this
+  # override once Patrol allows equatable 3.
+  equatable: ^3.0.0
   cqrs:
-    git:
-      url: https://github.com/chornthorn/cqrs-dart.git
-      path: packages/cqrs
-      ref: f497decc2e8defd90f525eb8f54e131014ebab96
+    path: /Users/thorn/Documents/Workspaces/open_source/cqrs-dart/packages/cqrs
 
 flutter:
   uses-material-design: true

@@ -2,33 +2,33 @@
 
 `test/` mirrors `lib/`, so a file's counterpart is one path substitution away:
 
-| `lib/` | `test/` |
-|:-------|:--------|
-| `app/app_codec.dart` | `app/app_codec_test.dart` |
-| `features/shop/domain/usecases/get_product_query.dart` | `features/shop/domain/usecases/get_product_query_test.dart` |
+| `lib/`                                                             | `test/`                                                                 |
+| :----------------------------------------------------------------- | :---------------------------------------------------------------------- |
+| `app/app_codec.dart`                                               | `app/app_codec_test.dart`                                               |
+| `features/shop/domain/usecases/get_product_query.dart`             | `features/shop/domain/usecases/get_product_query_test.dart`             |
 | `features/shop/presentation/view_models/shop_home_view_model.dart` | `features/shop/presentation/view_models/shop_home_view_model_test.dart` |
 
 Two kinds of file sit outside that mirror:
 
-- `architecture_test.dart` — validates the *structure* rather than testing a
+- `architecture_test.dart` — validates the _structure_ rather than testing a
   class, so it belongs to no single `lib/` file. It is the reason the rules in
   `docs/architecture.md` are enforced rather than aspirational.
 
 There is no `support/` folder, because `lib/` has none. A shared test file lives
 in the mirrored folder of whatever it stands in for:
 
-| File | Doubles |
-|:-----|:--------|
-| `app/view_host.dart` | pumps a page under a provider, in the app's token theme; `hostShell` is the same without a view model |
-| `features/shop/domain/entities/product_fixture.dart` | the canonical `Product` |
-| `features/shop/domain/repositories/mock_product_repository.dart` | `ProductRepository` |
-| `features/shop/domain/repositories/mock_cart_repository.dart` | `CartRepository` |
-| `features/shop/domain/repositories/mock_audit_log.dart` | `AuditLog` |
-| `features/shop/shop_dispatcher_fixture.dart` | the shop's message path: a real dispatcher over the generated handler module |
-| `features/posts/domain/entities/post_fixture.dart` | the canonical `Post` |
-| `features/posts/domain/repositories/mock_post_repository.dart` | `PostRepository` |
-| `features/posts/posts_dispatcher_fixture.dart` | the posts message path: a real dispatcher over the generated handler module |
-| `features/posts/infrastructure/repositories/remote_post_repository_test.dart` | a fake `HttpClientAdapter`, so the generated client is exercised with no socket |
+| File                                                                          | Doubles                                                                                               |
+| :---------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
+| `app/view_host.dart`                                                          | pumps a page under a provider, in the app's token theme; `hostShell` is the same without a view model |
+| `features/shop/domain/entities/product_fixture.dart`                          | the canonical `Product`                                                                               |
+| `features/shop/domain/repositories/mock_product_repository.dart`              | `ProductRepository`                                                                                   |
+| `features/shop/domain/repositories/mock_cart_repository.dart`                 | `CartRepository`                                                                                      |
+| `features/shop/domain/repositories/mock_audit_log.dart`                       | `AuditLog`                                                                                            |
+| `features/shop/shop_dispatcher_fixture.dart`                                  | the shop's message path: a real dispatcher over the generated handler module                          |
+| `features/posts/domain/entities/post_fixture.dart`                            | the canonical `Post`                                                                                  |
+| `features/posts/domain/repositories/mock_post_repository.dart`                | `PostRepository`                                                                                      |
+| `features/posts/posts_dispatcher_fixture.dart`                                | the posts message path: a real dispatcher over the generated handler module                           |
+| `features/posts/infrastructure/repositories/remote_post_repository_test.dart` | a fake `HttpClientAdapter`, so the generated client is exercised with no socket                       |
 
 Mocks come from `mocktail`, and they mock the **domain contract**, never the
 adapter: a test that stubs `ProductRepository` keeps passing when
@@ -75,5 +75,42 @@ Two test styles, by layer:
 **The container is built in `test`, never `prod`.** `configureDependencies`
 requires an environment, and `Environment.test` is the one that binds the
 in-memory posts adapter — which is what keeps the suite off the network. The one
-place an adapter's class name may appear is a test asserting the *binding* itself
+place an adapter's class name may appear is a test asserting the _binding_ itself
 (`features/posts/posts_module_test.dart`).
+
+## Patrol finders
+
+Widget tests may use Patrol's finder syntax instead of `find.*` — same
+`flutter test` run, but the test reads closer to what a user does:
+
+```dart
+patrolWidgetTest('should say so when there is nothing to show', ($) async {
+  final repository = MockPostRepository();
+  when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
+      .thenAnswer((_) async => const []);
+  final viewModel = PostViewModel(postsDispatcher(repository));
+  addTearDown(viewModel.dispose);
+  await viewModel.load();
+
+  await $.pumpWidgetAndSettle(hostSignalPage(viewModel, const PostsHomeView()));
+
+  expect($('No posts yet.').exists, isTrue);
+  expect($(PostTile).exists, isFalse);
+});
+```
+
+`$('text')`, `$(Type)`, and `$(#key)` replace their `find.*` counterparts, and
+chain with `.$(...)` and `.containing(...)`; `tap()` and `enterText()` pump and
+settle for you. Anything the finder cannot express is still reachable through
+`$.tester`. Most tests stay on `find.*`; the two styles mix freely in one file —
+this is an alternative, not a migration.
+
+`patrolWidgetTest` comes from `package:patrol/patrol.dart` and needs no
+`patrol_cli` and no native project changes — it runs under plain `flutter test`.
+Native automation (`patrolTest`: permissions, notifications, real devices) is
+not set up here.
+
+Patrol's `patrol_log` still pins `equatable ^2.1.0`, so `pubspec.yaml` overrides
+`equatable` to the 3.x this project uses; the only API `patrol_log` touches is
+`with Equatable`, which 3.x keeps. Drop the override once Patrol allows
+equatable 3.

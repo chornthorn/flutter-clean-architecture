@@ -8,18 +8,21 @@ import 'package:flutter_x/features/posts/domain/usecases/update_post_command.dar
 import 'package:flutter_x/features/posts/posts_handler.dart';
 
 // A real dispatcher over the generated handler module; see `test/README.md`.
-CqrsDispatcher postsDispatcher(PostRepository posts) {
-  final dispatcher = CqrsDispatcher();
+// Returns a `TestCqrsDispatcher` to support stub overrides and dispatch tracking in tests.
+TestCqrsDispatcher postsDispatcher([PostRepository? posts]) {
+  final dispatcher = TestCqrsDispatcher();
 
-  dispatcher.registry.registerModule(
-    PostsCqrsModule(
-      createPostCommandHandler: () => CreatePostCommandHandler(posts),
-      deletePostCommandHandler: () => DeletePostCommandHandler(posts),
-      getPostQueryHandler: () => GetPostQueryHandler(posts),
-      getPostsQueryHandler: () => GetPostsQueryHandler(posts),
-      updatePostCommandHandler: () => UpdatePostCommandHandler(posts),
-    ),
-  );
+  if (posts != null) {
+    dispatcher.registry.registerModule(
+      PostsCqrsModule(
+        createPostCommandHandler: () => CreatePostCommandHandler(posts),
+        deletePostCommandHandler: () => DeletePostCommandHandler(posts),
+        getPostQueryHandler: () => GetPostQueryHandler(posts),
+        getPostsQueryHandler: () => GetPostsQueryHandler(posts),
+        updatePostCommandHandler: () => UpdatePostCommandHandler(posts),
+      ),
+    );
+  }
 
   return dispatcher;
 }

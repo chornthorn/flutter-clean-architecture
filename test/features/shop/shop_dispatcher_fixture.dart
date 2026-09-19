@@ -13,12 +13,13 @@ import 'package:flutter_x/features/shop/infrastructure/repositories/in_memory_ca
 import 'package:flutter_x/features/shop/shop_handler.dart';
 
 // A real dispatcher over the shop's generated handler module.
-CqrsDispatcher shopDispatcher(
+// Returns a `TestCqrsDispatcher` to support stub overrides and dispatch tracking in tests.
+TestCqrsDispatcher shopDispatcher(
   ProductRepository products, {
   CartRepository? cart,
   AuditLog? auditLog,
 }) {
-  final dispatcher = CqrsDispatcher();
+  final dispatcher = TestCqrsDispatcher();
   final cartStore = cart ?? InMemoryCartRepository();
   final log = auditLog ?? InMemoryAuditLog();
 
@@ -31,7 +32,8 @@ CqrsDispatcher shopDispatcher(
       getCartQueryHandler: () => GetCartQueryHandler(cartStore),
       getProductQueryHandler: () => GetProductQueryHandler(products),
       getProductsQueryHandler: () => GetProductsQueryHandler(products),
-      productAddedToCartAuditHandler: () => ProductAddedToCartAuditHandler(log),
+      productAddedToCartAuditHandler: () =>
+          ProductAddedToCartAuditHandler(log),
     ),
   );
 

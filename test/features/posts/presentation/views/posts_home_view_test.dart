@@ -9,6 +9,7 @@ import 'package:flutter_x/features/posts/presentation/views/posts_home_view.dart
 import 'package:flutter_x/features/posts/presentation/widgets/post_form_dialog.dart';
 import 'package:flutter_x/features/posts/presentation/widgets/post_tile.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:patrol/patrol.dart';
 
 import '../../../../app/view_host.dart';
 import '../../domain/entities/post_fixture.dart';
@@ -57,7 +58,7 @@ void main() {
       expect(find.text('Could not load posts.'), findsOneWidget);
     });
 
-    testWidgets('should say so when there is nothing to show', (tester) async {
+    patrolWidgetTest('should say so when there is nothing to show', ($) async {
       final repository = MockPostRepository();
       when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
           .thenAnswer((_) async => const []);
@@ -65,10 +66,12 @@ void main() {
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
-      await tester.pumpWidget(hostSignalPage(viewModel, const PostsHomeView()));
+      await $.pumpWidgetAndSettle(
+        hostSignalPage(viewModel, const PostsHomeView()),
+      );
 
-      expect(find.text('No posts yet.'), findsOneWidget);
-      expect(find.byType(PostTile), findsNothing);
+      expect($('No posts yet.').exists, isTrue);
+      expect($(PostTile).exists, isFalse);
     });
 
     testWidgets('should load again when the failure is retried', (

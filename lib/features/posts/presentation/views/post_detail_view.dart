@@ -31,6 +31,11 @@ class PostDetailView extends StatelessWidget {
       builder: (context) {
         final state = viewModel.post.value;
         final post = state.value;
+        // A write on the wire locks both actions: the page reads the write's
+        // own state, so neither action starts a second one.
+        final isWriting =
+            viewModel.delete.value.isLoading ||
+            viewModel.update.value.isLoading;
 
         return AppScaffold(
           title: Text('Post $id'),
@@ -39,12 +44,16 @@ class PostDetailView extends StatelessWidget {
               IconButton(
                 tooltip: 'Delete post',
                 icon: const Icon(Icons.delete_outline),
-                onPressed: () => _delete(context, viewModel, post),
+                onPressed: isWriting
+                    ? null
+                    : () => _delete(context, viewModel, post),
               ),
               IconButton(
                 tooltip: 'Edit post',
                 icon: const Icon(Icons.edit_outlined),
-                onPressed: () => _edit(context, viewModel, post),
+                onPressed: isWriting
+                    ? null
+                    : () => _edit(context, viewModel, post),
               ),
             ],
           ],
