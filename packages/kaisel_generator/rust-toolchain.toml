@@ -1,0 +1,5 @@
+# Pinned because rust-analyzer requires >= 1.94.0 and this machine's
+# `stable` default is 1.93.1. 1.95.0 is already installed, so pinning it
+# fixes the workspace without downloading anything.
+[toolchain]
+channel = "1.95.0"

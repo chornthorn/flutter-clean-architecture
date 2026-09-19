@@ -3,7 +3,7 @@ import 'package:kaisel/kaisel.dart';
 import 'package:provider/provider.dart';
 import 'package:signals/signals_flutter.dart';
 
-import '../../../../app/app_route.dart';
+import '../../../../app/app.dart';
 import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_notice.dart';
@@ -85,7 +85,12 @@ class PostsHomeView extends StatelessWidget {
           final post = posts[index];
           return PostTile(
             post: post,
-            onTap: () => context.push(PostDetail(post.id)),
+            onTap: () async {
+              await context.pushForResult<void>(PostDetail(post.id));
+              if (context.mounted) {
+                await context.read<PostViewModel>().loadPosts();
+              }
+            },
           );
         },
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:kaisel/kaisel.dart';
+import 'package:kaisel_generator/kaisel_generator.dart';
 
 import 'presentation/views/home_view.dart';
 
@@ -14,6 +15,7 @@ final class HomeRoot extends HomeRoute {
 
 // The home feature as a kaisel module. No codec: see `lib/features/README.md`.
 // Keep it `const`: a new instance would drop the module's navigation state.
+@KaiselModule(isInitial: true)
 class HomeRouterModule extends RouteModule<HomeRoute> {
   const HomeRouterModule();
 
@@ -21,7 +23,6 @@ class HomeRouterModule extends RouteModule<HomeRoute> {
   List<HomeRoute> get initialStack => const [HomeRoot()];
 
   @override
-  Widget buildPage(BuildContext context, HomeRoute route) => switch (route) {
-    HomeRoot() => const HomeView(),
-  };
+  Widget buildPage(BuildContext context, HomeRoute route) =>
+      const HomeView();
 }

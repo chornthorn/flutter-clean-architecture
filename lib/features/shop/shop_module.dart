@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:injectify/injectify.dart';
 import 'package:kaisel/kaisel.dart';
+import 'package:kaisel_generator/kaisel_generator.dart';
 import 'package:provider/provider.dart';
 
 import '../../provider.dart';
@@ -39,6 +40,7 @@ final class ShopProduct extends ShopRoute {
 }
 
 // Kaisel module for the shop feature.
+@KaiselModule(prefix: '/shop')
 class ShopRouterModule extends RouteModule<ShopRoute> {
   const ShopRouterModule();
 

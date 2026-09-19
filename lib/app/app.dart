@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:kaisel/kaisel.dart';
+import 'package:kaisel_generator/kaisel_generator.dart';
 
 import '../core/design_system/app_theme.g.dart';
-import 'app_codec.dart';
-import 'app_page_builder.dart';
-import 'app_route.dart';
+import 'app_modules.g.dart';
 
-// The app's router, created once at top level.
-final appRouterConfig = KaiselRouterConfig<AppRoute>(
-  initial: const HomeMount(),
-  builder: buildAppPage,
-  codec: appCodec,
-);
+// Public API export: exposes AppRoute, mounts, defaultAppCodec, etc.
+export 'app_modules.g.dart';
 
+// The app's router, configured from the generated module registry.
+final appRouterConfig = defaultAppRouterConfig;
+
+/// Root application widget, initialized with Kaisel module registry codegen.
+@KaiselInit()
 class KaiselApp extends StatefulWidget {
   const KaiselApp({super.key});
 

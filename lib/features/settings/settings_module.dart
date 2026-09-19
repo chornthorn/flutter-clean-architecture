@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:kaisel/kaisel.dart';
+import 'package:kaisel_generator/kaisel_generator.dart';
 
 import 'presentation/views/settings_about_view.dart';
 import 'presentation/views/settings_home_view.dart';
@@ -18,6 +19,7 @@ final class SettingsAbout extends SettingsRoute {
 }
 
 // Keep it `const`: a new instance would drop the module's navigation state.
+@KaiselModule(prefix: '/settings')
 class SettingsRouterModule extends RouteModule<SettingsRoute> {
   const SettingsRouterModule();
 

@@ -16,6 +16,6 @@
     "**/.settings",
     "**/*.config.dart",
     "**/*.cqrs.dart",
-    "**/*.g.dart"
+    // "**/*.g.dart"
   ]
 }

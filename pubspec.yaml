@@ -19,6 +19,8 @@ dependencies:
   get_it: ^9.2.1
   injectify: ^0.1.0
   kaisel: ^1.1.0
+  kaisel_generator:
+    path: packages/kaisel_generator
   provider: ^6.1.5+1
   retrofit: ^4.10.0
   dio: ^5.11.1

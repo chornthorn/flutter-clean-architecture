@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kaisel/kaisel.dart';
 
-import '../../../../app/app_route.dart';
+import '../../../../app/app.dart';
 import '../../../../core/design_system/app_theme.g.dart';
 import '../../../../core/design_system/components/app_buttons.dart';
 import '../../../../core/design_system/components/app_scaffold.dart';

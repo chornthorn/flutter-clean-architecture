@@ -67,6 +67,10 @@ void main() {
       find.widgetWithText(TextField, 'Title'),
       'Added post',
     );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Body'),
+      'Added post body',
+    );
     await tester.pump();
     await tester.tap(find.text('Create'));
     await tester.pumpAndSettle();

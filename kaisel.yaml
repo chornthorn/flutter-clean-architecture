@@ -1,0 +1,14 @@
+# ==============================================================================
+# Kaisel Code Generator Configuration
+# ==============================================================================
+# This file configures `kaisel_generator` for mounting feature modules.
+# For full documentation, see: packages/kaisel_generator/README.md
+
+# Path to the generated output file (relative to project root)
+output: lib/app/app_modules.g.dart
+
+# Directory containing Dart source code to scan
+lib_dir: lib
+
+# The base sealed route class name for the host router
+route_class: AppRoute

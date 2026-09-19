@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:injectify/injectify.dart';
 import 'package:kaisel/kaisel.dart';
+import 'package:kaisel_generator/kaisel_generator.dart';
 import 'package:provider/provider.dart';
 
 import '../../provider.dart';
@@ -30,6 +31,7 @@ final class PostDetail extends PostsRoute {
 }
 
 // Keep it `const`: kaisel rebuilds the router when the module instance changes.
+@KaiselModule(prefix: '/posts')
 class PostsRouterModule extends RouteModule<PostsRoute> {
   const PostsRouterModule();
 

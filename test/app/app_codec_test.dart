@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_x/app/app_codec.dart';
-import 'package:flutter_x/app/app_route.dart';
+import 'package:flutter_x/app/app.dart';
 import 'package:flutter_x/features/posts/posts_module.dart';
 import 'package:flutter_x/features/settings/settings_module.dart';
 import 'package:flutter_x/features/shop/shop_module.dart';

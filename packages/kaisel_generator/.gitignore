@@ -1,0 +1,16 @@
+# Dart / Pub
+.dart_tool/
+.packages
+
+# Dart build output. The repo-root /build/ is root-anchored, so it misses this one.
+build/
+
+# Cargo build output.
+# lib/src/ffi/bindings.dart loads libkaisel_generator from target/release or target/debug.
+/target/
+
+# Compiled native artifacts, in case they get copied out of target/
+*.dylib
+*.so
+*.dll
+*.dSYM/
