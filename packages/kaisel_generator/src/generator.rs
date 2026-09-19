@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use pathdiff::diff_paths;
-
 use crate::micro_package::{to_camel_case, MicroPackageSlot};
 use crate::parser::ModuleMetadata;
 
@@ -13,20 +11,11 @@ pub struct MicroPackageInfo {
     pub class_name: String,
     /// Import URI used by the host's generated file.
     pub import_uri: String,
-    /// Repository path of the generated manifest, when there is one.
-    pub file_path: Option<PathBuf>,
     /// Mount declarations, in declaration order.
     pub slots: Vec<MicroPackageSlot>,
 }
 
 impl MicroPackageInfo {
-    /// The declaration this micro-package contributes for a host marker.
-    pub fn slot_for(&self, mount_name: &str) -> Option<&MicroPackageSlot> {
-        self.slots
-            .iter()
-            .find(|slot| slot.mount_name() == mount_name)
-    }
-
     /// Mount this micro-package declares as the host's landing route, if any.
     pub fn initial_slot(&self) -> Option<&MicroPackageSlot> {
         self.slots.iter().find(|slot| slot.is_initial)
@@ -45,26 +34,31 @@ pub fn effective_prefix(base_prefix: Option<&str>, raw_prefix: &str) -> String {
     }
 }
 
-/// Resolves a module import to the form used by the generated host file.
-pub fn relative_import(imported_file: &Path, output_dir: &Path) -> String {
-    let rel = diff_paths(imported_file, output_dir).unwrap_or_else(|| imported_file.to_path_buf());
-    let rel_str = rel.to_string_lossy().replace('\\', "/");
-    if rel_str.starts_with('.') {
-        rel_str
-    } else {
-        format!("./{rel_str}")
+/// A `package:` import for a file inside the package, so generated code does not
+/// depend on where it sits relative to what it imports.
+///
+/// Falls back to the file's own path when it lies outside `lib_dir` or the
+/// package name is unknown.
+pub fn package_import(package_name: &str, lib_dir: &Path, file: &Path) -> String {
+    if package_name.is_empty() {
+        return file.to_string_lossy().replace('\\', "/");
+    }
+    match file.strip_prefix(lib_dir) {
+        Ok(relative) => format!(
+            "package:{package_name}/{}",
+            relative.to_string_lossy().replace('\\', "/")
+        ),
+        Err(_) => file.to_string_lossy().replace('\\', "/"),
     }
 }
 
 pub fn generate_micro_package_code(
     module_name: &str,
     modules: &[ModuleMetadata],
-    output_file: &Path,
-    _route_class: &str,
+    package_name: &str,
+    lib_dir: &Path,
     base_prefix: Option<&str>,
 ) -> String {
-    let output_dir = output_file.parent().unwrap_or(Path::new("."));
-
     // Map each unique file_path to an import alias (i1, i2, ...)
     let mut unique_files: Vec<PathBuf> = modules
         .iter()
@@ -90,7 +84,7 @@ pub fn generate_micro_package_code(
         let alias = &file_to_alias[file_path];
         buf.push_str(&format!(
             "import '{}' as {alias};\n",
-            relative_import(file_path, output_dir)
+            package_import(package_name, lib_dir, file_path)
         ));
     }
     buf.push('\n');
@@ -142,32 +136,14 @@ pub fn generate_micro_package_code(
 
 pub fn generate_dart_code(
     modules: &[ModuleMetadata],
-    output_file: &Path,
     route_class: &str,
     initial_route_override: Option<&str>,
     micro_packages: &[MicroPackageInfo],
+    package_name: &str,
+    lib_dir: &Path,
 ) -> String {
-    let output_dir = output_file.parent().unwrap_or(Path::new("."));
-
-    // Index of the micro-package owning a scanned module, if any.
-    let owner_index = |module: &ModuleMetadata| -> Option<usize> {
-        micro_packages.iter().position(|mp| {
-            mp.file_path
-                .as_ref()
-                .and_then(|path| path.parent())
-                .is_some_and(|dir| module.file_path.starts_with(dir))
-        })
-    };
-
-    // Local modules are declared directly by the host; micro-package modules
-    // are delegated to their manifest.
-    let local_modules: Vec<&ModuleMetadata> = modules
-        .iter()
-        .filter(|module| owner_index(module).is_none())
-        .collect();
-
-    // Map each unique local file_path to an import alias (_i1, _i2, ...)
-    let mut unique_local_files: Vec<PathBuf> = local_modules
+    // Map each unique file_path to an import alias (_i1, _i2, ...)
+    let mut unique_local_files: Vec<PathBuf> = modules
         .iter()
         .map(|m| m.file_path.clone())
         .collect();
@@ -185,13 +161,14 @@ pub fn generate_dart_code(
         .collect();
 
     // Determine initial module mount name
+    let marker_for = |slot: &MicroPackageSlot| slot.marker();
     let initial_mount = if let Some(custom_initial) = initial_route_override {
         custom_initial.to_string()
     } else if let Some(initial_module) = modules.iter().find(|m| m.is_initial) {
         initial_module.mount_name.clone()
     } else if let Some(micro_package_initial) = micro_packages
         .iter()
-        .find_map(|mp| mp.initial_slot().map(MicroPackageSlot::mount_name))
+        .find_map(|mp| mp.initial_slot().map(marker_for))
     {
         micro_package_initial
     } else {
@@ -201,22 +178,26 @@ pub fn generate_dart_code(
             .unwrap_or_else(|| "HomeMount".to_string())
     };
 
-    // Every mount needs a sealed subclass, including mounts only declared by
-    // micro-packages whose sources the host never scans.
-    let mut all_mount_names: Vec<String> = modules.iter().map(|m| m.mount_name.clone()).collect();
+    // Every mount needs a sealed subclass: the host's own, plus those only
+    // declared by a micro-package's manifest.
+    let mut all_mount_names: Vec<String> = Vec::new();
+    for module in modules {
+        if !all_mount_names.contains(&module.mount_name) {
+            all_mount_names.push(module.mount_name.clone());
+        }
+    }
     for mp in micro_packages {
         for slot in &mp.slots {
-            let name = slot.mount_name();
+            let name = marker_for(slot);
             if !all_mount_names.contains(&name) {
                 all_mount_names.push(name);
             }
         }
     }
 
-    // Routed modules (only local ones, external ones are delegated to micro-package mounts)
-    let mut routed_modules: Vec<&ModuleMetadata> = local_modules
+    // Routed host modules, longest prefix first so overlapping mounts compose.
+    let mut routed_modules: Vec<&ModuleMetadata> = modules
         .iter()
-        .copied()
         .filter(|m| m.prefix.is_some())
         .collect();
     routed_modules.sort_by(|a, b| {
@@ -252,7 +233,7 @@ pub fn generate_dart_code(
         let alias = &file_to_alias[file_path];
         buf.push_str(&format!(
             "import '{}' as {alias};\n",
-            relative_import(file_path, output_dir)
+            package_import(package_name, lib_dir, file_path)
         ));
     }
     buf.push('\n');
@@ -282,35 +263,20 @@ pub fn generate_dart_code(
         "Widget buildAppModulePage(BuildContext context, {route_class} route) => switch (route) {{\n"
     ));
     for m in modules {
-        match owner_index(m) {
-            None => {
-                let alias = &file_to_alias[&m.file_path];
-                buf.push_str(&format!(
-                    "  {}() => const KaiselModuleMount<{}.{}>(module: {}.{}()),\n",
-                    m.mount_name, alias, m.route_type, alias, m.class_name
-                ));
-            }
-            Some(idx) => {
-                let field = micro_packages[idx]
-                    .slot_for(&m.mount_name)
-                    .map(|slot| slot.field_name.clone())
-                    .unwrap_or_else(|| to_camel_case(&m.mount_name));
-                buf.push_str(&format!(
-                    "  {}() => {}.{}.{}.page,\n",
-                    m.mount_name, mp_aliases[idx], micro_packages[idx].class_name, field
-                ));
-            }
-        }
+        let alias = &file_to_alias[&m.file_path];
+        buf.push_str(&format!(
+            "  {}() => const KaiselModuleMount<{}.{}>(module: {}.{}()),\n",
+            m.mount_name, alias, m.route_type, alias, m.class_name
+        ));
     }
     for (idx, mp) in micro_packages.iter().enumerate() {
         for slot in &mp.slots {
-            let name = slot.mount_name();
-            if modules.iter().any(|m| m.mount_name == name) {
-                continue;
-            }
             buf.push_str(&format!(
-                "  {name}() => {}.{}.{}.page,\n",
-                mp_aliases[idx], mp.class_name, slot.field_name
+                "  {}() => {}.{}.{}.page,\n",
+                slot.marker(),
+                mp_aliases[idx],
+                mp.class_name,
+                slot.field_name
             ));
         }
     }
@@ -347,7 +313,7 @@ pub fn generate_dart_code(
                 mp_aliases[idx],
                 mp.class_name,
                 slot.field_name,
-                slot.mount_name()
+                slot.marker()
             ));
         }
     }
@@ -367,13 +333,12 @@ pub fn generate_dart_code(
     }
     for (idx, mp) in micro_packages.iter().enumerate() {
         for slot in &mp.slots {
-            let name = slot.mount_name();
-            if modules.iter().any(|m| m.mount_name == name) {
-                continue;
-            }
             buf.push_str(&format!(
-                "  {name}() => {}.{}.{}.url,\n",
-                mp_aliases[idx], mp.class_name, slot.field_name
+                "  {}() => {}.{}.{}.url,\n",
+                slot.marker(),
+                mp_aliases[idx],
+                mp.class_name,
+                slot.field_name
             ));
         }
     }
@@ -480,17 +445,18 @@ mod tests {
         MicroPackageInfo {
             class_name: "FeatureShopKaiselModule".to_string(),
             import_uri: "package:feature_shop/feature_shop.kaisel.dart".to_string(),
-            file_path: Some(PathBuf::from("../feature_shop/lib/feature_shop.kaisel.dart")),
             slots: vec![
                 MicroPackageSlot {
                     field_name: "shopMount".to_string(),
                     is_routed: true,
                     is_initial: false,
+                    host_marker: String::new(),
                 },
                 MicroPackageSlot {
                     field_name: "cartMount".to_string(),
                     is_routed: true,
                     is_initial: false,
+                    host_marker: String::new(),
                 },
             ],
         }
@@ -501,12 +467,15 @@ mod tests {
         let code = generate_micro_package_code(
             "FeatureShop",
             &[home_module(), shop_module()],
-            Path::new("lib/feature_shop.kaisel.dart"),
-            "AppRoute",
+            "feature_shop",
+            Path::new("lib"),
             Some("/shop"),
         );
 
         assert!(code.contains("import 'package:kaisel_generator/micro_mount.dart';"));
+        // Module files are imported by package URI, never relatively.
+        assert!(code.contains("import 'package:feature_shop/features/home/home_module.dart' as i1;"));
+        assert!(code.contains("import 'package:feature_shop/features/shop/shop_module.dart' as i2;"));
         // Each mount is a typed declaration; the host binds it to its own route.
         assert!(code.contains("static const KaiselMicroMount<i1.HomeRoute> homeMount ="));
         assert!(code.contains("static const KaiselMicroMount<i2.ShopRoute> shopMount ="));
@@ -525,8 +494,8 @@ mod tests {
         let code = generate_micro_package_code(
             "FeatureShop",
             &[shop_module()],
-            Path::new("lib/feature_shop.kaisel.dart"),
-            "AppRoute",
+            "feature_shop",
+            Path::new("lib"),
             None,
         );
 
@@ -538,13 +507,16 @@ mod tests {
     fn test_host_composes_external_micro_package() {
         let code = generate_dart_code(
             &[home_module()],
-            Path::new("lib/app/app_modules.g.dart"),
             "AppRoute",
             None,
             &[external_feature_shop()],
+            "host_app",
+            Path::new("lib"),
         );
 
         assert!(code.contains("import 'package:kaisel_generator/micro_mount.dart';"));
+        // Host modules are imported by package URI, never relatively.
+        assert!(code.contains("import 'package:host_app/features/home/home_module.dart' as _i1;"));
         // Manifest is imported through its package URI, not a relative path.
         assert!(code.contains(
             "import 'package:feature_shop/feature_shop.kaisel.dart' as _mp1;"
@@ -578,10 +550,11 @@ mod tests {
 
         let code = generate_dart_code(
             &[],
-            Path::new("lib/app/app_modules.g.dart"),
             "AppRoute",
             None,
             &[micro_package],
+            "host_app",
+            Path::new("lib"),
         );
 
         assert!(code.contains("const AppRoute kInitialAppRoute = ShopMount();"));
@@ -591,10 +564,11 @@ mod tests {
     fn test_host_without_micro_packages_stays_const() {
         let code = generate_dart_code(
             &[home_module(), shop_module()],
-            Path::new("lib/app/app_modules.g.dart"),
             "AppRoute",
             None,
             &[],
+            "host_app",
+            Path::new("lib"),
         );
 
         assert!(code.contains("const List<ModuleMount<AppRoute>> appModuleMounts = ["));

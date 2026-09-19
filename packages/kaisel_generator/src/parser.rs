@@ -17,7 +17,6 @@ pub struct InitMetadata {
     pub output: Option<String>,
     pub route_class: Option<String>,
     pub initial_route: Option<String>,
-    pub use_micro_package: Option<bool>,
     pub external_micro_packages: Vec<ExternalMicroPackageRef>,
 }
 
@@ -36,7 +35,6 @@ pub struct MicroPackageMetadata {
     pub output: Option<String>,
     pub prefix: Option<String>,
     pub file_path: PathBuf,
-    pub folder_path: PathBuf,
 }
 
 pub fn extract_modules_from_source(file_path: &Path, source: &str) -> Vec<ModuleMetadata> {
@@ -94,7 +92,6 @@ fn find_init_in_node(node: Node, source: &str) -> Option<InitMetadata> {
             let mut output = None;
             let mut route_class = None;
             let mut initial_route = None;
-            let mut use_micro_package = None;
             let mut external_micro_packages = Vec::new();
 
             find_init_annotation_args(
@@ -103,14 +100,12 @@ fn find_init_in_node(node: Node, source: &str) -> Option<InitMetadata> {
                 &mut output,
                 &mut route_class,
                 &mut initial_route,
-                &mut use_micro_package,
                 &mut external_micro_packages,
             );
             return Some(InitMetadata {
                 output,
                 route_class,
                 initial_route,
-                use_micro_package,
                 external_micro_packages,
             });
         }
@@ -131,7 +126,6 @@ fn find_init_annotation_args(
     output: &mut Option<String>,
     route_class: &mut Option<String>,
     initial_route: &mut Option<String>,
-    use_micro_package: &mut Option<bool>,
     external_micro_packages: &mut Vec<ExternalMicroPackageRef>,
 ) {
     let mut cursor = annot_node.walk();
@@ -159,9 +153,6 @@ fn find_init_annotation_args(
                         "output" => *output = Some(val.trim_matches('\'').trim_matches('"').to_string()),
                         "routeClass" | "route_class" => *route_class = Some(val.trim_matches('\'').trim_matches('"').to_string()),
                         "initialRoute" | "initial_route" => *initial_route = Some(val.trim_matches('\'').trim_matches('"').to_string()),
-                        "useMicroPackage" | "use_micro_package" => {
-                            *use_micro_package = Some(val.trim() == "true")
-                        }
                         "externalMicroPackages" | "external_micro_packages" => {
                             *external_micro_packages = parse_external_micro_packages(&val);
                         }
@@ -304,13 +295,11 @@ fn find_micro_package_in_node(
 
             find_micro_package_args(node, source, &mut module_name, &mut output, &mut prefix);
             if !module_name.is_empty() {
-                let folder_path = file_path.parent().unwrap_or(Path::new(".")).to_path_buf();
                 return Some(MicroPackageMetadata {
                     module_name,
                     output,
                     prefix,
                     file_path: file_path.to_path_buf(),
-                    folder_path,
                 });
             }
         }
@@ -638,7 +627,6 @@ mod tests {
         assert_eq!(init.output.as_deref(), Some("lib/app/custom_modules.g.dart"));
         assert_eq!(init.route_class.as_deref(), Some("CustomRoute"));
         assert_eq!(init.initial_route.as_deref(), Some("CustomHomeMount"));
-        assert_eq!(init.use_micro_package, Some(true));
         assert_eq!(
             init.external_micro_packages,
             vec![
@@ -735,6 +723,5 @@ mod tests {
 
         assert_eq!(mp.module_name, "Shop");
         assert_eq!(mp.prefix.as_deref(), Some("/shop"));
-        assert_eq!(mp.folder_path, PathBuf::from("lib/features/shop"));
     }
 }

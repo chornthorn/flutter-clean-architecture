@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kaisel_generator/kaisel_generator.dart';
-
-import 'package:profile/profile.kaisel.dart';
+import 'package:profile/profile.dart';
 
 import '../core/design_system/app_theme.g.dart';
 import 'app_modules.g.dart';
@@ -18,9 +17,6 @@ export 'app_modules.g.dart';
   ],
 )
 void configureRouting() {}
-
-// The app's router, configured from the generated module registry.
-final appRouterConfig = defaultAppRouterConfig;
 
 /// Root application widget.
 class KaiselApp extends StatefulWidget {
@@ -46,7 +42,7 @@ class _KaiselAppState extends State<KaiselApp> {
       builder: (context, theme) => MaterialApp.router(
         title: 'kaisel features',
         theme: theme.themeData,
-        routerConfig: appRouterConfig,
+        routerConfig: defaultAppRouterConfig,
       ),
     );
   }

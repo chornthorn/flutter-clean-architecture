@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:kaisel/kaisel.dart';
 import 'package:kaisel_generator/kaisel_generator.dart';
 
+export 'profile.kaisel.dart';
+
 // ---------------------------------------------------------------------------
 // Profile Micro-Package Declaration
 // ---------------------------------------------------------------------------

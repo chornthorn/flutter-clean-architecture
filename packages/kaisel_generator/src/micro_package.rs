@@ -31,12 +31,26 @@ pub struct MicroPackageSlot {
     pub is_routed: bool,
     /// Whether the host should land on this mount by default.
     pub is_initial: bool,
+    /// Host marker class this slot is bound to, once the host qualified it
+    /// against names it already uses. Empty until then.
+    pub host_marker: String,
 }
 
 impl MicroPackageSlot {
     /// Host marker class this slot is bound to, e.g. `ShopMount`.
     pub fn mount_name(&self) -> String {
         to_pascal_case(&self.field_name)
+    }
+
+    /// The host-side marker name, qualified when the preferred name was taken:
+    /// the package's `ShopMount` becomes `ShopProfileMount` next to the host's
+    /// own `ShopMount`.
+    pub fn marker(&self) -> String {
+        if self.host_marker.is_empty() {
+            self.mount_name()
+        } else {
+            self.host_marker.clone()
+        }
     }
 }
 
@@ -83,6 +97,7 @@ pub fn extract_micro_package_manifest(source: &str) -> Option<MicroPackageManife
             field_name,
             is_routed: declaration.contains("prefix:"),
             is_initial: declaration.contains("isInitial: true"),
+            host_marker: String::new(),
         });
         cursor = start;
     }
@@ -422,11 +437,13 @@ abstract final class FeatureShopKaiselModule {
                     field_name: "homeMount".to_string(),
                     is_routed: false,
                     is_initial: true,
+                    host_marker: String::new(),
                 },
                 MicroPackageSlot {
                     field_name: "shopMount".to_string(),
                     is_routed: true,
                     is_initial: false,
+                    host_marker: String::new(),
                 },
             ]
         );

@@ -30,14 +30,11 @@ class KaiselModule {
   });
 }
 
-/// Marks a folder or sub-package boundary as a Kaisel micro-package module.
-///
-/// Feature modules inside this folder (and subdirectories) are scoped
-/// to this micro-package rather than directly to the root application.
+/// Marks a package as a Kaisel micro-package.
 ///
 /// A package that declares this annotation and no `@KaiselInit` generates
-/// `<package>.kaisel.dart` with a `<moduleName>KaiselModule` registry,
-/// which host applications compose through
+/// `<package>.kaisel.dart` with a `<moduleName>KaiselModule` registry, which
+/// host applications compose through
 /// `@KaiselInit(externalMicroPackages: [...])`.
 class KaiselMicroPackage {
   /// The unique name of this micro-package module (e.g. `'Shop'`).
@@ -90,14 +87,6 @@ class KaiselInit {
   /// Name of the initial route / default module mount (e.g. `'HomeMount'`).
   final String? initialRoute;
 
-  /// Whether to automatically discover and compose folder-scoped
-  /// micro-packages (`@KaiselMicroPackage`) found in `lib/` and
-  /// `features/<package>/lib`.
-  ///
-  /// Defaults to `null`, which enables discovery; set to `false` to mount the
-  /// modules of those folders directly from the host instead.
-  final bool? useMicroPackage;
-
   /// External micro-packages to compose into the host registry.
   ///
   /// Each entry's generated manifest is imported into the host file and its
@@ -109,7 +98,6 @@ class KaiselInit {
     this.output,
     this.routeClass,
     this.initialRoute,
-    this.useMicroPackage,
     this.externalMicroPackages,
   });
 }

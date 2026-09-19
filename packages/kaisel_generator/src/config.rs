@@ -1,16 +1,14 @@
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
-use crate::generator::{
-    generate_dart_code, generate_micro_package_code, relative_import, MicroPackageInfo,
-};
+use crate::generator::{generate_dart_code, generate_micro_package_code, MicroPackageInfo};
 use crate::micro_package::{
     extract_micro_package_manifest, infer_import_uri, resolve_import_file,
-    resolve_package_lib_dir, to_camel_case, to_pascal_case, MicroPackageSlot,
+    resolve_package_lib_dir, to_pascal_case,
 };
 use crate::parser::{
     extract_init_metadata, extract_micro_package_metadata, ExternalMicroPackageRef, InitMetadata,
@@ -53,7 +51,6 @@ pub struct KaiselYamlConfig {
     pub route_class: Option<String>,
     pub initial_route: Option<String>,
     pub lib_dir: Option<String>,
-    pub use_micro_package: Option<bool>,
 }
 
 pub fn parse_kaisel_yaml(path: &Path) -> Option<KaiselYamlConfig> {
@@ -73,7 +70,6 @@ pub fn parse_kaisel_yaml(path: &Path) -> Option<KaiselYamlConfig> {
                 "route_class" => config.route_class = Some(val.to_string()),
                 "initial_route" => config.initial_route = Some(val.to_string()),
                 "lib_dir" => config.lib_dir = Some(val.to_string()),
-                "use_micro_package" => config.use_micro_package = Some(val == "true"),
                 _ => {}
             }
         }
@@ -142,28 +138,6 @@ pub fn find_micro_packages_in_lib(lib_dir: &Path) -> Vec<MicroPackageMetadata> {
     result
 }
 
-/// A `@KaiselMicroPackage` boundary found in the host's own `lib/`.
-struct DiscoveredMicroPackage {
-    meta: MicroPackageMetadata,
-    /// Where the generated manifest is written. Not `meta.output`, which is
-    /// resolved against the project root.
-    manifest_path: PathBuf,
-}
-
-fn default_manifest_path(base_dir: &Path, meta: &MicroPackageMetadata) -> PathBuf {
-    match &meta.output {
-        Some(output) => base_dir.join(output),
-        None => {
-            let stem = meta
-                .file_path
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy();
-            meta.file_path.with_file_name(format!("{stem}.kaisel.dart"))
-        }
-    }
-}
-
 fn sort_modules(modules: &mut [ModuleMetadata]) {
     modules.sort_by(|a, b| {
         b.is_initial
@@ -181,63 +155,6 @@ fn write_if_changed(path: &Path, content: &str) -> Result<(), String> {
             .map_err(|e| format!("Failed to create directory `{}`: {e}", parent.display()))?;
     }
     fs::write(path, content).map_err(|e| format!("Failed to write `{}`: {e}", path.display()))
-}
-
-/// Finds micro-package boundaries inside the host's own `lib/`.
-///
-/// Only the host project is scanned. A feature that lives in a separate package
-/// generates its own manifest and the host composes it through
-/// `ExternalMicroPackage(...)`; it is never written from here.
-fn discover_local_micro_packages(root: &Path, lib_dir: &Path) -> Vec<DiscoveredMicroPackage> {
-    find_micro_packages_in_lib(lib_dir)
-        .into_iter()
-        .map(|meta| DiscoveredMicroPackage {
-            manifest_path: default_manifest_path(root, &meta),
-            meta,
-        })
-        .collect()
-}
-
-/// Writes a micro-package manifest and returns the metadata the host needs to
-/// compose it.
-fn materialize_micro_package(
-    discovered: &DiscoveredMicroPackage,
-    modules: &[ModuleMetadata],
-    output_dir: &Path,
-    route_class: &str,
-) -> Result<MicroPackageInfo, String> {
-    let mp_modules: Vec<ModuleMetadata> = modules
-        .iter()
-        .filter(|module| module.file_path.starts_with(&discovered.meta.folder_path))
-        .cloned()
-        .collect();
-
-    let code = generate_micro_package_code(
-        &discovered.meta.module_name,
-        &mp_modules,
-        &discovered.manifest_path,
-        route_class,
-        discovered.meta.prefix.as_deref(),
-    );
-    write_if_changed(&discovered.manifest_path, &code)?;
-
-    let import_uri = relative_import(&discovered.manifest_path, output_dir);
-
-    let slots = mp_modules
-        .iter()
-        .map(|module| MicroPackageSlot {
-            field_name: to_camel_case(&module.mount_name),
-            is_routed: module.prefix.is_some(),
-            is_initial: module.is_initial,
-        })
-        .collect();
-
-    Ok(MicroPackageInfo {
-        class_name: format!("{}KaiselModule", discovered.meta.module_name),
-        import_uri,
-        file_path: Some(discovered.manifest_path.clone()),
-        slots,
-    })
 }
 
 /// Resolves `ExternalMicroPackage(...)` entries declared on `@KaiselInit` to
@@ -276,10 +193,11 @@ fn resolve_external_micro_packages(
 
         let manifest_path = resolve_import_file(root, output_dir, &import_uri)?;
 
-        if !manifest_path.exists() {
-            if let Some(package_lib) = package_lib_dir_within_project(root, &import_uri)? {
-                ensure_package_manifest(&package_lib, &manifest_path, cache, force)?;
-            }
+        // A registered package inside this project is generated here on every run.
+        // Write-if-changed keeps its manifest current — new routes, changed
+        // prefixes, a different import style — without churning the file.
+        if let Some(package_lib) = package_lib_dir_within_project(root, &import_uri)? {
+            ensure_package_manifest(&package_lib, &manifest_path, cache, force)?;
         }
 
         let source = fs::read_to_string(&manifest_path).map_err(|e| {
@@ -308,41 +226,11 @@ fn resolve_external_micro_packages(
         resolved.push(MicroPackageInfo {
             class_name: reference.module.clone(),
             import_uri,
-            file_path: Some(manifest_path),
             slots: manifest.slots,
         });
     }
 
     Ok(resolved)
-}
-
-/// Whether `candidate` was already composed from an explicit
-/// `ExternalMicroPackage(...)` registration: the same module class, the same
-/// manifest file, or the same providing package.
-fn is_already_composed(candidate: &MicroPackageInfo, composed: &[MicroPackageInfo]) -> bool {
-    composed.iter().any(|existing| {
-        existing.class_name == candidate.class_name
-            || match (&existing.file_path, &candidate.file_path) {
-                (Some(existing), Some(candidate)) => existing == candidate,
-                _ => false,
-            }
-            || match (
-                package_name_of(&existing.import_uri),
-                package_name_of(&candidate.import_uri),
-            ) {
-                (Some(existing), Some(candidate)) => existing == candidate,
-                _ => false,
-            }
-    })
-}
-
-/// The package name of a `package:<name>/<path>` import URI.
-fn package_name_of(import_uri: &str) -> Option<&str> {
-    import_uri
-        .strip_prefix("package:")?
-        .split('/')
-        .next()
-        .filter(|name| !name.is_empty())
 }
 
 /// The `lib/` directory of the package an import URI belongs to, when that
@@ -394,63 +282,73 @@ fn ensure_package_manifest(
 
     let mut modules = scan.modules;
     sort_modules(&mut modules);
+    let package_name = parse_pubspec_package_name(package_root)
+        .or_else(|| {
+            package_root
+                .file_name()
+                .map(|name| name.to_string_lossy().to_string())
+        })
+        .unwrap_or_default();
     let code = generate_micro_package_code(
         &module_name,
         &modules,
-        manifest_path,
-        "AppRoute",
+        &package_name,
+        package_lib,
         primary.and_then(|meta| meta.prefix.as_deref()),
     );
     write_if_changed(manifest_path, &code)
 }
 
-/// Guard rail: every mount name maps to exactly one owner, otherwise the
-/// generated sealed hierarchy silently loses routes.
-fn validate_mount_names(
-    modules: &[ModuleMetadata],
-    micro_packages: &[MicroPackageInfo],
-) -> Result<(), String> {
-    let owner_of = |module: &ModuleMetadata| -> String {
-        micro_packages
-            .iter()
-            .position(|mp| {
-                mp.file_path
-                    .as_ref()
-                    .and_then(|path| path.parent())
-                    .is_some_and(|dir| module.file_path.starts_with(dir))
-            })
-            .map(|idx| micro_packages[idx].class_name.clone())
-            .unwrap_or_else(|| "the host app".to_string())
-    };
+/// Gives every package-owned mount a host marker name that cannot collide with a
+/// name the host already uses: `<Feature>Mount` becomes `<Feature><Owner>Mount`,
+/// e.g. the package `profile` declaring `ShopMount` next to the host's own
+/// `ShopMount` is bound to `ShopProfileMount`.
+///
+/// A name that is still free is left exactly as the package declared it, so
+/// registering a package never renames markers the host already has.
+fn qualify_micro_package_markers(micro_packages: &mut [MicroPackageInfo], modules: &[ModuleMetadata]) {
+    // The host's own mounts hold their names; a package that wants one of them is
+    // the one that moves.
+    let mut taken: HashSet<String> = modules
+        .iter()
+        .map(|module| module.mount_name.clone())
+        .collect();
 
-    let mut owners: HashMap<String, String> = HashMap::new();
-    for module in modules {
-        let owner = owner_of(module);
-        let previous = owners.insert(module.mount_name.clone(), owner.clone());
-        let conflict = previous.filter(|previous| *previous != owner);
-        if let Some(previous) = conflict {
-            return Err(format!(
-                "Mount name `{}` is declared by both {previous} and {owner}. Give one module a distinct `mount:` name.",
-                module.mount_name
-            ));
+    for micro_package in micro_packages.iter_mut() {
+        let owner = micro_package
+            .class_name
+            .trim_end_matches("KaiselModule")
+            .to_string();
+        for slot in micro_package.slots.iter_mut() {
+            let mut marker = slot.mount_name();
+            while taken.contains(&marker) {
+                marker = insert_owner(&marker, &owner);
+            }
+            taken.insert(marker.clone());
+            slot.host_marker = marker;
         }
     }
+}
 
-    for micro_package in micro_packages {
-        for slot in &micro_package.slots {
-            let name = slot.mount_name();
-            match owners.get(&name) {
-                Some(owner) if owner != &micro_package.class_name => {
-                    return Err(format!(
-                        "Mount name `{name}` from `{}` collides with a route declared by {owner}. Give one module a distinct `mount:` name.",
-                        micro_package.class_name
-                    ));
-                }
-                Some(_) => {}
-                None => {
-                    owners.insert(name, micro_package.class_name.clone());
-                }
-            }
+/// `ShopMount` + `Profile` → `ShopProfileMount`.
+fn insert_owner(marker: &str, owner: &str) -> String {
+    match marker.strip_suffix("Mount") {
+        Some(feature) => format!("{feature}{owner}Mount"),
+        None => format!("{marker}{owner}"),
+    }
+}
+
+/// Guard rail: the host's own mounts are one namespace, so two modules claiming
+/// the same name would silently lose a route. A micro-package cannot cause this
+/// — its markers are qualified against whatever the host already declares.
+fn validate_mount_names(modules: &[ModuleMetadata]) -> Result<(), String> {
+    let mut seen: HashSet<&str> = HashSet::new();
+    for module in modules {
+        if !seen.insert(&module.mount_name) {
+            return Err(format!(
+                "Mount name `{}` is declared twice by the host app. Give one module a distinct `mount:` name.",
+                module.mount_name
+            ));
         }
     }
 
@@ -463,7 +361,6 @@ fn generate_standalone_micro_package(
     root: &Path,
     lib_dir: &Path,
     modules: &[ModuleMetadata],
-    route_class: &str,
     start: Instant,
     files_scanned: usize,
     files_parsed: usize,
@@ -488,8 +385,8 @@ fn generate_standalone_micro_package(
     let code = generate_micro_package_code(
         &module_name,
         modules,
-        &manifest_path,
-        route_class,
+        &package_name,
+        lib_dir,
         primary.and_then(|meta| meta.prefix.as_deref()),
     );
     if let Err(error) = write_if_changed(&manifest_path, &code) {
@@ -557,12 +454,6 @@ pub fn execute_generation(
         .and_then(|c| c.initial_route.as_deref())
         .or_else(|| init_meta.as_ref().and_then(|m| m.initial_route.as_deref()));
 
-    let compose_discovered_micro_packages = yaml_config
-        .as_ref()
-        .and_then(|c| c.use_micro_package)
-        .or_else(|| init_meta.as_ref().and_then(|m| m.use_micro_package))
-        .unwrap_or(true);
-
     let external_micro_packages = init_meta
         .as_ref()
         .map(|m| m.external_micro_packages.clone())
@@ -578,41 +469,16 @@ pub fn execute_generation(
             &root,
             &lib_dir,
             &modules,
-            route_class,
             start,
             scan_result.files_scanned,
             scan_result.files_parsed,
         );
     }
 
-    let discovered = discover_local_micro_packages(&root, &lib_dir);
     sort_modules(&mut modules);
 
     let output_dir = output_path.parent().unwrap_or(&root).to_path_buf();
 
-    // Manifests of micro-packages inside the host's own `lib/` are written first,
-    // so an explicit registration pointing at one resolves against current
-    // output. Foreign packages are never written here: they generate their own
-    // manifest, and the host only composes it.
-    let mut discovered_infos: Vec<MicroPackageInfo> = Vec::new();
-    for micro_package in &discovered {
-        match materialize_micro_package(micro_package, &modules, &output_dir, route_class) {
-            Ok(info) => discovered_infos.push(info),
-            Err(error) => {
-                return failure(
-                    error,
-                    start,
-                    scan_result.files_scanned,
-                    scan_result.files_parsed,
-                    modules.len(),
-                );
-            }
-        }
-    }
-
-    // Explicitly registered micro-packages come first: they are the host's
-    // declared composition, so discovery must not shadow them with an equivalent
-    // package (and discard a custom `import:`).
     let mut micro_package_infos: Vec<MicroPackageInfo> =
         match resolve_external_micro_packages(
             &root,
@@ -633,14 +499,11 @@ pub fn execute_generation(
             }
         };
 
-    for info in discovered_infos {
-        if !compose_discovered_micro_packages || is_already_composed(&info, &micro_package_infos) {
-            continue;
-        }
-        micro_package_infos.push(info);
-    }
+    // Package mounts that would land on a name the host already uses get the owner
+    // inserted, so composing a package never needs a hand-picked name.
+    qualify_micro_package_markers(&mut micro_package_infos, &modules);
 
-    if let Err(error) = validate_mount_names(&modules, &micro_package_infos) {
+    if let Err(error) = validate_mount_names(&modules) {
         return failure(
             error,
             start,
@@ -652,10 +515,11 @@ pub fn execute_generation(
 
     let code = generate_dart_code(
         &modules,
-        &output_path,
         route_class,
         initial_route_override,
         &micro_package_infos,
+        &parse_pubspec_package_name(&root).unwrap_or_default(),
+        &lib_dir,
     );
     if let Err(error) = write_if_changed(&output_path, &code) {
         return failure(
@@ -681,87 +545,72 @@ pub fn execute_generation(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::micro_package::MicroPackageSlot;
 
-    fn micro_package(class_name: &str, import_uri: &str, file_path: &str) -> MicroPackageInfo {
+    fn micro_package(class_name: &str, field_name: &str) -> MicroPackageInfo {
         MicroPackageInfo {
             class_name: class_name.to_string(),
-            import_uri: import_uri.to_string(),
-            file_path: Some(PathBuf::from(file_path)),
+            import_uri: "package:shop/shop.kaisel.dart".to_string(),
             slots: vec![MicroPackageSlot {
-                field_name: "profileMount".to_string(),
+                field_name: field_name.to_string(),
                 is_routed: true,
                 is_initial: false,
+                host_marker: String::new(),
             }],
         }
     }
 
-    #[test]
-    fn external_registration_claims_matching_class_name() {
-        let registered = micro_package(
-            "ProfileKaiselModule",
-            "package:profile/profile.kaisel.dart",
-            "features/profile/lib/profile.kaisel.dart",
-        );
-        let discovered = micro_package(
-            "ProfileKaiselModule",
-            "../features/profile/lib/profile.kaisel.dart",
-            "features/profile/lib/profile.kaisel.dart",
-        );
-
-        assert!(is_already_composed(&discovered, &[registered]));
+    fn module(mount_name: &str) -> ModuleMetadata {
+        ModuleMetadata {
+            class_name: "ShopRouterModule".to_string(),
+            route_type: "ShopRoute".to_string(),
+            mount_name: mount_name.to_string(),
+            prefix: Some("/shop".to_string()),
+            is_initial: false,
+            codec_name: None,
+            file_path: PathBuf::from("lib/features/shop/shop_module.dart"),
+        }
     }
 
     #[test]
-    fn external_registration_claims_the_same_package_under_other_names() {
-        let registered = micro_package(
-            "ProfileKaiselModule",
-            "package:profile/profile.kaisel.dart",
-            "deps/profile/lib/profile.kaisel.dart",
-        );
-        let discovered = micro_package(
-            "ProfileFeatureKaiselModule",
-            "package:profile/other.kaisel.dart",
-            "features/profile/lib/other.kaisel.dart",
-        );
+    fn a_free_name_is_left_alone() {
+        let mut packages = vec![micro_package("ProfileKaiselModule", "profileMount")];
+        qualify_micro_package_markers(&mut packages, &[module("HomeMount")]);
 
-        assert!(is_already_composed(&discovered, &[registered]));
+        assert_eq!(packages[0].slots[0].marker(), "ProfileMount");
     }
 
     #[test]
-    fn unrelated_package_is_not_claimed() {
-        let registered = micro_package(
-            "ProfileKaiselModule",
-            "package:profile/profile.kaisel.dart",
-            "features/profile/lib/profile.kaisel.dart",
-        );
-        let discovered = micro_package(
-            "ShopKaiselModule",
-            "package:shop/shop.kaisel.dart",
-            "features/shop/lib/shop.kaisel.dart",
-        );
+    fn a_name_the_host_uses_gets_the_owner_inserted() {
+        let mut packages = vec![micro_package("ProfileKaiselModule", "shopMount")];
+        qualify_micro_package_markers(&mut packages, &[module("ShopMount")]);
 
-        assert!(!is_already_composed(&discovered, &[registered]));
+        assert_eq!(packages[0].slots[0].marker(), "ShopProfileMount");
     }
 
     #[test]
-    fn folder_scoped_packages_are_only_claimed_by_name() {
-        let local = micro_package(
-            "ShopKaiselModule",
-            "../features/shop/shop_micro_package.kaisel.dart",
-            "lib/features/shop/shop_micro_package.kaisel.dart",
-        );
+    fn two_packages_claiming_one_name_stay_distinct() {
+        let mut packages = vec![
+            micro_package("ProfileKaiselModule", "shopMount"),
+            micro_package("FeatureShopKaiselModule", "shopMount"),
+        ];
+        qualify_micro_package_markers(&mut packages, &[module("ShopMount")]);
 
-        assert!(!is_already_composed(&local, &[]));
-        assert!(is_already_composed(&local, std::slice::from_ref(&local)));
+        assert_eq!(packages[0].slots[0].marker(), "ShopProfileMount");
+        assert_eq!(packages[1].slots[0].marker(), "ShopFeatureShopMount");
     }
 
     #[test]
-    fn package_name_of_reads_package_uris() {
-        assert_eq!(
-            package_name_of("package:profile/profile.kaisel.dart"),
-            Some("profile")
-        );
-        assert_eq!(package_name_of("../features/profile/profile.kaisel.dart"), None);
-        assert_eq!(package_name_of("package:/profile.dart"), None);
+    fn the_host_cannot_declare_one_mount_twice() {
+        let error = validate_mount_names(&[module("ShopMount"), module("ShopMount")])
+            .expect_err("a duplicate host mount must fail generation");
+        assert!(error.contains("declared twice"), "unexpected error: {error}");
+        assert!(validate_mount_names(&[module("ShopMount"), module("HomeMount")]).is_ok());
+    }
+
+    #[test]
+    fn insert_owner_keeps_the_feature_in_front() {
+        assert_eq!(insert_owner("ShopMount", "Profile"), "ShopProfileMount");
+        assert_eq!(insert_owner("Shop", "Profile"), "ShopProfile");
     }
 }

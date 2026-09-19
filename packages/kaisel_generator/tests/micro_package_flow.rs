@@ -53,24 +53,6 @@ class HomeRouterModule extends RouteModule<HomeRoute> {
 }
 "#;
 
-const FOLDER_SCOPED_PACKAGE_FILE: &str = r#"
-import 'package:kaisel_generator/kaisel_generator.dart';
-
-@KaiselMicroPackage(moduleName: 'Shop', prefix: '/shop')
-void configureShop() {}
-"#;
-
-const FOLDER_SCOPED_MODULE: &str = r#"
-class ShopRoute extends KaiselRoute {
-  const ShopRoute();
-}
-
-@KaiselModule(prefix: '/items')
-class ShopRouterModule extends RouteModule<ShopRoute> {
-  const ShopRouterModule();
-}
-"#;
-
 fn temp_dir(label: &str) -> PathBuf {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let unique = COUNTER.fetch_add(1, Ordering::Relaxed);
@@ -118,27 +100,6 @@ fn write_fixture(repo: &Path, write_package_config: bool) -> (PathBuf, PathBuf) 
     }
 
     (feature_shop, app)
-}
-
-/// Creates `<repo>/app` with a folder-scoped micro-package under `lib/features/shop`.
-fn write_folder_scoped_fixture(repo: &Path, init_annotation: &str) -> PathBuf {
-    let app = repo.join("app");
-    write_file(&app.join("pubspec.yaml"), "name: folder_host\nversion: 0.1.0\n");
-    write_file(
-        &app.join("lib/app/app.dart"),
-        &format!(
-            "import 'package:kaisel_generator/kaisel_generator.dart';\n\n{init_annotation}\nvoid configureRouting() {{}}\n"
-        ),
-    );
-    write_file(
-        &app.join("lib/features/shop/shop_micro_package.dart"),
-        FOLDER_SCOPED_PACKAGE_FILE,
-    );
-    write_file(
-        &app.join("lib/features/shop/shop_module.dart"),
-        FOLDER_SCOPED_MODULE,
-    );
-    app
 }
 
 #[test]
@@ -204,49 +165,6 @@ fn host_app_composes_external_micro_package() {
     let _ = fs::remove_dir_all(&repo);
 }
 
-#[test]
-fn folder_scoped_micro_package_is_composed_and_disableable() {
-    let repo = temp_dir("folder_scoped");
-    let app = write_folder_scoped_fixture(&repo, "@KaiselInit()");
-
-    let result = execute_generation(Some(&app), None, None, true);
-    assert!(result.success, "host generation failed: {:?}", result.error);
-
-    let manifest = fs::read_to_string(app.join("lib/features/shop/shop_micro_package.kaisel.dart"))
-        .expect("folder-scoped manifest should be generated");
-    assert!(manifest.contains("abstract final class ShopKaiselModule"));
-    assert!(manifest.contains("static const KaiselMicroMount<i1.ShopRoute> shopMount ="));
-    assert!(manifest.contains("    prefix: '/shop/items',"));
-
-    let host = fs::read_to_string(app.join("lib/app/app_modules.g.dart")).unwrap();
-    assert!(host.contains(
-        "import '../features/shop/shop_micro_package.kaisel.dart' as _mp1;"
-    ));
-    assert!(host.contains("ShopMount() => _mp1.ShopKaiselModule.shopMount.page,"));
-    assert!(host.contains("_mp1.ShopKaiselModule.shopMount.moduleMount(const ShopMount()),"));
-
-    // With discovery disabled the module is mounted directly by the host.
-    let disabled_repo = temp_dir("folder_scoped_disabled");
-    let disabled_app =
-        write_folder_scoped_fixture(&disabled_repo, "@KaiselInit(useMicroPackage: false)");
-    let disabled_result = execute_generation(Some(&disabled_app), None, None, true);
-    assert!(
-        disabled_result.success,
-        "host generation failed: {:?}",
-        disabled_result.error
-    );
-
-    let disabled_host =
-        fs::read_to_string(disabled_app.join("lib/app/app_modules.g.dart")).unwrap();
-    assert!(!disabled_host.contains("_mp1"));
-    assert!(disabled_host.contains(
-        "ShopMount() => const KaiselModuleMount<_i1.ShopRoute>(module: _i1.ShopRouterModule()),"
-    ));
-
-    let _ = fs::remove_dir_all(&repo);
-    let _ = fs::remove_dir_all(&disabled_repo);
-}
-
 const PROFILE_PUBSPEC: &str = "name: profile\nversion: 0.1.0\n";
 
 const PROFILE_ANNOTATION: &str = r#"
@@ -277,6 +195,17 @@ import 'package:profile/profile.kaisel.dart';
   ],
 )
 void configureRouting() {}
+"#;
+
+const HOST_SHOP_MODULE: &str = r#"
+class ShopRoute extends KaiselRoute {
+  const ShopRoute();
+}
+
+@KaiselModule(prefix: '/shop')
+class ShopRouterModule extends RouteModule<ShopRoute> {
+  const ShopRouterModule();
+}
 "#;
 
 /// Creates a host app that depends on `profile`, either as a package inside the
@@ -377,15 +306,76 @@ fn registering_an_in_project_package_generates_its_manifest() {
     let manifest = fs::read_to_string(&manifest_path).expect("host should write the manifest");
     assert!(manifest.contains("abstract final class ProfileKaiselModule"));
     assert!(manifest.contains("static const KaiselMicroMount<i1.ProfileRoute> profileMount ="));
-    // Imports inside the manifest stay relative to the manifest, not to the host.
+    // Imports inside the manifest are package URIs too, not relative paths.
     assert!(
-        manifest.contains("import './profile_module.dart' as i1;"),
+        manifest.contains("import 'package:profile/profile_module.dart' as i1;"),
         "unexpected imports:\n{manifest}"
     );
 
     let host = fs::read_to_string(app.join("lib/app/app_modules.g.dart")).unwrap();
     assert!(host.contains("import 'package:profile/profile.kaisel.dart' as _mp1;"));
     assert!(host.contains("ProfileMount() => _mp1.ProfileKaiselModule.profileMount.page,"));
+
+    let _ = fs::remove_dir_all(&repo);
+}
+
+#[test]
+fn in_project_manifest_is_refreshed_from_the_package() {
+    let repo = temp_dir("refresh_manifest");
+    let app = write_registered_profile_fixture(&repo, true);
+    let manifest_path = app.join("features/profile/lib/profile.kaisel.dart");
+
+    // Whatever a stale manifest says, the host's run rewrites it from the
+    // package's current sources (which is also what picks up new routes).
+    write_file(&manifest_path, "// stale manifest\n");
+
+    let result = execute_generation(Some(&app), None, None, true);
+    assert!(result.success, "host generation failed: {:?}", result.error);
+
+    let manifest = fs::read_to_string(&manifest_path).unwrap();
+    assert!(manifest.contains("abstract final class ProfileKaiselModule"));
+    assert!(manifest.contains(
+        "static const KaiselMicroMount<i1.ProfileRoute> profileMount ="
+    ));
+    assert!(manifest.contains("import 'package:profile/profile_module.dart' as i1;"));
+
+    let _ = fs::remove_dir_all(&repo);
+}
+
+#[test]
+fn package_mount_on_a_host_name_gets_the_owner_inserted() {
+    let repo = temp_dir("owner_infix");
+    let app = write_registered_profile_fixture(&repo, true);
+
+    // The host declares its own `ShopMount`, and the package claims that name too.
+    write_file(
+        &app.join("lib/features/shop/shop_module.dart"),
+        HOST_SHOP_MODULE,
+    );
+    write_file(
+        &app.join("features/profile/lib/profile_module.dart"),
+        &PROFILE_MODULE.replace("mount: 'ProfileMount'", "mount: 'ShopMount'"),
+    );
+
+    let result = execute_generation(Some(&app), None, None, true);
+    assert!(result.success, "host generation failed: {:?}", result.error);
+    let host = fs::read_to_string(app.join("lib/app/app_modules.g.dart")).unwrap();
+
+    // The package's mount carries its owner between feature and `Mount`; the
+    // host's own name is left exactly as it was.
+    assert_eq!(host.matches("final class ShopMount extends AppRoute").count(), 1);
+    assert_eq!(
+        host.matches("final class ShopProfileMount extends AppRoute").count(),
+        1
+    );
+    assert!(
+        host.contains("ShopProfileMount() => _mp1.ProfileKaiselModule.shopMount.page,"),
+        "{host}"
+    );
+    assert!(host.contains(
+        "_mp1.ProfileKaiselModule.shopMount.moduleMount(const ShopProfileMount()),"
+    ));
+    assert!(host.contains("ShopProfileMount() => _mp1.ProfileKaiselModule.shopMount.url,"));
 
     let _ = fs::remove_dir_all(&repo);
 }
