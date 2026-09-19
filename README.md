@@ -9,19 +9,21 @@ codegen has run once:
 
 ```bash
 flutter pub get
-dart run build_runner build   # every generator, including kaisel (Rust engine)
+dart run build_runner build   # every generator, including kaisel
 flutter test
 ```
 
 Kaisel runs inside build_runner: the builder hands the module registry
 (`lib/app/app_modules.g.dart`) to build_runner, which owns and rewrites that file.
-Registering a micro-package is the only step that lives in the app — the engine
-scans a registered package that sits inside this project (`features/profile`) and
-writes its manifest (`features/profile/lib/profile.kaisel.dart`), which
-build_runner cannot do for another package. To remove generated kaisel files:
+Registering a micro-package is the only step that lives in the app — the
+generator scans a registered package that sits inside this project
+(`features/profile`) and writes its manifest
+(`features/profile/lib/profile.kaisel.dart`), which build_runner cannot do for
+another package. To remove generated kaisel files:
 
 ```bash
 dart run kaisel_generator --clean   # registry + every *.kaisel.dart manifest
+dart run build_runner clean         # ...then this, before the next build
 ```
 
 See `docs/architecture.md` for the architecture, and run codegen again after

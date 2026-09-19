@@ -32,11 +32,17 @@ Future<void> main(List<String> args) async {
     final projectRoot = root ?? Directory.current.path;
     final removed = _cleanGenerated(projectRoot, output);
     stdout.writeln('🧹 Removed $removed generated file(s) under $projectRoot');
+    // Removing a file build_runner has seen in a package it does not build
+    // leaves its incremental graph unable to delete that asset, so the next
+    // build fails with `InvalidOutputException` until the graph is rebuilt.
+    stdout.writeln(
+      '   Run `dart run build_runner clean` before the next build.',
+    );
     return;
   }
 
-  stdout.writeln('🦀 Kaisel Module Registry Generator (Dart FFI)');
-  final result = await KaiselGenerator.generate(
+  stdout.writeln('⚡ Kaisel Module Registry Generator');
+  final result = await const KaiselGenerator().generate(
     root: root,
     libDir: lib,
     output: output,
@@ -58,21 +64,21 @@ Future<void> main(List<String> args) async {
 
   if (watch) {
     final scanDir = lib != null ? Directory(lib) : Directory('lib');
-    stdout.writeln('\n👀 Watching for changes in ${scanDir.path} via Dart...');
+    stdout.writeln('\n👀 Watching for changes in ${scanDir.path}...');
 
     DateTime lastRun = DateTime.now();
     await for (final event in scanDir.watch(recursive: true)) {
       if (event.path.endsWith('.dart') && !event.path.endsWith('.g.dart')) {
         if (DateTime.now().difference(lastRun).inMilliseconds > 150) {
           lastRun = DateTime.now();
-          final r = await KaiselGenerator.generate(
+          final r = await const KaiselGenerator().generate(
             root: root,
             libDir: lib,
             output: output,
             force: false,
           );
           if (r.success) {
-            stdout.writeln('⚡ Re-generated via FFI in ${r.elapsedDisplay}');
+            stdout.writeln('⚡ Re-generated in ${r.elapsedDisplay}');
           } else {
             stderr.writeln('❌ Error: ${r.error}');
           }

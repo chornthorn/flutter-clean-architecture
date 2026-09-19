@@ -3,8 +3,8 @@
 /// Generated code imports **this** library, which is a separate entrypoint for a
 /// reason: `package:kaisel_generator/kaisel_generator.dart` is the CLI's
 /// entrypoint, so it must import neither kaisel (the CLI runs under plain
-/// `dart run`, without the Flutter tool) nor the ffi bindings (an app build must
-/// not pull them in).
+/// `dart run`, without the Flutter tool) nor the analyzer an app build has no
+/// use for.
 ///
 /// A micro-package declares what it contributes ([KaiselMicroMount]) and the
 /// host application binds each declaration to one of its own marker routes. The

@@ -35,7 +35,7 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  stdout.writeln('🦀 Performance fixture → $outRoot');
+  stdout.writeln('⚡ Performance fixture → $outRoot');
   final fixture = _Fixture(
     root: outRoot,
     repoRoot: repoRoot,
@@ -58,7 +58,7 @@ Future<void> main(List<String> args) async {
   final timings = <int>[];
   var result = const KaiselGenerationResult(success: true);
   for (var run = 1; run <= options.runs; run++) {
-    result = await KaiselGenerator.generate(root: outRoot, force: true);
+    result = await const KaiselGenerator().generate(root: outRoot, force: true);
     if (!result.success) {
       stderr.writeln('❌ Run $run failed: ${result.error}');
       exitCode = 1;
