@@ -7,6 +7,8 @@ use crate::parser::ModuleMetadata;
 pub fn generate_dart_code(
     modules: &[ModuleMetadata],
     output_file: &Path,
+    route_class: &str,
+    initial_route_override: Option<&str>,
 ) -> String {
     let output_dir = output_file.parent().unwrap_or(Path::new("."));
 
@@ -24,15 +26,19 @@ pub fn generate_dart_code(
         .map(|(idx, path): (usize, &PathBuf)| (path.clone(), format!("_i{}", idx + 1)))
         .collect();
 
-    // Determine initial module
-    let initial_module = modules
-        .iter()
-        .find(|m| m.is_initial)
-        .or_else(|| modules.first());
-
-    let initial_mount = initial_module
-        .map(|m| m.mount_name.as_str())
-        .unwrap_or("HomeMount");
+    // Determine initial module mount name
+    let initial_mount = if let Some(custom_initial) = initial_route_override {
+        custom_initial.to_string()
+    } else {
+        let initial_module = modules
+            .iter()
+            .find(|m| m.is_initial)
+            .or_else(|| modules.first());
+        initial_module
+            .map(|m| m.mount_name.as_str())
+            .unwrap_or("HomeMount")
+            .to_string()
+    };
 
     // Modules with URL prefix, sorted by prefix length descending
     let mut routed_modules: Vec<&ModuleMetadata> = modules
@@ -69,30 +75,30 @@ pub fn generate_dart_code(
     }
     buf.push('\n');
 
-    // AppRoute Sealed Class
-    buf.push_str("// Host's sealed route hierarchy: one marker mount per feature module.\n");
-    buf.push_str("sealed class AppRoute extends KaiselRoute {\n");
-    buf.push_str("  const AppRoute();\n");
+    // Route Sealed Class
+    buf.push_str(&format!("// Host's sealed route hierarchy: one marker mount per feature module.\n"));
+    buf.push_str(&format!("sealed class {route_class} extends KaiselRoute {{\n"));
+    buf.push_str(&format!("  const {route_class}();\n"));
     buf.push_str("}\n\n");
 
     // Individual Mount Subclasses
     for m in modules {
         buf.push_str(&format!(
-            "final class {} extends AppRoute {{\n  const {}();\n}}\n\n",
-            m.mount_name, m.mount_name
+            "final class {} extends {} {{\n  const {}();\n}}\n\n",
+            m.mount_name, route_class, m.mount_name
         ));
     }
 
-    // Initial App Route Constant
-    buf.push_str("/// The default initial route for the host router.\n");
+    // Initial Route Constant
+    buf.push_str(&format!("/// The default initial route for the host router.\n"));
     buf.push_str(&format!(
-        "const AppRoute kInitialAppRoute = {}();\n\n",
+        "const {route_class} kInitialAppRoute = {}();\n\n",
         initial_mount
     ));
 
     // Page Builder Switch
-    buf.push_str("/// Dispatches each feature module inside a `KaiselModuleMount`.\n");
-    buf.push_str("Widget buildAppModulePage(BuildContext context, AppRoute route) => switch (route) {\n");
+    buf.push_str(&format!("/// Dispatches each feature module inside a `KaiselModuleMount`.\n"));
+    buf.push_str(&format!("Widget buildAppModulePage(BuildContext context, {route_class} route) => switch (route) {{\n"));
     for m in modules {
         let alias = &file_to_alias[&m.file_path];
         buf.push_str(&format!(
@@ -103,8 +109,8 @@ pub fn generate_dart_code(
     buf.push_str("};\n\n");
 
     // Module Mounts List
-    buf.push_str("/// Declarative module mounts for `ConfigCodecWithModules`.\n");
-    buf.push_str("const List<ModuleMount<AppRoute>> appModuleMounts = [\n");
+    buf.push_str(&format!("/// Declarative module mounts for `ConfigCodecWithModules`.\n"));
+    buf.push_str(&format!("const List<ModuleMount<{route_class}>> appModuleMounts = [\n"));
     for m in &routed_modules {
         let alias = &file_to_alias[&m.file_path];
         let prefix = m.prefix.as_ref().unwrap();
@@ -121,8 +127,8 @@ pub fn generate_dart_code(
     buf.push_str("];\n\n");
 
     // Route Encoder Helper
-    buf.push_str("/// Encodes host mount markers to their canonical URLs.\n");
-    buf.push_str("Uri? encodeAppModuleRoute(AppRoute route) => switch (route) {\n");
+    buf.push_str(&format!("/// Encodes host mount markers to their canonical URLs.\n"));
+    buf.push_str(&format!("Uri? encodeAppModuleRoute({route_class} route) => switch (route) {{\n"));
     for m in modules {
         let path = match &m.prefix {
             Some(p) => p.as_str(),
@@ -136,11 +142,11 @@ pub fn generate_dart_code(
     buf.push_str("};\n\n");
 
     // Default Base App Codec
-    buf.push_str("/// Default host codec delegating unmounted paths to the initial route.\n");
-    buf.push_str("class DefaultBaseAppCodec extends KaiselConfigCodec<AppRoute> {\n");
+    buf.push_str(&format!("/// Default host codec delegating unmounted paths to the initial route.\n"));
+    buf.push_str(&format!("class DefaultBaseAppCodec extends KaiselConfigCodec<{route_class}> {{\n"));
     buf.push_str("  const DefaultBaseAppCodec();\n\n");
     buf.push_str("  @override\n");
-    buf.push_str("  KaiselConfig<AppRoute>? decode(Uri uri) {\n");
+    buf.push_str(&format!("  KaiselConfig<{route_class}>? decode(Uri uri) {{\n"));
     buf.push_str("    final segments = uri.pathSegments\n");
     buf.push_str("        .where((segment) => segment.isNotEmpty)\n");
     buf.push_str("        .toList(growable: false);\n\n");
@@ -150,15 +156,15 @@ pub fn generate_dart_code(
     buf.push_str("    };\n");
     buf.push_str("  }\n\n");
     buf.push_str("  @override\n");
-    buf.push_str("  Uri encode(KaiselConfig<AppRoute> config) {\n");
+    buf.push_str(&format!("  Uri encode(KaiselConfig<{route_class}> config) {{\n"));
     buf.push_str("    final uri = encodeAppModuleRoute(config.mainStack.last);\n");
     buf.push_str("    return uri ?? Uri(path: '/');\n");
     buf.push_str("  }\n");
     buf.push_str("}\n\n");
 
     // Default Complete App Codec
-    buf.push_str("/// Complete composite URL codec bundling `DefaultBaseAppCodec` and `appModuleMounts`.\n");
-    buf.push_str("const defaultAppCodec = ConfigCodecWithModules<AppRoute>(\n");
+    buf.push_str(&format!("/// Complete composite URL codec bundling `DefaultBaseAppCodec` and `appModuleMounts`.\n"));
+    buf.push_str(&format!("const defaultAppCodec = ConfigCodecWithModules<{route_class}>(\n"));
     buf.push_str("  baseCodec: DefaultBaseAppCodec(),\n");
     buf.push_str("  modules: appModuleMounts,\n");
     buf.push_str(");\n\n");
@@ -168,21 +174,21 @@ pub fn generate_dart_code(
     buf.push_str("const appCodec = defaultAppCodec;\n\n");
 
     // Default Router Config
-    buf.push_str("/// Ready-to-use default router configuration for the host app.\n");
-    buf.push_str("final defaultAppRouterConfig = KaiselRouterConfig<AppRoute>(\n");
+    buf.push_str(&format!("/// Ready-to-use default router configuration for the host app.\n"));
+    buf.push_str(&format!("final defaultAppRouterConfig = KaiselRouterConfig<{route_class}>(\n"));
     buf.push_str("  initial: kInitialAppRoute,\n");
     buf.push_str("  builder: buildAppModulePage,\n");
     buf.push_str("  codec: defaultAppCodec,\n");
     buf.push_str(");\n\n");
 
     // Custom router config factory
-    buf.push_str("/// Convenience factory for customizing host router configuration.\n");
-    buf.push_str("KaiselRouterConfig<AppRoute> createAppRouterConfig({\n");
-    buf.push_str("  AppRoute? initial,\n");
-    buf.push_str("  KaiselPageBuilder<AppRoute>? builder,\n");
-    buf.push_str("  KaiselConfigCodec<AppRoute>? codec,\n");
+    buf.push_str(&format!("/// Convenience factory for customizing host router configuration.\n"));
+    buf.push_str(&format!("KaiselRouterConfig<{route_class}> createAppRouterConfig({{\n"));
+    buf.push_str(&format!("  {route_class}? initial,\n"));
+    buf.push_str(&format!("  KaiselPageBuilder<{route_class}>? builder,\n"));
+    buf.push_str(&format!("  KaiselConfigCodec<{route_class}>? codec,\n"));
     buf.push_str("}) =>\n");
-    buf.push_str("    KaiselRouterConfig<AppRoute>(\n");
+    buf.push_str(&format!("    KaiselRouterConfig<{route_class}>(\n"));
     buf.push_str("      initial: initial ?? kInitialAppRoute,\n");
     buf.push_str("      builder: builder ?? buildAppModulePage,\n");
     buf.push_str("      codec: codec ?? defaultAppCodec,\n");

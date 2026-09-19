@@ -7,11 +7,14 @@ import 'app_modules.g.dart';
 // Public API export: exposes AppRoute, mounts, defaultAppCodec, etc.
 export 'app_modules.g.dart';
 
+// Decoupled routing configuration similar to @InjectableInit / @CqrsInit
+@KaiselInit()
+void configureRouting() {}
+
 // The app's router, configured from the generated module registry.
 final appRouterConfig = defaultAppRouterConfig;
 
-/// Root application widget, initialized with Kaisel module registry codegen.
-@KaiselInit()
+/// Root application widget.
 class KaiselApp extends StatefulWidget {
   const KaiselApp({super.key});
 

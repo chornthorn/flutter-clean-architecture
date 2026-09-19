@@ -16,6 +16,7 @@ pub struct ModuleMetadata {
 pub struct InitMetadata {
     pub output: Option<String>,
     pub route_class: Option<String>,
+    pub initial_route: Option<String>,
 }
 
 pub fn extract_modules_from_source(file_path: &Path, source: &str) -> Vec<ModuleMetadata> {
@@ -54,8 +55,9 @@ fn find_init_in_node(node: Node, source: &str) -> Option<InitMetadata> {
         if annot_text.contains("KaiselInit") {
             let mut output = None;
             let mut route_class = None;
-            find_init_annotation_args(node, source, &mut output, &mut route_class);
-            return Some(InitMetadata { output, route_class });
+            let mut initial_route = None;
+            find_init_annotation_args(node, source, &mut output, &mut route_class, &mut initial_route);
+            return Some(InitMetadata { output, route_class, initial_route });
         }
     }
 
@@ -73,6 +75,7 @@ fn find_init_annotation_args(
     source: &str,
     output: &mut Option<String>,
     route_class: &mut Option<String>,
+    initial_route: &mut Option<String>,
 ) {
     let mut cursor = annot_node.walk();
     for child in annot_node.children(&mut cursor) {
@@ -99,6 +102,7 @@ fn find_init_annotation_args(
                     match name.as_str() {
                         "output" => *output = Some(clean_val),
                         "routeClass" | "route_class" => *route_class = Some(clean_val),
+                        "initialRoute" | "initial_route" => *initial_route = Some(clean_val),
                         _ => {}
                     }
                 }
@@ -357,14 +361,19 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_kaisel_init() {
+    fn test_parse_kaisel_init_function() {
         let dart_code = r#"
-        @KaiselInit(output: 'lib/app/custom_modules.g.dart', routeClass: 'CustomRoute')
-        class KaiselApp extends StatefulWidget {}
+        @KaiselInit(
+          output: 'lib/app/custom_modules.g.dart',
+          routeClass: 'CustomRoute',
+          initialRoute: 'CustomHomeMount',
+        )
+        void configureRouting() {}
         "#;
 
         let init = extract_init_metadata(dart_code).expect("should parse @KaiselInit");
         assert_eq!(init.output.as_deref(), Some("lib/app/custom_modules.g.dart"));
         assert_eq!(init.route_class.as_deref(), Some("CustomRoute"));
+        assert_eq!(init.initial_route.as_deref(), Some("CustomHomeMount"));
     }
 }

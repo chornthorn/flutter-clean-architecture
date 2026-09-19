@@ -4,7 +4,7 @@ use std::time::Instant;
 use serde::{Deserialize, Serialize};
 
 use crate::generator::generate_dart_code;
-use crate::parser::extract_init_metadata;
+use crate::parser::{extract_init_metadata, InitMetadata};
 use crate::scanner::{scan_and_extract, IncrementalCache};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -12,6 +12,7 @@ pub struct KaiselConfigFile {
     pub output: Option<PathBuf>,
     pub lib_dir: Option<PathBuf>,
     pub route_class: Option<String>,
+    pub initial_route: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,6 +41,7 @@ pub fn parse_kaisel_yaml(path: &Path) -> Option<KaiselConfigFile> {
                 "output" => config.output = Some(PathBuf::from(val)),
                 "lib_dir" | "lib" => config.lib_dir = Some(PathBuf::from(val)),
                 "route_class" => config.route_class = Some(val.to_string()),
+                "initial_route" => config.initial_route = Some(val.to_string()),
                 _ => {}
             }
         }
@@ -78,16 +80,14 @@ pub fn find_project_root(start: &Path) -> Option<PathBuf> {
     None
 }
 
-pub fn find_init_in_lib(lib_dir: &Path) -> Option<PathBuf> {
+pub fn find_init_in_lib(lib_dir: &Path) -> Option<InitMetadata> {
     for entry in walkdir::WalkDir::new(lib_dir).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
         if path.extension().is_some_and(|ext| ext == "dart") {
             if let Ok(content) = fs::read_to_string(path) {
                 if content.contains("KaiselInit") {
                     if let Some(init_meta) = extract_init_metadata(&content) {
-                        if let Some(out) = init_meta.output {
-                            return Some(PathBuf::from(out));
-                        }
+                        return Some(init_meta);
                     }
                 }
             }
@@ -136,11 +136,24 @@ pub fn execute_generation(
         .or_else(|| yaml_config.as_ref().and_then(|c| c.lib_dir.as_ref().map(|d| root.join(d))))
         .unwrap_or_else(|| root.join("lib"));
 
+    let init_meta = find_init_in_lib(&lib_dir);
+
     let output_path = explicit_output
         .map(|p| p.to_path_buf())
         .or_else(|| yaml_config.as_ref().and_then(|c| c.output.as_ref().map(|o| root.join(o))))
-        .or_else(|| find_init_in_lib(&lib_dir).map(|p| root.join(p)))
+        .or_else(|| init_meta.as_ref().and_then(|m| m.output.as_ref().map(|o| root.join(o))))
         .unwrap_or_else(|| root.join("lib").join("app").join("app_modules.g.dart"));
+
+    let route_class = yaml_config
+        .as_ref()
+        .and_then(|c| c.route_class.as_deref())
+        .or_else(|| init_meta.as_ref().and_then(|m| m.route_class.as_deref()))
+        .unwrap_or("AppRoute");
+
+    let initial_route_override = yaml_config
+        .as_ref()
+        .and_then(|c| c.initial_route.as_deref())
+        .or_else(|| init_meta.as_ref().and_then(|m| m.initial_route.as_deref()));
 
     let cache = IncrementalCache::new();
     let scan_result = scan_and_extract(&lib_dir, &cache, force);
@@ -152,7 +165,7 @@ pub fn execute_generation(
             .then_with(|| a.mount_name.cmp(&b.mount_name))
     });
 
-    let code = generate_dart_code(&modules, &output_path);
+    let code = generate_dart_code(&modules, &output_path, route_class, initial_route_override);
 
     if let Some(parent) = output_path.parent() {
         if let Err(e) = fs::create_dir_all(parent) {

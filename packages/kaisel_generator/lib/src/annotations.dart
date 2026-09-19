@@ -3,7 +3,7 @@
 class KaiselModule {
   /// The URL prefix under which this module is mounted (e.g. `'/shop'`).
   ///
-  /// If `null`, the module is not given a URL route in `ModuleMount`.
+  /// If `null`, the module is not given a URL route in `ModuleMount`.\
   final String? prefix;
 
   /// Custom name for the generated host route mount marker (e.g. `'ShopMount'`).
@@ -31,6 +31,10 @@ class KaiselModule {
 }
 
 /// Marks the application entry point to configure Kaisel code generation.
+///
+/// Can annotate a top-level configuration function (similar to `@InjectableInit()`
+/// or `@CqrsInit()`, e.g. `configureRouting()`), a class, or top-level variable,
+/// decoupling route setup from any specific Widget implementation.
 class KaiselInit {
   /// Path to the generated output file (e.g. `'lib/app/app_modules.g.dart'`).
   final String? output;
@@ -38,8 +42,12 @@ class KaiselInit {
   /// Name of the base sealed route class (e.g. `'AppRoute'`).
   final String? routeClass;
 
+  /// Name of the initial route / default module mount (e.g. `'HomeMount'`).
+  final String? initialRoute;
+
   const KaiselInit({
     this.output,
     this.routeClass,
+    this.initialRoute,
   });
 }
