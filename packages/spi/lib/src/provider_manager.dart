@@ -1,33 +1,37 @@
-import '../model/generation_result.dart';
 import 'provider.dart';
+import 'provider_exception.dart';
 import 'spi.dart';
 
 /// The factories registered for each SPI (Keycloak: `DefaultProviderManager`).
 ///
 /// Keycloak finds factories with the `ServiceLoader`; Dart has no reflection, so
-/// the bootstrap hands the manager the factory list explicitly — the same
-/// registration, spelled out. A factory that binds it to one SPI, and a factory
+/// a composition root hands the manager the factory list explicitly — the same
+/// registration, spelled out. A factory belongs to exactly one SPI, and a factory
 /// no SPI accepts is a registration bug, not a silent no-op.
 class ProviderManager {
   ProviderManager({
     required Iterable<Spi<dynamic>> spis,
     required Iterable<ProviderFactory<dynamic>> factories,
   }) : spis = List.unmodifiable(spis) {
+    // The order an SPI asks its factories in is `order`, then registration
+    // order — so insert at the first factory this one outranks rather than
+    // sorting afterwards, since Dart's `List.sort` is not stable.
     for (final factory in factories) {
       final spi = spiOf(factory);
       if (spi == null) {
         final registered = this.spis.map((spi) => spi.name).join(', ');
-        throw KaiselGenerationException(
-          'No Kaisel SPI accepts the provider factory `${factory.id}`. '
+        throw ProviderException(
+          'No SPI accepts the provider factory `${factory.id}`. '
           'Registered SPIs: $registered.',
         );
       }
-      _factoriesForSpi.putIfAbsent(spi.name, () => []).add(factory);
-    }
-
-    // The order a SPI asks its factories in is `order()`, then registration order.
-    for (final factories in _factoriesForSpi.values) {
-      factories.sort((a, b) => a.order.compareTo(b.order));
+      final registered = _factoriesForSpi.putIfAbsent(spi.name, () => []);
+      final at = registered.indexWhere((existing) => existing.order > factory.order);
+      if (at == -1) {
+        registered.add(factory);
+      } else {
+        registered.insert(at, factory);
+      }
     }
   }
 
