@@ -13,11 +13,17 @@ export 'src/ffi/bindings.dart' show KaiselGenerationResult;
 /// High-level Dart interface to the Rust-powered Kaisel code generator via Dart FFI.
 class KaiselGenerator {
   /// Invokes the native generator directly in-process via Dart FFI.
+  ///
+  /// Set [write] to `false` to get the registry source back in
+  /// [KaiselGenerationResult.code] instead of having the engine write it — what
+  /// a caller that owns generated files (a `build_runner` builder) wants.
+  /// Micro-package manifests are always written: they belong to other packages.
   static Future<KaiselGenerationResult> generate({
     String? root,
     String? libDir,
     String? output,
     bool force = false,
+    bool write = true,
   }) async {
     final bindings = await KaiselBindings.load();
     return bindings.generate(
@@ -25,6 +31,7 @@ class KaiselGenerator {
       libDir: libDir,
       outputPath: output,
       force: force,
+      writeRegistry: write,
     );
   }
 }

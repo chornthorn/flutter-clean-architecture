@@ -5,6 +5,7 @@ import 'package:kaisel_generator/kaisel_generator.dart';
 import 'package:provider/provider.dart';
 
 import '../../provider.dart';
+import 'presentation/view_models/comment_view_model.dart';
 import 'presentation/view_models/post_view_model.dart';
 import 'presentation/views/post_detail_view.dart';
 import 'presentation/views/posts_home_view.dart';
@@ -49,7 +50,13 @@ class PostsRouterModule extends RouteModule<PostsRoute> {
     PostDetail(:final id) => Provider<PostViewModel>(
       create: (_) => getIt<PostViewModel>()..load(id),
       dispose: (_, viewModel) => viewModel.dispose(),
-      child: PostDetailView(id: id),
+      // The detail page owns a second view model for the thread below the post;
+      // both go down with the route.
+      child: Provider<CommentViewModel>(
+        create: (_) => getIt<CommentViewModel>()..load(id),
+        dispose: (_, viewModel) => viewModel.dispose(),
+        child: PostDetailView(id: id),
+      ),
     ),
   };
 

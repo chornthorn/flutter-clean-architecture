@@ -10,3 +10,6 @@ analyzer:
     - ios/**
     - web/**
     - macos/**
+    # Throwaway fixtures (the generator's performance monorepo), written with
+    # hand-rolled package configs and never meant to be analyzed as part of the app.
+    - .temp/**

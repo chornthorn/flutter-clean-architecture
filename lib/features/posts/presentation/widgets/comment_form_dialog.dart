@@ -8,24 +8,20 @@ import '../../../../core/design_system/components/app_form_error_banner.dart';
 import '../../../../core/design_system/components/app_text_field.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/form/app_form_scope.dart';
-import '../forms/post_form_field.dart';
+import '../forms/comment_form_field.dart';
 
-export '../forms/post_form_field.dart';
+export '../forms/comment_form_field.dart';
 
-/// Modal dialog for creating or editing a post.
+/// Modal dialog for adding a comment to a post.
 ///
 /// Driven entirely by a ViewModel-owned [AppFormController].
-class PostFormDialog extends StatelessWidget {
-  const PostFormDialog({
+class CommentFormDialog extends StatelessWidget {
+  const CommentFormDialog({
     super.key,
-    required this.heading,
-    required this.submitLabel,
     required this.formController,
     required this.onSubmit,
   });
 
-  final String heading;
-  final String submitLabel;
   final AppFormController formController;
   final Future<ActionResult> Function() onSubmit;
 
@@ -56,7 +52,7 @@ class PostFormDialog extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    heading,
+                    'Add comment',
                     style: theme.typography.title.semiBold.copyWith(
                       color: theme.colors.foreground.primary,
                     ),
@@ -73,27 +69,41 @@ class PostFormDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   AppTextField(
-                    fieldKey: const FormFieldKey(PostFormField.title),
-                    label: 'Title',
-                    hintText: 'Give your post a title',
+                    fieldKey: const FormFieldKey(CommentFormField.name),
+                    label: 'Name',
+                    hintText: 'Who is writing?',
                     validator: (value) {
                       final trimmed = (value ?? '').trim();
-                      if (trimmed.isEmpty) return 'Title cannot be empty.';
-                      if (trimmed.length < 5) {
-                        return 'Title must be at least 5 characters.';
+                      if (trimmed.isEmpty) return 'A comment needs a name.';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    fieldKey: const FormFieldKey(CommentFormField.email),
+                    label: 'Email',
+                    hintText: 'you@example.com',
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      final trimmed = (value ?? '').trim();
+                      if (trimmed.isEmpty) {
+                        return 'A comment needs an email address.';
+                      }
+                      if (!trimmed.contains('@')) {
+                        return 'Enter an email address like ada@example.com.';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 12),
                   AppTextField(
-                    fieldKey: FormFieldKey(PostFormField.body),
+                    fieldKey: const FormFieldKey(CommentFormField.body),
                     label: 'Body',
                     hintText: 'Write something...',
-                    maxLines: 4,
+                    maxLines: 3,
                     validator: (value) {
                       final trimmed = (value ?? '').trim();
-                      if (trimmed.isEmpty) return 'Body cannot be empty.';
+                      if (trimmed.isEmpty) return 'A comment needs a body.';
                       return null;
                     },
                   ),
@@ -119,7 +129,7 @@ class PostFormDialog extends StatelessWidget {
                           final isSubmitting =
                               formController.isSubmitting.value;
                           return AppFilledButton(
-                            label: submitLabel,
+                            label: 'Add',
                             isEnabled: formController.isValid.value,
                             isLoading: isSubmitting,
                             onPressed: () => _submit(context),

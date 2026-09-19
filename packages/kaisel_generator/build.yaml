@@ -1,0 +1,19 @@
+# The generator's own builders. A host app opts in from its `build.yaml`:
+#
+#   targets:
+#     $default:
+#       builders:
+#         kaisel_generator:kaisel:
+#           enabled: true
+#
+builders:
+  kaisel:
+    import: "package:kaisel_generator/builder.dart"
+    builder_factories: ["kaiselBuilder"]
+    # Runs once per package for anything under lib/, writes the registry the host
+    # imports. `build_to: source` puts it in lib/ rather than the build cache.
+    build_extensions:
+      "$lib$":
+        - "app/app_modules.g.dart"
+    build_to: source
+    auto_apply: none

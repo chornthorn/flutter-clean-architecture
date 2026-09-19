@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use kaisel_generator::execute_generation;
+use kaisel_generator::{execute_generation, execute_generation_with, RegistryOutput};
 
 const FEATURE_SHOP_PUBSPEC: &str = "name: feature_shop\nversion: 0.1.0\n";
 
@@ -376,6 +376,30 @@ fn package_mount_on_a_host_name_gets_the_owner_inserted() {
         "_mp1.ProfileKaiselModule.shopMount.moduleMount(const ShopProfileMount()),"
     ));
     assert!(host.contains("ShopProfileMount() => _mp1.ProfileKaiselModule.shopMount.url,"));
+
+    let _ = fs::remove_dir_all(&repo);
+}
+
+#[test]
+fn returning_the_registry_leaves_that_file_to_the_caller() {
+    let repo = temp_dir("registry_return");
+    let app = write_registered_profile_fixture(&repo, true);
+    let registry = app.join("lib/app/app_modules.g.dart");
+    let manifest = app.join("features/profile/lib/profile.kaisel.dart");
+
+    let result = execute_generation_with(Some(&app), None, None, true, RegistryOutput::Return);
+    assert!(result.success, "generation failed: {:?}", result.error);
+
+    let code = result.code.expect("the registry source should come back");
+    assert!(code.contains("final class ProfileMount extends AppRoute"));
+    assert!(code.contains("import 'package:profile/profile.kaisel.dart' as _mp1;"));
+    // The caller (build_runner) owns the registry file...
+    assert!(!registry.exists(), "the registry must be left to the caller");
+    // ...but manifests live in other packages, so they are always written.
+    assert!(
+        manifest.exists(),
+        "package manifests must exist for the registry to compile"
+    );
 
     let _ = fs::remove_dir_all(&repo);
 }

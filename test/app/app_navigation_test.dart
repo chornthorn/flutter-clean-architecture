@@ -81,6 +81,31 @@ void main() {
     expect(find.widgetWithText(AppBar, 'Post 1'), findsOneWidget);
     expect(find.text('The first post in the local fixture.'), findsOneWidget);
 
+    // The thread under the post comes from the fixture too, and a comment added
+    // there joins it without a network.
+    expect(find.text('Comments'), findsOneWidget);
+    expect(find.text('Ada Lovelace'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Add comment'));
+    await tester.tap(find.text('Add comment'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Name'),
+      'Alan Turing',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Email'),
+      'alan@example.com',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Body'),
+      'A comment from the journey',
+    );
+    await tester.pump();
+    await tester.tap(find.text('Add'));
+    await tester.pumpAndSettle();
+    expect(find.text('A comment from the journey'), findsOneWidget);
+
     await tester.tap(find.byTooltip('Edit post'));
     await tester.pumpAndSettle();
     await tester.enterText(

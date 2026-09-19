@@ -9,16 +9,20 @@ codegen has run once:
 
 ```bash
 flutter pub get
-dart run kaisel_generator                           # app registry + registered packages
-dart run build_runner build                         # *.config.dart, *.cqrs.dart, *.g.dart
+dart run build_runner build   # every generator, including kaisel (Rust engine)
 flutter test
 ```
 
-Registering a micro-package is the only step that lives in the app: the app's run
-scans a registered package that sits inside this project — `features/profile` —
-and writes its manifest (`features/profile/lib/profile.kaisel.dart`) before
-composing it. A package outside this project must generate (or ship) its own
-manifest, since its sources are not this project's to write.
+Kaisel runs inside build_runner: the builder hands the module registry
+(`lib/app/app_modules.g.dart`) to build_runner, which owns and rewrites that file.
+Registering a micro-package is the only step that lives in the app — the engine
+scans a registered package that sits inside this project (`features/profile`) and
+writes its manifest (`features/profile/lib/profile.kaisel.dart`), which
+build_runner cannot do for another package. To remove generated kaisel files:
+
+```bash
+dart run kaisel_generator --clean   # registry + every *.kaisel.dart manifest
+```
 
 See `docs/architecture.md` for the architecture, and run codegen again after
 adding a handler, an `@Injectable`, an endpoint, or a design token.
@@ -27,7 +31,7 @@ adding a handler, an `@Injectable`, an endpoint, or a design token.
 
 ```bash
 flutter run                          # reads jsonplaceholder over HTTP
-flutter run --dart-define=DI_ENV=dev # the in-memory posts fixture, no network
+flutter run --dart-define=DI_ENV=dev # the in-memory posts and comments fixture, no network
 ```
 
 `--dart-define=API_BASE_URL=...` points the HTTP adapter somewhere else.

@@ -11,13 +11,16 @@ import '../../../../core/design_system/components/app_scaffold.dart';
 import '../../../../core/design_system/components/app_toast.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../domain/entities/post.dart';
+import '../view_models/comment_view_model.dart';
 import '../view_models/post_view_model.dart';
+import '../widgets/comments_section.dart';
 import '../widgets/post_byline.dart';
 import '../widgets/post_form_dialog.dart';
 
 /// The post detail screen.
 ///
-/// Dispatches queries, updates, and deletes through [PostViewModel].
+/// Dispatches queries, updates, and deletes through [PostViewModel], and reads
+/// and adds comments through the [CommentViewModel] its route provides.
 class PostDetailView extends StatelessWidget {
   const PostDetailView({super.key, required this.id});
 
@@ -75,7 +78,9 @@ class PostDetailView extends StatelessWidget {
         icon: Icons.article_outlined,
         message: 'Post not found.',
       ),
-      AsyncData<Post?>(:final value) => Padding(
+      AsyncData<Post?>(:final value) => SingleChildScrollView(
+        // Post and thread scroll together: a thread of any length is the normal
+        // case here, not the exception.
         padding: EdgeInsets.all(theme.sizes.padding.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -92,6 +97,8 @@ class PostDetailView extends StatelessWidget {
                 ],
               ),
             ),
+            SizedBox(height: theme.sizes.spacing.md),
+            CommentsSection(postId: id),
           ],
         ),
       ),

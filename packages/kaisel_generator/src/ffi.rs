@@ -2,7 +2,7 @@ use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::path::Path;
 
-use crate::config::execute_generation;
+use crate::config::{execute_generation_with, RegistryOutput};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn kaisel_generate(
@@ -10,6 +10,7 @@ pub extern "C" fn kaisel_generate(
     lib_dir_ptr: *const c_char,
     output_path_ptr: *const c_char,
     force: bool,
+    write_registry: bool,
 ) -> *mut c_char {
     let root = if !project_root_ptr.is_null() {
         unsafe { CStr::from_ptr(project_root_ptr) }
@@ -38,11 +39,22 @@ pub extern "C" fn kaisel_generate(
         None
     };
 
-    let result = execute_generation(root, lib, out, force);
+    let result = execute_generation_with(
+        root,
+        lib,
+        out,
+        force,
+        if write_registry {
+            RegistryOutput::Write
+        } else {
+            RegistryOutput::Return
+        },
+    );
     let json = serde_json::to_string(&result).unwrap_or_else(|e| {
         format!(
-            r#"{{"success":false,"error":"{}","files_scanned":0,"files_parsed":0,"modules_count":0,"elapsed_us":0,"output_path":null}}"#,
-            e
+            r#"{{"success":false,"error":"{}","files_scanned":0,"files_parsed":0,"modules_count":0,"elapsed_us":0,"output_path":null,"revision":{}}},"#,
+            e,
+            crate::config::ENGINE_REVISION
         )
     });
 

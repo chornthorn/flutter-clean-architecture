@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +6,8 @@ import 'package:flutter_x/core/error/app_exception.dart';
 import 'package:flutter_x/core/networking/network_client.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/remote_post_repository.dart';
+
+import 'fake_http_adapters.dart';
 
 void main() {
   const listPayload = [
@@ -28,7 +28,7 @@ void main() {
     final dio = createNetworkClient(
       baseUrl: 'https://posts.test',
       logRequests: false,
-    )..httpClientAdapter = adapter ?? _FakeAdapter(respond);
+    )..httpClientAdapter = adapter ?? RecordingAdapter(respond);
     return RemotePostRepository(dio);
   }
 
@@ -38,7 +38,7 @@ void main() {
         baseUrl: 'https://posts.test',
         logRequests: false,
       );
-      final adapter = _FakeAdapter((_) => _json(listPayload));
+      final adapter = RecordingAdapter((_) => jsonBody(listPayload));
       dio.httpClientAdapter = adapter;
 
       await RemotePostRepository(dio).allPosts();
@@ -47,7 +47,7 @@ void main() {
     });
 
     test('should map the payload to domain entities', () async {
-      final repository = repositoryReturning((_) => _json(listPayload));
+      final repository = repositoryReturning((_) => jsonBody(listPayload));
 
       final posts = await repository.allPosts();
 
@@ -58,9 +58,9 @@ void main() {
     });
 
     test('should drop the read when the caller walks away', () async {
-      final adapter = _PendingAdapter();
+      final adapter = PendingAdapter();
       final repository = repositoryReturning(
-        (_) => _json(listPayload),
+        (_) => jsonBody(listPayload),
         adapter: adapter,
       );
       final walkedAway = Completer<void>();
@@ -78,9 +78,9 @@ void main() {
 
     // Writes carry the token too; dropping one is the caller's call — see `core/README.md`.
     test('should drop the write when the caller walks away', () async {
-      final adapter = _PendingAdapter();
+      final adapter = PendingAdapter();
       final repository = repositoryReturning(
-        (_) => _json(createdPayload, status: 201),
+        (_) => jsonBody(createdPayload, status: 201),
         adapter: adapter,
       );
       final walkedAway = Completer<void>();
@@ -101,7 +101,7 @@ void main() {
 
     test('should read one post by id', () async {
       final repository = repositoryReturning(
-        (options) => _json(listPayload.first),
+        (options) => jsonBody(listPayload.first),
       );
 
       expect(
@@ -112,7 +112,7 @@ void main() {
 
     test('should read the contract\'s null out of a 404', () async {
       final repository = repositoryReturning(
-        (options) => _json(const {'error': 'not found'}, status: 404),
+        (options) => jsonBody(const {'error': 'not found'}, status: 404),
       );
 
       expect(await repository.postById(999), isNull);
@@ -120,7 +120,7 @@ void main() {
 
     test('should let any other failure escape', () async {
       final repository = repositoryReturning(
-        (options) => _json(const {'error': 'boom'}, status: 500),
+        (options) => jsonBody(const {'error': 'boom'}, status: 500),
       );
 
       await expectLater(
@@ -130,9 +130,11 @@ void main() {
     });
 
     test('should POST the create body the server expects', () async {
-      final adapter = _FakeAdapter((_) => _json(createdPayload, status: 201));
+      final adapter = RecordingAdapter(
+        (_) => jsonBody(createdPayload, status: 201),
+      );
       final repository = repositoryReturning(
-        (_) => _json(createdPayload, status: 201),
+        (_) => jsonBody(createdPayload, status: 201),
         adapter: adapter,
       );
 
@@ -154,7 +156,7 @@ void main() {
 
     test('should map what the server recorded, id and all', () async {
       final repository = repositoryReturning(
-        (_) => _json(createdPayload, status: 201),
+        (_) => jsonBody(createdPayload, status: 201),
       );
 
       final created = await repository.createPost(
@@ -171,7 +173,7 @@ void main() {
 
     test('should let a rejected create escape', () async {
       final repository = repositoryReturning(
-        (_) => _json(const {'error': 'nope'}, status: 422),
+        (_) => jsonBody(const {'error': 'nope'}, status: 422),
       );
 
       await expectLater(
@@ -181,8 +183,8 @@ void main() {
     });
 
     test('should PATCH an edit to the path of the post it names', () async {
-      final adapter = _FakeAdapter(
-        (_) => _json(const {
+      final adapter = RecordingAdapter(
+        (_) => jsonBody(const {
           'userId': 1,
           'id': 3,
           'title': 'Edited',
@@ -190,7 +192,7 @@ void main() {
         }),
       );
       final repository = repositoryReturning(
-        (options) => _json(const {'error': 'boom'}, status: 500),
+        (options) => jsonBody(const {'error': 'boom'}, status: 500),
         adapter: adapter,
       );
 
@@ -213,9 +215,9 @@ void main() {
     });
 
     test('should DELETE the post at its own path', () async {
-      final adapter = _FakeAdapter((_) => _json(const {}, status: 200));
+      final adapter = RecordingAdapter((_) => jsonBody(const {}, status: 200));
       final repository = repositoryReturning(
-        (_) => _json(const {}),
+        (_) => jsonBody(const {}),
         adapter: adapter,
       );
 
@@ -227,7 +229,7 @@ void main() {
 
     test('should read a delete of something already gone as done', () async {
       final repository = repositoryReturning(
-        (_) => _json(const {'error': 'gone'}, status: 404),
+        (_) => jsonBody(const {'error': 'gone'}, status: 404),
       );
 
       // The post is gone either way, so a 404 is an outcome, not a failure.
@@ -236,7 +238,7 @@ void main() {
 
     test('should let any other delete failure escape', () async {
       final repository = repositoryReturning(
-        (_) => _json(const {'error': 'boom'}, status: 500),
+        (_) => jsonBody(const {'error': 'boom'}, status: 500),
       );
 
       await expectLater(
@@ -245,53 +247,4 @@ void main() {
       );
     });
   });
-}
-
-ResponseBody _json(Object? body, {int status = 200}) => ResponseBody.fromString(
-  jsonEncode(body),
-  status,
-  headers: {
-    Headers.contentTypeHeader: [Headers.jsonContentType],
-  },
-);
-
-class _FakeAdapter implements HttpClientAdapter {
-  _FakeAdapter(this._respond);
-
-  final ResponseBody Function(RequestOptions options) _respond;
-  final List<String> requestedPaths = [];
-  final List<String> requestedMethods = [];
-  final List<dynamic> requestedBodies = [];
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    requestedPaths.add(options.path);
-    requestedMethods.add(options.method);
-    if (options.data != null) requestedBodies.add(options.data);
-    return _respond(options);
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
-
-class _PendingAdapter implements HttpClientAdapter {
-  Future<void>? cancelFuture;
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) {
-    this.cancelFuture = cancelFuture;
-    return Completer<ResponseBody>().future;
-  }
-
-  @override
-  void close({bool force = false}) {}
 }

@@ -10,6 +10,7 @@ typedef _KaiselGenerateC = Pointer<Utf8> Function(
   Pointer<Utf8> libDir,
   Pointer<Utf8> outputPath,
   Bool force,
+  Bool writeRegistry,
 );
 
 typedef _KaiselGenerateDart = Pointer<Utf8> Function(
@@ -17,6 +18,7 @@ typedef _KaiselGenerateDart = Pointer<Utf8> Function(
   Pointer<Utf8> libDir,
   Pointer<Utf8> outputPath,
   bool force,
+  bool writeRegistry,
 );
 
 typedef _KaiselFreeStringC = Void Function(Pointer<Utf8> ptr);
@@ -32,6 +34,12 @@ class KaiselGenerationResult {
   final int elapsedUs;
   final String? outputPath;
 
+  /// The generated registry source, when the engine was asked not to write it.
+  final String? code;
+
+  /// Engine revision, so a caller that caches output can detect a stale engine.
+  final int revision;
+
   const KaiselGenerationResult({
     required this.success,
     this.error,
@@ -40,6 +48,8 @@ class KaiselGenerationResult {
     this.modulesCount = 0,
     this.elapsedUs = 0,
     this.outputPath,
+    this.code,
+    this.revision = 0,
   });
 
   factory KaiselGenerationResult.fromJson(Map<String, dynamic> json) {
@@ -51,6 +61,8 @@ class KaiselGenerationResult {
       modulesCount: (json['modules_count'] as num?)?.toInt() ?? 0,
       elapsedUs: (json['elapsed_us'] as num?)?.toInt() ?? 0,
       outputPath: json['output_path'] as String?,
+      code: json['code'] as String?,
+      revision: (json['revision'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -134,13 +146,14 @@ class KaiselBindings {
     String? libDir,
     String? outputPath,
     bool force = false,
+    bool writeRegistry = true,
   }) {
     final rootPtr = projectRoot != null ? projectRoot.toNativeUtf8() : nullptr;
     final libPtr = libDir != null ? libDir.toNativeUtf8() : nullptr;
     final outPtr = outputPath != null ? outputPath.toNativeUtf8() : nullptr;
 
     try {
-      final resultPtr = _generate(rootPtr, libPtr, outPtr, force);
+      final resultPtr = _generate(rootPtr, libPtr, outPtr, force, writeRegistry);
       final jsonString = resultPtr.toDartString();
       _freeString(resultPtr);
 

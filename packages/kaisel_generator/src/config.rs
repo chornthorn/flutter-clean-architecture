@@ -25,7 +25,17 @@ pub struct GenerationResult {
     pub modules_count: usize,
     pub elapsed_us: u128,
     pub output_path: Option<String>,
+    /// The host registry's source, returned instead of written when the caller
+    /// owns the output file (the `build_runner` builder hands it to build_runner).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// Engine revision. Callers that cache generated output pin this so a stale
+    /// engine cannot silently produce output from older rules.
+    pub revision: u32,
 }
+
+/// Bump when a change alters generated output, so cached callers regenerate.
+pub const ENGINE_REVISION: u32 = 1;
 
 fn failure(
     error: String,
@@ -42,6 +52,8 @@ fn failure(
         modules_count,
         elapsed_us: start.elapsed().as_micros(),
         output_path: None,
+        code: None,
+        revision: ENGINE_REVISION,
     }
 }
 
@@ -401,14 +413,47 @@ fn generate_standalone_micro_package(
         modules_count: modules.len(),
         elapsed_us: start.elapsed().as_micros(),
         output_path: Some(manifest_path.to_string_lossy().to_string()),
+        code: None,
+        revision: ENGINE_REVISION,
     }
 }
 
+/// What the engine does with the host registry it generates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RegistryOutput {
+    /// Write it to the configured path.
+    Write,
+    /// Return it in [GenerationResult::code] and leave the file to the caller,
+    /// which owns generated files (the `build_runner` builder).
+    Return,
+}
+
+/// Runs generation, writing the host registry.
 pub fn execute_generation(
     project_root: Option<&Path>,
     explicit_lib: Option<&Path>,
     explicit_output: Option<&Path>,
     force: bool,
+) -> GenerationResult {
+    execute_generation_with(
+        project_root,
+        explicit_lib,
+        explicit_output,
+        force,
+        RegistryOutput::Write,
+    )
+}
+
+/// Runs generation, choosing what happens to the host registry.
+///
+/// Micro-package manifests are always written: they belong to other packages,
+/// and the registry cannot compile until they exist.
+pub fn execute_generation_with(
+    project_root: Option<&Path>,
+    explicit_lib: Option<&Path>,
+    explicit_output: Option<&Path>,
+    force: bool,
+    registry_output: RegistryOutput,
 ) -> GenerationResult {
     let start = Instant::now();
 
@@ -521,6 +566,23 @@ pub fn execute_generation(
         &parse_pubspec_package_name(&root).unwrap_or_default(),
         &lib_dir,
     );
+
+    // A caller that owns the output file (the build_runner builder) takes the
+    // source back instead of having it written here.
+    if registry_output == RegistryOutput::Return {
+        return GenerationResult {
+            success: true,
+            error: None,
+            files_scanned: scan_result.files_scanned,
+            files_parsed: scan_result.files_parsed,
+            modules_count: modules.len(),
+            elapsed_us: start.elapsed().as_micros(),
+            output_path: Some(output_path.to_string_lossy().to_string()),
+            code: Some(code),
+            revision: ENGINE_REVISION,
+        };
+    }
+
     if let Err(error) = write_if_changed(&output_path, &code) {
         return failure(
             error,
@@ -539,6 +601,8 @@ pub fn execute_generation(
         modules_count: modules.len(),
         elapsed_us: start.elapsed().as_micros(),
         output_path: Some(output_path.to_string_lossy().to_string()),
+        code: None,
+        revision: ENGINE_REVISION,
     }
 }
 

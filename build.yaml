@@ -17,3 +17,8 @@ targets:
           output_path: "core/design_system"
           output_file_name: "app_theme"
           class_name: "AppTheme"
+      # The Rust engine behind build_runner: writes lib/app/app_modules.g.dart
+      # (owned by build_runner) and the registered packages' manifests (owned by
+      # the engine, since build_runner cannot write another package's assets).
+      kaisel_generator|kaisel:
+        enabled: true

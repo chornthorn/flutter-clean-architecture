@@ -204,10 +204,53 @@ class PostsRouterModule extends RouteModule<PostsRoute> {
 
 ### 4. Run the Generator
 
+#### Inside `build_runner` (recommended)
+
+Enable the builder in the host app:
+
+```yaml
+# build.yaml
+targets:
+  $default:
+    builders:
+      kaisel_generator|kaisel:
+        enabled: true
+```
+
+```bash
+dart run build_runner build
+```
+
+The builder runs once per package for anything under `lib/` (the `$lib$` input, so
+the host's `@KaiselInit` file can live anywhere) and produces the registry through
+`build_runner`, which therefore _owns_ that file: it rewrites it when inputs
+change, drops it when conflicting, and skips the builder when nothing changed.
+
+What each side owns:
+
+| File                                   | Written by                      | Why                                                                                                             |
+| :------------------------------------- | :------------------------------ | :-------------------------------------------------------------------------------------------------------------- |
+| `lib/app/app_modules.g.dart`           | the builder, via `build_runner` | declared output; build_runner tracks and manages it                                                             |
+| `features/<pkg>/lib/<pkg>.kaisel.dart` | the engine                      | another package's asset — build_runner forbids a builder writing it, yet the registry cannot compile without it |
+
+Notes:
+
+- The declared output must match `kaisel.yaml: output`. For a different path, declare your
+  own builder in the app's `build.yaml` (`import: package:kaisel_generator/builder.dart`,
+  `builder_factories: [kaiselBuilder]`, `build_extensions: {"$lib$": ["<path relative to lib/>"]}`,
+  `build_to: source`) — the builder tells you exactly that if the two disagree.
+- **Engine revision:** the engine cannot be an asset of your package, so build_runner cannot
+  see it change. Bump `ENGINE_REVISION` in `src/config.rs` and `_engineRevision` in
+  `lib/builder.dart` together: the Dart bump invalidates the builder, and a mismatch between
+  the two fails the build instead of silently using an older engine.
+- `dart run kaisel_generator --clean` removes the registry and every manifest;
+  `build_runner clean` clears its cache but leaves `build_to: source` outputs behind.
+
 #### Via Dart CLI (Uses Dart FFI)
 
 ```bash
-# Standard workflow via Dart FFI
+# Standard workflow via Dart FFI (no build_runner: standalone packages, watch mode,
+# or a host that has not enabled the builder)
 dart run kaisel_generator
 
 # Watch mode (monitors lib/ and re-generates via FFI)
@@ -215,6 +258,9 @@ dart run kaisel_generator --watch
 
 # Force full regeneration ignoring cache
 dart run kaisel_generator --force
+
+# Remove the generated registry and every *.kaisel.dart manifest
+dart run kaisel_generator --clean
 ```
 
 #### Programmatically in Dart
@@ -233,7 +279,27 @@ void main() async {
 
 ---
 
-### 5. What Gets Generated
+### 5. Performance Fixture
+
+`tool/perf_monorepo.dart` writes a throwaway monorepo into `.temp/perf` (git-ignored) and times
+the generator on it: a host app with `--host-modules` modules, one `@KaiselMicroPackage` per
+`--packages`, and `--routes` routes in every module.
+
+```bash
+cd packages/kaisel_generator
+dart run tool/perf_monorepo.dart                       # 25 packages × 10 routes × 3 runs
+dart run tool/perf_monorepo.dart --packages 100 --routes 12 --runs 5
+dart run tool/perf_monorepo.dart --analyze             # also type-checks the output
+dart run tool/perf_monorepo.dart --clean
+```
+
+It fails (exit 1) if a run errors or if the registry does not hold one mount per module, so it
+doubles as a scale smoke test. `--analyze` runs `flutter pub get` + `flutter analyze` inside the
+fixture, which type-checks every generated manifest and the registry.
+
+---
+
+### 6. What Gets Generated
 
 The generator creates `lib/app/app_modules.g.dart` (and `*.kaisel.dart` for micro-packages) with:
 

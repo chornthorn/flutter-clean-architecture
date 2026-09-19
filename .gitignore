@@ -52,3 +52,7 @@ app.*.map.json
 **/*.cqrs.dart
 **/*.g.dart
 **/*.kaisel.dart
+
+# Throwaway fixtures, e.g. the generator's performance monorepo
+# (`dart run tool/perf_monorepo.dart` from packages/kaisel_generator).
+.temp/

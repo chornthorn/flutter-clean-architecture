@@ -17,9 +17,10 @@ Two kinds of file sit outside that mirror:
 There is no `support/` folder, because `lib/` has none. A shared test file lives
 in the mirrored folder of whatever it stands in for:
 
-| File                                                             | Doubles                                                                                               |
-| :--------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
-| `app/view_host.dart`                                             | pumps a page under a provider, in the app's token theme; `hostShell` is the same without a view model |
-| `features/shop/domain/entities/product_fixture.dart`             | the canonical `Product`                                                                               |
-| `features/shop/domain/repositories/mock_product_repository.dart` | `ProductRepository`                                                                                   |
-| `features/shop/domain/repositories/mock_cart_repository.dart`    | `CartRepository`                                                                                      |
+| File                                                                 | Doubles                                                                                               |
+| :------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
+| `app/view_host.dart`                                                 | pumps a page under a provider, in the app's token theme; `hostShell` is the same without a view model |
+| `features/shop/domain/entities/product_fixture.dart`                 | the canonical `Product`                                                                               |
+| `features/shop/domain/repositories/mock_product_repository.dart`     | `ProductRepository`                                                                                   |
+| `features/shop/domain/repositories/mock_cart_repository.dart`        | `CartRepository`                                                                                      |
+| `features/posts/infrastructure/repositories/fake_http_adapters.dart` | the recording and pending `HttpClientAdapter`s, plus the JSON body helper                             |
