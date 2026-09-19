@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:injectify/injectify.dart';
 import 'package:kaisel/kaisel.dart';
 import 'package:kaisel_generator/kaisel_generator.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as provider;
 
 import '../../provider.dart';
 import 'presentation/view_models/shop_cart_view_model.dart';
@@ -49,17 +49,17 @@ class ShopRouterModule extends RouteModule<ShopRoute> {
 
   @override
   Widget buildPage(BuildContext context, ShopRoute route) => switch (route) {
-    ShopHome() => Provider<ShopHomeViewModel>(
+    ShopHome() => provider.Provider<ShopHomeViewModel>(
       create: (_) => getIt<ShopHomeViewModel>()..load(),
       dispose: (_, viewModel) => viewModel.dispose(),
       child: const ShopHomeView(),
     ),
-    ShopProduct(:final id) => Provider<ShopProductViewModel>(
+    ShopProduct(:final id) => provider.Provider<ShopProductViewModel>(
       create: (_) => getIt<ShopProductViewModel>()..load(id),
       dispose: (_, viewModel) => viewModel.dispose(),
       child: ShopProductView(id: id),
     ),
-    ShopCart() => Provider<ShopCartViewModel>(
+    ShopCart() => provider.Provider<ShopCartViewModel>(
       create: (_) => getIt<ShopCartViewModel>()..load(),
       dispose: (_, viewModel) => viewModel.dispose(),
       child: const ShopCartView(),

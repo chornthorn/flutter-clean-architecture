@@ -35,15 +35,20 @@ import 'package:glob/glob.dart';
 import 'package:kaisel_generator/kaisel_generator.dart';
 import 'package:path/path.dart' as p;
 
-Builder kaiselBuilder(BuilderOptions options) => KaiselBuilder(options);
+/// Called by `build_runner`: the composition root of a Kaisel build.
+///
+/// The bootstrap constructs every SPI implementation this build runs — the
+/// entry point is the one place that names concrete implementations.
+Builder kaiselBuilder(BuilderOptions options) =>
+    KaiselBuilder(options, generator: const KaiselBootstrap().createGenerator());
 
 class KaiselBuilder implements Builder {
-  KaiselBuilder(this.options);
+  KaiselBuilder(this.options, {required this.generator});
 
   final BuilderOptions options;
 
-  /// The generator this builder runs; the default one is all a host needs.
-  static const generator = KaiselGenerator();
+  /// The generator this build runs.
+  final KaiselGenerator generator;
 
   /// Declared in the host's `build.yaml`, and it must match `kaisel.yaml: output`.
   String get _outputPath =>

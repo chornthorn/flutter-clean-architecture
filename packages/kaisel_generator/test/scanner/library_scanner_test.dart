@@ -1,10 +1,15 @@
-import 'package:kaisel_generator/src/scanner/library_scanner.dart';
+import 'package:kaisel_generator/src/model/init_info.dart';
+import 'package:kaisel_generator/src/model/micro_package.dart';
+import 'package:kaisel_generator/src/model/module_info.dart';
+import 'package:kaisel_generator/src/parser/default_annotation_parser.dart';
+import 'package:kaisel_generator/src/scanner/default_library_scanner.dart';
+import 'package:kaisel_generator/src/spi/parser.dart';
 import 'package:test/test.dart';
 
 import '../support/temp_project.dart';
 
 void main() {
-  const scanner = LibraryScanner();
+  const scanner = DefaultLibraryScanner(parser: DefaultAnnotationParser());
 
   test('should scan modules and count the files it read', () {
     final project = TempProject.create('scan_modules');
@@ -23,7 +28,7 @@ class ShopRouterModule extends RouteModule<ShopRoute> {
 ''');
     project.write('lib/features/shop/shop_view.dart', 'class ShopView {}\n');
 
-    final scan = scanner.scanModules(project.directory('lib'));
+    final scan = scanner.scan(project.directory('lib'));
 
     expect(
       scan.modules.map((module) => module.mountName),
@@ -49,13 +54,13 @@ class ShopRouterModule extends RouteModule<ShopRoute> {
 }
 ''');
 
-    final scan = scanner.scanModules(project.directory('lib'));
+    final scan = scanner.scan(project.directory('lib'));
 
     expect(scan.modules.map((module) => module.mountName), ['ShopMount']);
     expect(scan.filesScanned, 1);
   });
 
-  test('should find the init entry point and the micro-package declarations', () {
+  test('should read the init entry point and the micro-package declarations', () {
     final project = TempProject.create('scan_annotations');
     addTearDown(project.delete);
     project.write('lib/app/app.dart', '''
@@ -67,22 +72,57 @@ void configureRouting() {}
 void configureFeatureShop() {}
 ''');
 
-    final init = scanner.findInit(project.directory('lib'));
-    final microPackages = scanner.findMicroPackages(project.directory('lib'));
+    final scan = scanner.scan(project.directory('lib'));
 
-    expect(init, isNotNull);
-    expect(init!.externalMicroPackages.single.module, 'FeatureShopKaiselModule');
-    expect(microPackages.single.moduleName, 'FeatureShop');
+    expect(scan.init, isNotNull);
+    expect(scan.init!.externalMicroPackages.single.module, 'FeatureShopKaiselModule');
+    expect(scan.microPackages.single.moduleName, 'FeatureShop');
+    expect(scan.modules, isEmpty);
+    expect(scan.filesParsed, 2);
   });
 
   test('should treat a missing lib directory as empty', () {
     final project = TempProject.create('scan_missing_lib');
     addTearDown(project.delete);
 
-    final scan = scanner.scanModules(project.directory('lib'));
+    final scan = scanner.scan(project.directory('lib'));
 
     expect(scan.modules, isEmpty);
+    expect(scan.init, isNull);
+    expect(scan.microPackages, isEmpty);
     expect(scan.filesScanned, 0);
-    expect(scanner.findInit(project.directory('lib')), isNull);
   });
+
+  test('should scan with the parser it was given', () {
+    final project = TempProject.create('scan_custom_parser');
+    addTearDown(project.delete);
+    project.write('lib/shop_module.dart', '@KaiselModule(prefix: \'/\')\nclass X {}\n');
+
+    final scanner = DefaultLibraryScanner(parser: _StubParser());
+    final scan = scanner.scan(project.directory('lib'));
+
+    expect(scan.modules.single.mountName, 'StubMount');
+  });
+}
+
+class _StubParser implements AnnotationParser {
+  @override
+  void close() {}
+
+  @override
+  List<ModuleInfo> parseModules(String filePath, String source) => [
+        ModuleInfo(
+          className: 'X',
+          routeType: 'XRoute',
+          mountName: 'StubMount',
+          codecName: 'XRouteCodec',
+          filePath: filePath,
+        ),
+      ];
+
+  @override
+  InitInfo? parseInit(String source) => null;
+
+  @override
+  MicroPackageDeclaration? parseMicroPackage(String filePath, String source) => null;
 }

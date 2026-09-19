@@ -1,8 +1,8 @@
-import 'package:kaisel_generator/src/emitter/import_emitter.dart';
+import 'package:kaisel_generator/src/emitter/default_import_emitter.dart';
 import 'package:test/test.dart';
 
 void main() {
-  const emitter = ImportEmitter();
+  const emitter = DefaultImportEmitter();
 
   group('aliasesFor', () {
     test('should number aliases in the order the keys were registered', () {

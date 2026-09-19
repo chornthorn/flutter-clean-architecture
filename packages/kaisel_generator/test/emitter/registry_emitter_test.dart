@@ -1,10 +1,11 @@
-import 'package:kaisel_generator/src/emitter/registry_emitter.dart';
+import 'package:kaisel_generator/src/emitter/default_import_emitter.dart';
+import 'package:kaisel_generator/src/emitter/default_registry_emitter.dart';
 import 'package:kaisel_generator/src/model/micro_package.dart';
 import 'package:kaisel_generator/src/model/module_info.dart';
 import 'package:test/test.dart';
 
 void main() {
-  const emitter = RegistryEmitter();
+  const emitter = DefaultRegistryEmitter(imports: DefaultImportEmitter());
 
   test('should compose an external micro-package into the host', () {
     final code = emitter.write(

@@ -1,8 +1,8 @@
-import 'package:kaisel_generator/src/parser/annotation_parser.dart';
+import 'package:kaisel_generator/src/parser/default_annotation_parser.dart';
 import 'package:test/test.dart';
 
 void main() {
-  const parser = AnnotationParser();
+  const parser = DefaultAnnotationParser();
 
   group('parseModules', () {
     test('should read prefix, mount and explicit codec from the annotation', () {

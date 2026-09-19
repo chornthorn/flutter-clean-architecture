@@ -7,6 +7,7 @@
 /// resolved by name.
 library;
 
+import 'module_info.dart';
 import 'naming.dart';
 
 /// A `@KaiselMicroPackage` declaration: the package generates one manifest from
@@ -122,3 +123,43 @@ class MicroPackageInfo {
         mounts: mounts,
       );
 }
+
+/// Gives every mount a package contributes a host marker name that cannot collide
+/// with a name the host already uses: `<Feature>Mount` becomes
+/// `<Feature><Owner>Mount`, so the package `profile` declaring `ShopMount` next
+/// to the host's own `ShopMount` is bound to `ShopProfileMount`.
+///
+/// A name that is still free is left exactly as the package declared it, so
+/// registering a package never renames a marker the host already has.
+List<MicroPackageInfo> qualifyMarkers(
+  List<MicroPackageInfo> packages,
+  List<ModuleInfo> modules,
+) {
+  // The host's own mounts hold their names; a package that wants one of them is
+  // the one that moves.
+  final taken = {for (final module in modules) module.mountName};
+
+  final qualified = <MicroPackageInfo>[];
+  for (final package in packages) {
+    final mounts = [
+      for (final mount in package.mounts)
+        mount.withHostMarker(_claim(mount.mountName, package.owner, taken)),
+    ];
+    qualified.add(package.withMounts(mounts));
+  }
+  return qualified;
+}
+
+String _claim(String preferred, String owner, Set<String> taken) {
+  var marker = preferred;
+  while (taken.contains(marker)) {
+    marker = _insertOwner(marker, owner);
+  }
+  taken.add(marker);
+  return marker;
+}
+
+/// `ShopMount` + `Profile` → `ShopProfileMount`.
+String _insertOwner(String marker, String owner) => marker.endsWith('Mount')
+    ? '${marker.substring(0, marker.length - 'Mount'.length)}${owner}Mount'
+    : '$marker$owner';

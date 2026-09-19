@@ -1,4 +1,5 @@
 import 'package:kaisel_generator/src/model/micro_package.dart';
+import 'package:kaisel_generator/src/model/module_info.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -55,4 +56,62 @@ void main() {
       expect(package.initialMount, isNull);
     });
   });
+
+  group('qualifyMarkers', () {
+    test('should leave a free name alone', () {
+      final qualified = qualifyMarkers(
+        [_microPackage('ProfileKaiselModule', 'profileMount')],
+        [_module('HomeMount')],
+      );
+
+      expect(qualified.single.mounts.single.marker, 'ProfileMount');
+    });
+
+    test('should insert the owner when the host already uses the name', () {
+      final qualified = qualifyMarkers(
+        [_microPackage('ProfileKaiselModule', 'shopMount')],
+        [_module('ShopMount')],
+      );
+
+      expect(qualified.single.mounts.single.marker, 'ShopProfileMount');
+    });
+
+    test('should keep two packages claiming one name distinct', () {
+      final qualified = qualifyMarkers(
+        [
+          _microPackage('ProfileKaiselModule', 'shopMount'),
+          _microPackage('FeatureShopKaiselModule', 'shopMount'),
+        ],
+        [_module('ShopMount')],
+      );
+
+      expect(qualified.first.mounts.single.marker, 'ShopProfileMount');
+      expect(qualified.last.mounts.single.marker, 'ShopFeatureShopMount');
+    });
+
+    test('should leave the packages it was given untouched', () {
+      final packages = [_microPackage('ProfileKaiselModule', 'shopMount')];
+
+      qualifyMarkers(packages, [_module('ShopMount')]);
+
+      expect(packages.single.mounts.single.marker, 'ShopMount');
+    });
+  });
 }
+
+MicroPackageInfo _microPackage(String className, String fieldName) => MicroPackageInfo(
+      className: className,
+      importUri: 'package:shop/shop.kaisel.dart',
+      mounts: [
+        MicroPackageMountInfo(fieldName: fieldName, isRouted: true, isInitial: false),
+      ],
+    );
+
+ModuleInfo _module(String mountName) => ModuleInfo(
+      className: 'ShopRouterModule',
+      routeType: 'ShopRoute',
+      mountName: mountName,
+      codecName: 'ShopRouteCodec',
+      filePath: '/app/lib/shop_module.dart',
+      prefix: '/shop',
+    );

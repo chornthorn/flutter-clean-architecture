@@ -1,11 +1,11 @@
 import 'package:kaisel_generator/src/model/generation_result.dart';
-import 'package:kaisel_generator/src/scanner/project_scanner.dart';
+import 'package:kaisel_generator/src/scanner/default_project_scanner.dart';
 import 'package:test/test.dart';
 
 import '../support/temp_project.dart';
 
 void main() {
-  const scanner = ProjectScanner();
+  const scanner = DefaultProjectScanner();
 
   group('readConfig', () {
     test('should read the keys kaisel.yaml sets', () {

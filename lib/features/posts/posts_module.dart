@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:injectify/injectify.dart';
 import 'package:kaisel/kaisel.dart';
 import 'package:kaisel_generator/kaisel_generator.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as provider;
 
 import '../../provider.dart';
 import 'presentation/view_models/comment_view_model.dart';
@@ -42,17 +42,17 @@ class PostsRouterModule extends RouteModule<PostsRoute> {
   @override
   Widget buildPage(BuildContext context, PostsRoute route) => switch (route) {
     // `Provider` owns the view model's lifetime; the container does not dispose factories.
-    PostsHome() => Provider<PostViewModel>(
+    PostsHome() => provider.Provider<PostViewModel>(
       create: (_) => getIt<PostViewModel>()..load(),
       dispose: (_, viewModel) => viewModel.dispose(),
       child: const PostsHomeView(),
     ),
-    PostDetail(:final id) => Provider<PostViewModel>(
+    PostDetail(:final id) => provider.Provider<PostViewModel>(
       create: (_) => getIt<PostViewModel>()..load(id),
       dispose: (_, viewModel) => viewModel.dispose(),
       // The detail page owns a second view model for the thread below the post;
       // both go down with the route.
-      child: Provider<CommentViewModel>(
+      child: provider.Provider<CommentViewModel>(
         create: (_) => getIt<CommentViewModel>()..load(id),
         dispose: (_, viewModel) => viewModel.dispose(),
         child: PostDetailView(id: id),

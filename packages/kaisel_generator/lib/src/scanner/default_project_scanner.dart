@@ -6,18 +6,24 @@ import 'package:yaml/yaml.dart';
 
 import '../model/generation_result.dart';
 import '../model/kaisel_config.dart';
+import '../spi/provider.dart';
+import '../spi/scanner.dart';
+import '../spi/session.dart';
 
-/// Reads the project around a package's sources: `kaisel.yaml`, the package name
-/// in `pubspec.yaml`, and the `package:` config that names another package's
-/// files.
+/// The built-in [ProjectScanner]: `kaisel.yaml` and `pubspec.yaml` read from the
+/// project root, and `package:` imports resolved through the project's own
+/// `.dart_tool/package_config.json`.
 ///
 /// A manifest is named by convention (`package:profile/profile.kaisel.dart`) and
-/// lives in another package, so it is resolved through the project's own
-/// `.dart_tool/package_config.json` rather than guessed at.
-class ProjectScanner {
-  const ProjectScanner();
+/// lives in another package, so it is resolved through the package config rather
+/// than guessed at.
+class DefaultProjectScanner implements ProjectScanner {
+  const DefaultProjectScanner();
 
-  /// Reads `<root>/kaisel.yaml`, or returns `null` when the project has none.
+  @override
+  void close() {}
+
+  @override
   KaiselConfig? readConfig(String root) {
     final file = File(p.join(root, 'kaisel.yaml'));
     if (!file.existsSync()) {
@@ -37,7 +43,7 @@ class ProjectScanner {
     );
   }
 
-  /// The `name:` of the package rooted at [root], or `null` when it has none.
+  @override
   String? readPackageName(String root) {
     final file = File(p.join(root, 'pubspec.yaml'));
     if (!file.existsSync()) {
@@ -53,11 +59,7 @@ class ProjectScanner {
     return name is String && name.isNotEmpty ? name : null;
   }
 
-  /// Resolves the file an import URI names.
-  ///
-  /// `package:` imports are resolved through the project's
-  /// `.dart_tool/package_config.json`; relative imports are resolved against the
-  /// directory of the generated output file.
+  @override
   String resolveImportUri({
     required String root,
     required String outputDir,
@@ -88,8 +90,7 @@ class ProjectScanner {
     return p.normalize(p.join(outputDir, importUri));
   }
 
-  /// The `lib/` directory of a dependency package listed in
-  /// `<root>/.dart_tool/package_config.json`.
+  @override
   String resolvePackageLibDir({required String root, required String package}) {
     final configPath = p.join(root, '.dart_tool', 'package_config.json');
     final configFile = File(configPath);
@@ -153,4 +154,18 @@ class ProjectScanner {
     }
     return null;
   }
+}
+
+/// Creates the built-in [ProjectScanner].
+class DefaultProjectScannerFactory implements ProjectScannerFactory {
+  const DefaultProjectScannerFactory();
+
+  @override
+  String get id => 'default';
+
+  @override
+  int get order => kaiselProviderOrder;
+
+  @override
+  ProjectScanner create(KaiselSession session) => const DefaultProjectScanner();
 }

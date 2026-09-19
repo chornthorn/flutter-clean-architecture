@@ -1,8 +1,8 @@
-import 'package:kaisel_generator/src/parser/manifest_parser.dart';
+import 'package:kaisel_generator/src/parser/default_manifest_parser.dart';
 import 'package:test/test.dart';
 
 void main() {
-  const parser = ManifestParser();
+  const parser = DefaultManifestParser();
 
   test('should read the mount a generated manifest declares', () {
     final manifest = parser.parse('''

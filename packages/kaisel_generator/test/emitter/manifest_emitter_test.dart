@@ -1,9 +1,10 @@
-import 'package:kaisel_generator/src/emitter/manifest_emitter.dart';
+import 'package:kaisel_generator/src/emitter/default_import_emitter.dart';
+import 'package:kaisel_generator/src/emitter/default_manifest_emitter.dart';
 import 'package:kaisel_generator/src/model/module_info.dart';
 import 'package:test/test.dart';
 
 void main() {
-  const emitter = ManifestEmitter();
+  const emitter = DefaultManifestEmitter(imports: DefaultImportEmitter());
 
   test('should declare one typed mount per module', () {
     final code = emitter.write(

@@ -1,16 +1,21 @@
 import '../model/micro_package.dart';
 import '../model/module_info.dart';
-import 'import_emitter.dart';
+import '../spi/emitter.dart';
+import '../spi/provider.dart';
+import '../spi/session.dart';
 
-/// Emits the host's module registry: the sealed route hierarchy, the page
-/// builder, the URL mounts and the router config an app runs on.
-class RegistryEmitter {
-  const RegistryEmitter({this.imports = const ImportEmitter()});
+/// The built-in [RegistryEmitter]: the host's module registry, the sealed route
+/// hierarchy, the page builder, the URL mounts and the router config an app runs
+/// on.
+class DefaultRegistryEmitter implements RegistryEmitter {
+  const DefaultRegistryEmitter({required this.imports});
 
   final ImportEmitter imports;
 
-  /// Writes the registry for a project whose modules are [modules] and whose
-  /// composed micro-packages are [microPackages].
+  @override
+  void close() {}
+
+  @override
   String write({
     required List<ModuleInfo> modules,
     required String routeClass,
@@ -245,4 +250,20 @@ class RegistryEmitter {
 
   List<String> _uniqueSorted(List<String> values) =>
       values.toSet().toList()..sort();
+}
+
+/// Creates the built-in [RegistryEmitter], with the session's [ImportEmitter].
+class DefaultRegistryEmitterFactory implements RegistryEmitterFactory {
+  const DefaultRegistryEmitterFactory();
+
+  @override
+  String get id => 'default';
+
+  @override
+  int get order => kaiselProviderOrder;
+
+  @override
+  RegistryEmitter create(KaiselSession session) => DefaultRegistryEmitter(
+        imports: session.provider(ImportEmitterSpi.instance),
+      );
 }

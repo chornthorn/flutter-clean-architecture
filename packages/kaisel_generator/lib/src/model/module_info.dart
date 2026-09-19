@@ -4,6 +4,8 @@
 /// build: the scan needs an AST, never a resolved program.
 library;
 
+import 'generation_result.dart';
+
 /// One `@KaiselModule` class, with the names its registry entry needs.
 class ModuleInfo {
   const ModuleInfo({
@@ -58,4 +60,34 @@ class ModuleScanResult {
 
   /// Files that named an annotation and were therefore parsed.
   final int filesParsed;
+}
+
+/// Initial landing module first, then by mount name, so generated output does not
+/// depend on the order the filesystem handed the files over.
+List<ModuleInfo> sortModules(List<ModuleInfo> modules) {
+  final sorted = [...modules];
+  sorted.sort((a, b) {
+    if (a.isInitial != b.isInitial) {
+      return a.isInitial ? -1 : 1;
+    }
+    return a.mountName.compareTo(b.mountName);
+  });
+  return sorted;
+}
+
+/// Guard rail: a host's own mounts are one namespace, so two modules claiming
+/// the same name would silently lose a route.
+///
+/// A micro-package cannot cause this — the marker names it contributes are
+/// qualified against whatever the host already declares (see `qualifyMarkers`).
+void validateMountNames(List<ModuleInfo> modules) {
+  final seen = <String>{};
+  for (final module in modules) {
+    if (!seen.add(module.mountName)) {
+      throw KaiselGenerationException(
+        'Mount name `${module.mountName}` is declared twice by the host app. '
+        'Give one module a distinct `mount:` name.',
+      );
+    }
+  }
 }

@@ -2,19 +2,23 @@ import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 
 import '../model/micro_package.dart';
+import '../spi/parser.dart';
+import '../spi/provider.dart';
+import '../spi/session.dart';
 
-/// Reads the mount contract a generated manifest declares.
+/// The built-in [ManifestParser]: reads the mounts a generated manifest
+/// declares.
 ///
 /// A host composes another package's manifest without resolving it, so the
 /// manifest's declarations are read from its AST: one `static const
 /// KaiselMicroMount<...>` field per mount the package contributes.
-class ManifestParser {
-  const ManifestParser();
+class DefaultManifestParser implements ManifestParser {
+  const DefaultManifestParser();
 
-  /// Reads the manifest [source] declares, or `null` when it was not produced by
-  /// a compatible generator — the caller then reports that the manifest must be
-  /// regenerated rather than composing a package that would silently contribute
-  /// no mounts.
+  @override
+  void close() {}
+
+  @override
   MicroPackageManifest? parse(String source) {
     final unit = parseString(content: source, throwIfDiagnostics: false).unit;
 
@@ -101,4 +105,18 @@ Map<String, Expression> _namedArguments(ArgumentList? arguments) {
 bool? _boolArgument(Map<String, Expression> arguments, String name) {
   final expression = arguments[name];
   return expression is BooleanLiteral ? expression.value : null;
+}
+
+/// Creates the built-in [ManifestParser].
+class DefaultManifestParserFactory implements ManifestParserFactory {
+  const DefaultManifestParserFactory();
+
+  @override
+  String get id => 'default';
+
+  @override
+  int get order => kaiselProviderOrder;
+
+  @override
+  ManifestParser create(KaiselSession session) => const DefaultManifestParser();
 }

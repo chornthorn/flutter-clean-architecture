@@ -25,6 +25,10 @@ Future<void> main(List<String> args) async {
   final repoRoot = _repoRoot();
   final outRoot = _absolute(repoRoot, options.out);
 
+  // The composition root of this tool: the built-in SPI implementations, wired
+  // by the bootstrap.
+  final generator = const KaiselBootstrap().createGenerator();
+
   if (options.clean) {
     if (Directory(outRoot).existsSync()) {
       Directory(outRoot).deleteSync(recursive: true);
@@ -58,7 +62,7 @@ Future<void> main(List<String> args) async {
   final timings = <int>[];
   var result = const KaiselGenerationResult(success: true);
   for (var run = 1; run <= options.runs; run++) {
-    result = await const KaiselGenerator().generate(root: outRoot, force: true);
+    result = await generator.generate(root: outRoot, force: true);
     if (!result.success) {
       stderr.writeln('❌ Run $run failed: ${result.error}');
       exitCode = 1;

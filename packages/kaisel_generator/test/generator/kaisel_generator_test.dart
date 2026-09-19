@@ -1,7 +1,4 @@
-import 'package:kaisel_generator/src/generator/kaisel_generator.dart';
-import 'package:kaisel_generator/src/model/generation_result.dart';
-import 'package:kaisel_generator/src/model/micro_package.dart';
-import 'package:kaisel_generator/src/model/module_info.dart';
+import 'package:kaisel_generator/kaisel_generator.dart';
 import 'package:test/test.dart';
 
 import '../support/temp_project.dart';
@@ -10,7 +7,7 @@ import '../support/temp_project.dart';
 /// generates its own manifest, and a host app composes it through
 /// `@KaiselInit(externalMicroPackages: [...])`.
 void main() {
-  const generator = KaiselGenerator();
+  final generator = const KaiselBootstrap().createGenerator();
 
   test('should generate the manifest contract of a standalone micro-package', () async {
     final repo = TempProject.create('standalone');
@@ -237,105 +234,6 @@ void main() {
     expect(result.success, isFalse);
     expect(result.error, contains('declared twice'));
   });
-
-  group('sortModules', () {
-    test('should put the initial module first and sort the rest by mount name', () {
-      final sorted = sortModules([
-        _module(mountName: 'ShopMount', prefix: '/shop', filePath: '/app/lib/shop_module.dart'),
-        _module(mountName: 'PostsMount', prefix: '/posts', filePath: '/app/lib/posts_module.dart'),
-        _module(
-          mountName: 'HomeMount',
-          routeType: 'HomeRoute',
-          filePath: '/app/lib/home_module.dart',
-          isInitial: true,
-        ),
-      ]);
-
-      expect(
-        sorted.map((module) => module.mountName),
-        ['HomeMount', 'PostsMount', 'ShopMount'],
-      );
-    });
-  });
-
-  group('validateMountNames', () {
-    test('should reject a mount the host declares twice', () {
-      expect(
-        () => validateMountNames([
-          _module(mountName: 'ShopMount', prefix: '/shop', filePath: '/app/lib/a.dart'),
-          _module(mountName: 'ShopMount', prefix: '/shop/v2', filePath: '/app/lib/b.dart'),
-        ]),
-        throwsA(
-          isA<KaiselGenerationException>().having(
-            (error) => error.message,
-            'message',
-            contains('declared twice'),
-          ),
-        ),
-      );
-
-      expect(
-        () => validateMountNames([
-          _module(mountName: 'ShopMount', prefix: '/shop', filePath: '/app/lib/a.dart'),
-          _module(mountName: 'HomeMount', routeType: 'HomeRoute', filePath: '/app/lib/b.dart'),
-        ]),
-        returnsNormally,
-      );
-    });
-  });
-
-  group('qualifyMarkers', () {
-    test('should leave a free name alone', () {
-      final qualified = qualifyMarkers(
-        [
-          _microPackage(
-            className: 'ProfileKaiselModule',
-            importUri: 'package:profile/profile.kaisel.dart',
-            mountFieldNames: ['profileMount'],
-          ),
-        ],
-        [_module(mountName: 'HomeMount', filePath: '/app/lib/home_module.dart')],
-      );
-
-      expect(qualified.single.mounts.single.marker, 'ProfileMount');
-    });
-
-    test('should insert the owner when the host already uses the name', () {
-      final qualified = qualifyMarkers(
-        [
-          _microPackage(
-            className: 'ProfileKaiselModule',
-            importUri: 'package:profile/profile.kaisel.dart',
-            mountFieldNames: ['shopMount'],
-          ),
-        ],
-        [_module(mountName: 'ShopMount', prefix: '/shop', filePath: '/app/lib/shop_module.dart')],
-      );
-
-      expect(qualified.single.mounts.single.marker, 'ShopProfileMount');
-    });
-
-    test('should keep two packages claiming one name distinct', () {
-      final qualified = qualifyMarkers(
-        [
-          _microPackage(
-            className: 'ProfileKaiselModule',
-            importUri: 'package:profile/profile.kaisel.dart',
-            mountFieldNames: ['shopMount'],
-          ),
-          _microPackage(
-            className: 'FeatureShopKaiselModule',
-            importUri: 'package:feature_shop/feature_shop.kaisel.dart',
-            mountFieldNames: ['shopMount'],
-          ),
-        ],
-        [_module(mountName: 'ShopMount', prefix: '/shop', filePath: '/app/lib/shop_module.dart')],
-      );
-
-      expect(qualified.first.mounts.single.marker, 'ShopProfileMount');
-      expect(qualified.last.mounts.single.marker, 'ShopFeatureShopMount');
-    });
-  });
 }
 
 const _hostModule = '''
@@ -484,34 +382,3 @@ String _writeRegisteredProfileFixture(
 
   return repo.path('app');
 }
-
-ModuleInfo _module({
-  String routeType = 'ShopRoute',
-  required String mountName,
-  required String filePath,
-  String? prefix,
-  bool isInitial = false,
-}) =>
-    ModuleInfo(
-      className: 'ShopRouterModule',
-      routeType: routeType,
-      mountName: mountName,
-      codecName: '${routeType}Codec',
-      filePath: filePath,
-      prefix: prefix,
-      isInitial: isInitial,
-    );
-
-MicroPackageInfo _microPackage({
-  required String className,
-  required String importUri,
-  required List<String> mountFieldNames,
-}) =>
-    MicroPackageInfo(
-      className: className,
-      importUri: importUri,
-      mounts: [
-        for (final fieldName in mountFieldNames)
-          MicroPackageMountInfo(fieldName: fieldName, isRouted: true, isInitial: false),
-      ],
-    );

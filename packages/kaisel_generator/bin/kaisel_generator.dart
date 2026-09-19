@@ -41,8 +41,12 @@ Future<void> main(List<String> args) async {
     return;
   }
 
+  // The entry point is the composition root: it wires the SPI implementations
+  // the bootstrap ships and never names them itself.
+  final generator = const KaiselBootstrap().createGenerator();
+
   stdout.writeln('⚡ Kaisel Module Registry Generator');
-  final result = await const KaiselGenerator().generate(
+  final result = await generator.generate(
     root: root,
     libDir: lib,
     output: output,
@@ -71,7 +75,7 @@ Future<void> main(List<String> args) async {
       if (event.path.endsWith('.dart') && !event.path.endsWith('.g.dart')) {
         if (DateTime.now().difference(lastRun).inMilliseconds > 150) {
           lastRun = DateTime.now();
-          final r = await const KaiselGenerator().generate(
+          final r = await generator.generate(
             root: root,
             libDir: lib,
             output: output,

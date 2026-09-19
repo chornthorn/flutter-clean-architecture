@@ -1,0 +1,65 @@
+import '../model/generation_result.dart';
+import 'provider.dart';
+import 'spi.dart';
+
+/// The factories registered for each SPI (Keycloak: `DefaultProviderManager`).
+///
+/// Keycloak finds factories with the `ServiceLoader`; Dart has no reflection, so
+/// the bootstrap hands the manager the factory list explicitly — the same
+/// registration, spelled out. A factory that binds it to one SPI, and a factory
+/// no SPI accepts is a registration bug, not a silent no-op.
+class ProviderManager {
+  ProviderManager({
+    required Iterable<Spi<dynamic>> spis,
+    required Iterable<ProviderFactory<dynamic>> factories,
+  }) : spis = List.unmodifiable(spis) {
+    for (final factory in factories) {
+      final spi = spiOf(factory);
+      if (spi == null) {
+        final registered = this.spis.map((spi) => spi.name).join(', ');
+        throw KaiselGenerationException(
+          'No Kaisel SPI accepts the provider factory `${factory.id}`. '
+          'Registered SPIs: $registered.',
+        );
+      }
+      _factoriesForSpi.putIfAbsent(spi.name, () => []).add(factory);
+    }
+
+    // The order a SPI asks its factories in is `order()`, then registration order.
+    for (final factories in _factoriesForSpi.values) {
+      factories.sort((a, b) => a.order.compareTo(b.order));
+    }
+  }
+
+  /// The SPIs registered with this manager.
+  final List<Spi<dynamic>> spis;
+
+  final Map<String, List<ProviderFactory<dynamic>>> _factoriesForSpi = {};
+
+  /// The SPI [factory] belongs to, or `null` when no registered SPI accepts it.
+  Spi<dynamic>? spiOf(ProviderFactory<dynamic> factory) {
+    for (final spi in spis) {
+      if (spi.accepts(factory)) {
+        return spi;
+      }
+    }
+    return null;
+  }
+
+  /// The factories registered for [spi], ordered.
+  List<ProviderFactory<dynamic>> factoriesFor(Spi<dynamic> spi) =>
+      List.unmodifiable(_factoriesForSpi[spi.name] ?? const []);
+
+  /// The factory for [spi] with [id], or the first one when [id] is `null`.
+  ///
+  /// Keycloak's `KeycloakSession.getProvider(Class<T>, String id)`: the cast is
+  /// sound because [Spi.accepts] tied the factory to this SPI's provider class.
+  ProviderFactory<T>? factoryFor<T extends Provider>(Spi<T> spi, [String? id]) {
+    for (final factory in _factoriesForSpi[spi.name] ?? const <ProviderFactory<dynamic>>[]) {
+      if (id == null || factory.id == id) {
+        return factory as ProviderFactory<T>;
+      }
+    }
+    return null;
+  }
+}
