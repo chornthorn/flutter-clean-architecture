@@ -4,19 +4,20 @@ import 'package:flutter_x/features/posts/posts_module.dart';
 import 'package:flutter_x/features/settings/settings_module.dart';
 import 'package:flutter_x/features/shop/shop_module.dart';
 import 'package:kaisel/kaisel.dart';
+import 'package:profile/profile.dart';
 
 void main() {
-  group('appCodec.decode', () {
+  group('defaultAppCodec.decode', () {
     test('should map the root path to the home mount', () {
       expect(
-        appCodec.decode(Uri.parse('/')),
+        defaultAppCodec.decode(Uri.parse('/')),
         KaiselConfig<AppRoute>(mainStack: const [HomeMount()]),
       );
     });
 
     test('should map a bare module prefix to the module root', () {
       expect(
-        appCodec.decode(Uri.parse('/shop')),
+        defaultAppCodec.decode(Uri.parse('/shop')),
         KaiselConfig<AppRoute>(
           mainStack: const [ShopMount()],
           nestedState: KaiselModuleConfig(stack: const [ShopHome()]),
@@ -26,7 +27,7 @@ void main() {
 
     test('should map a module URL to its mount plus the module stack', () {
       expect(
-        appCodec.decode(Uri.parse('/shop/products/sku-42')),
+        defaultAppCodec.decode(Uri.parse('/shop/products/sku-42')),
         KaiselConfig<AppRoute>(
           mainStack: const [ShopMount()],
           nestedState: KaiselModuleConfig(
@@ -38,7 +39,7 @@ void main() {
 
     test('should map the cart URL to the cart above the module root', () {
       expect(
-        appCodec.decode(Uri.parse('/shop/cart')),
+        defaultAppCodec.decode(Uri.parse('/shop/cart')),
         KaiselConfig<AppRoute>(
           mainStack: const [ShopMount()],
           nestedState: KaiselModuleConfig(
@@ -50,7 +51,7 @@ void main() {
 
     test('should map a second module independently of the first', () {
       expect(
-        appCodec.decode(Uri.parse('/settings/about')),
+        defaultAppCodec.decode(Uri.parse('/settings/about')),
         KaiselConfig<AppRoute>(
           mainStack: const [SettingsMount()],
           nestedState: KaiselModuleConfig(
@@ -62,7 +63,7 @@ void main() {
 
     test('should map the posts URL to the posts mount', () {
       expect(
-        appCodec.decode(Uri.parse('/posts')),
+        defaultAppCodec.decode(Uri.parse('/posts')),
         KaiselConfig<AppRoute>(
           mainStack: const [PostsMount()],
           nestedState: KaiselModuleConfig(stack: const [PostsHome()]),
@@ -72,7 +73,7 @@ void main() {
 
     test('should map a post URL to the detail above the module root', () {
       expect(
-        appCodec.decode(Uri.parse('/posts/7')),
+        defaultAppCodec.decode(Uri.parse('/posts/7')),
         KaiselConfig<AppRoute>(
           mainStack: const [PostsMount()],
           nestedState: KaiselModuleConfig(
@@ -83,20 +84,39 @@ void main() {
     });
 
     test('should not claim a post path whose id is not a number', () {
-      expect(appCodec.decode(Uri.parse('/posts/all')), isNull);
+      expect(defaultAppCodec.decode(Uri.parse('/posts/all')), isNull);
+    });
+
+    test('should map a profile URL to the micro-package mount and its stack', () {
+      // `ProfileMount`, its prefix and its codec all come from the package's
+      // `ProfileKaiselModule.profileMount` declaration: the host declares no
+      // name, prefix or codec of its own for it.
+      expect(
+        defaultAppCodec.decode(Uri.parse('/profile/edit')),
+        KaiselConfig<AppRoute>(
+          mainStack: const [ProfileMount()],
+          nestedState: KaiselModuleConfig(
+            stack: const [ProfileOverviewRoute(), ProfileEditRoute()],
+          ),
+        ),
+      );
+    });
+
+    test('should not claim an unknown path inside the profile prefix', () {
+      expect(defaultAppCodec.decode(Uri.parse('/profile/nope')), isNull);
     });
 
     test('should return null for an unknown host path', () {
-      expect(appCodec.decode(Uri.parse('/nope')), isNull);
+      expect(defaultAppCodec.decode(Uri.parse('/nope')), isNull);
     });
 
     test('should return null for an unknown path inside a module prefix', () {
       // It belongs to that module: the base codec must not claim it.
-      expect(appCodec.decode(Uri.parse('/shop/nope')), isNull);
+      expect(defaultAppCodec.decode(Uri.parse('/shop/nope')), isNull);
     });
   });
 
-  group('appCodec.encode', () {
+  group('defaultAppCodec.encode', () {
     const paths = [
       '/',
       '/shop',
@@ -106,15 +126,17 @@ void main() {
       '/settings/about',
       '/posts',
       '/posts/7',
+      '/profile',
+      '/profile/edit',
     ];
 
     for (final path in paths) {
       test('should round-trip $path through decode and encode', () {
-        final config = appCodec.decode(Uri.parse(path));
+        final config = defaultAppCodec.decode(Uri.parse(path));
 
         expect(config, isNotNull, reason: '$path should decode');
         expect(
-          appCodec.encode(config!).toString(),
+          defaultAppCodec.encode(config!).toString(),
           path,
           reason: '$path should survive a round-trip',
         );

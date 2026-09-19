@@ -1,0 +1,20 @@
+name: profile
+description: "Profile feature package."
+version: 0.0.1
+publish_to: 'none'
+
+environment:
+  sdk: ^3.13.2
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  kaisel: ^1.1.0
+  kaisel_generator:
+    path: ../../packages/kaisel_generator
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

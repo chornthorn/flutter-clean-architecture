@@ -17,6 +17,26 @@ pub struct InitMetadata {
     pub output: Option<String>,
     pub route_class: Option<String>,
     pub initial_route: Option<String>,
+    pub use_micro_package: Option<bool>,
+    pub external_micro_packages: Vec<ExternalMicroPackageRef>,
+}
+
+/// A `ExternalMicroPackage(<ModuleClass>)` entry declared on `@KaiselInit`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExternalMicroPackageRef {
+    /// The micro-package module class, e.g. `FeatureShopKaiselModule`.
+    pub module: String,
+    /// Explicit manifest import URI, when the convention cannot be used.
+    pub import: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MicroPackageMetadata {
+    pub module_name: String,
+    pub output: Option<String>,
+    pub prefix: Option<String>,
+    pub file_path: PathBuf,
+    pub folder_path: PathBuf,
 }
 
 pub fn extract_modules_from_source(file_path: &Path, source: &str) -> Vec<ModuleMetadata> {
@@ -38,6 +58,24 @@ pub fn extract_modules_from_source(file_path: &Path, source: &str) -> Vec<Module
 }
 
 pub fn extract_init_metadata(source: &str) -> Option<InitMetadata> {
+    // Parse a comment-free copy: `externalMicroPackages` is read by scanning the
+    // argument text, so a commented-out `ExternalMicroPackage(...)` — or a `)`
+    // inside a comment — must not read as a registration. [strip_dart_comments]
+    // keeps every byte offset, so node ranges still slice the same text.
+    let source = strip_dart_comments(source);
+
+    let mut parser = Parser::new();
+    let language = tree_sitter_dart::LANGUAGE;
+    parser
+        .set_language(&language.into())
+        .expect("Error loading Dart grammar");
+
+    let tree = parser.parse(&source, None)?;
+    let root = tree.root_node();
+    find_init_in_node(root, &source)
+}
+
+pub fn extract_micro_package_metadata(file_path: &Path, source: &str) -> Option<MicroPackageMetadata> {
     let mut parser = Parser::new();
     let language = tree_sitter_dart::LANGUAGE;
     parser
@@ -46,7 +84,7 @@ pub fn extract_init_metadata(source: &str) -> Option<InitMetadata> {
 
     let tree = parser.parse(source, None)?;
     let root = tree.root_node();
-    find_init_in_node(root, source)
+    find_micro_package_in_node(root, source, file_path)
 }
 
 fn find_init_in_node(node: Node, source: &str) -> Option<InitMetadata> {
@@ -56,8 +94,25 @@ fn find_init_in_node(node: Node, source: &str) -> Option<InitMetadata> {
             let mut output = None;
             let mut route_class = None;
             let mut initial_route = None;
-            find_init_annotation_args(node, source, &mut output, &mut route_class, &mut initial_route);
-            return Some(InitMetadata { output, route_class, initial_route });
+            let mut use_micro_package = None;
+            let mut external_micro_packages = Vec::new();
+
+            find_init_annotation_args(
+                node,
+                source,
+                &mut output,
+                &mut route_class,
+                &mut initial_route,
+                &mut use_micro_package,
+                &mut external_micro_packages,
+            );
+            return Some(InitMetadata {
+                output,
+                route_class,
+                initial_route,
+                use_micro_package,
+                external_micro_packages,
+            });
         }
     }
 
@@ -76,6 +131,206 @@ fn find_init_annotation_args(
     output: &mut Option<String>,
     route_class: &mut Option<String>,
     initial_route: &mut Option<String>,
+    use_micro_package: &mut Option<bool>,
+    external_micro_packages: &mut Vec<ExternalMicroPackageRef>,
+) {
+    let mut cursor = annot_node.walk();
+    for child in annot_node.children(&mut cursor) {
+        if child.kind() == "annotation_arguments" || child.kind() == "arguments" {
+            let mut arg_cursor = child.walk();
+            for arg_child in child.children(&mut arg_cursor) {
+                if arg_child.kind() == "named_argument" {
+                    let mut name = String::new();
+                    let mut val = String::new();
+
+                    let mut named_cursor = arg_child.walk();
+                    for part in arg_child.children(&mut named_cursor) {
+                        if part.kind() == "label" {
+                            name = node_text(part, source)
+                                .trim_end_matches(':')
+                                .trim()
+                                .to_string();
+                        } else if part.kind() != ":" {
+                            val = node_text(part, source).trim().to_string();
+                        }
+                    }
+
+                    match name.as_str() {
+                        "output" => *output = Some(val.trim_matches('\'').trim_matches('"').to_string()),
+                        "routeClass" | "route_class" => *route_class = Some(val.trim_matches('\'').trim_matches('"').to_string()),
+                        "initialRoute" | "initial_route" => *initial_route = Some(val.trim_matches('\'').trim_matches('"').to_string()),
+                        "useMicroPackage" | "use_micro_package" => {
+                            *use_micro_package = Some(val.trim() == "true")
+                        }
+                        "externalMicroPackages" | "external_micro_packages" => {
+                            *external_micro_packages = parse_external_micro_packages(&val);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Parses `[ExternalMicroPackage(ShopModule), ExternalMicroPackage(PostsModule, import: '...')]`.
+fn parse_external_micro_packages(list_text: &str) -> Vec<ExternalMicroPackageRef> {
+    let mut result = Vec::new();
+    let mut rest = list_text;
+
+    while let Some(found) = rest.find("ExternalMicroPackage") {
+        rest = &rest[found + "ExternalMicroPackage".len()..];
+        let Some(open) = rest.find('(') else {
+            continue;
+        };
+        let Some(close) = rest[open + 1..].find(')').map(|offset| offset + open + 1) else {
+            continue;
+        };
+        let arguments = &rest[open + 1..close];
+        rest = &rest[close + 1..];
+
+        let mut parts = arguments.split(',');
+        let module = parts
+            .next()
+            .unwrap_or_default()
+            .split('<')
+            .next()
+            .unwrap_or_default()
+            .trim();
+        if module.is_empty() {
+            continue;
+        }
+
+        let import = parts.find_map(|part| {
+            let value = part.trim().strip_prefix("import:")?.trim();
+            let value = value.trim_matches('\'').trim_matches('"');
+            (!value.is_empty()).then(|| value.to_string())
+        });
+
+        result.push(ExternalMicroPackageRef {
+            module: module.to_string(),
+            import,
+        });
+    }
+
+    result
+}
+
+/// Replaces Dart comments with spaces, keeping every byte offset and newline in
+/// place so parsed node ranges stay valid.
+///
+/// String literals are skipped wholesale, so a `//` inside one is not a comment.
+pub fn strip_dart_comments(source: &str) -> String {
+    let bytes = source.as_bytes();
+    let mut out = bytes.to_vec();
+    let mut idx = 0;
+
+    while idx < bytes.len() {
+        match bytes[idx] {
+            b'/' if idx + 1 < bytes.len() && bytes[idx + 1] == b'/' => {
+                while idx < bytes.len() && bytes[idx] != b'\n' {
+                    out[idx] = b' ';
+                    idx += 1;
+                }
+            }
+            b'/' if idx + 1 < bytes.len() && bytes[idx + 1] == b'*' => {
+                out[idx] = b' ';
+                out[idx + 1] = b' ';
+                idx += 2;
+                while idx < bytes.len() {
+                    if bytes[idx] == b'*' && idx + 1 < bytes.len() && bytes[idx + 1] == b'/' {
+                        out[idx] = b' ';
+                        out[idx + 1] = b' ';
+                        idx += 2;
+                        break;
+                    }
+                    if bytes[idx] != b'\n' {
+                        out[idx] = b' ';
+                    }
+                    idx += 1;
+                }
+            }
+            quote @ (b'\'' | b'"') => idx = skip_string(bytes, idx, quote),
+            _ => idx += 1,
+        }
+    }
+
+    String::from_utf8(out).unwrap_or_else(|_| source.to_string())
+}
+
+/// Index just past the string literal starting at `start`, or the line end when
+/// it is unterminated.
+fn skip_string(bytes: &[u8], start: usize, quote: u8) -> usize {
+    let raw = start > 0 && matches!(bytes[start - 1], b'r' | b'R');
+    let triple = start + 2 < bytes.len() && bytes[start + 1] == quote && bytes[start + 2] == quote;
+    let mut idx = if triple { start + 3 } else { start + 1 };
+
+    while idx < bytes.len() {
+        let byte = bytes[idx];
+        if triple {
+            let closes = byte == quote
+                && bytes.get(idx + 1) == Some(&quote)
+                && bytes.get(idx + 2) == Some(&quote);
+            if closes {
+                return idx + 3;
+            }
+        } else if byte == quote {
+            return idx + 1;
+        } else if byte == b'\n' {
+            return idx;
+        }
+
+        if byte == b'\\' && !raw {
+            idx += 2;
+        } else {
+            idx += 1;
+        }
+    }
+
+    idx
+}
+
+fn find_micro_package_in_node(
+    node: Node,
+    source: &str,
+    file_path: &Path,
+) -> Option<MicroPackageMetadata> {
+    if node.kind() == "annotation" || node.kind() == "metadata" {
+        let annot_text = node_text(node, source);
+        if annot_text.contains("KaiselMicroPackage") {
+            let mut module_name = String::new();
+            let mut output = None;
+            let mut prefix = None;
+
+            find_micro_package_args(node, source, &mut module_name, &mut output, &mut prefix);
+            if !module_name.is_empty() {
+                let folder_path = file_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+                return Some(MicroPackageMetadata {
+                    module_name,
+                    output,
+                    prefix,
+                    file_path: file_path.to_path_buf(),
+                    folder_path,
+                });
+            }
+        }
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if let Some(meta) = find_micro_package_in_node(child, source, file_path) {
+            return Some(meta);
+        }
+    }
+    None
+}
+
+fn find_micro_package_args(
+    annot_node: Node,
+    source: &str,
+    module_name: &mut String,
+    output: &mut Option<String>,
+    prefix: &mut Option<String>,
 ) {
     let mut cursor = annot_node.walk();
     for child in annot_node.children(&mut cursor) {
@@ -100,9 +355,9 @@ fn find_init_annotation_args(
 
                     let clean_val = val.trim_matches('\'').trim_matches('"').to_string();
                     match name.as_str() {
+                        "moduleName" | "module_name" => *module_name = clean_val,
                         "output" => *output = Some(clean_val),
-                        "routeClass" | "route_class" => *route_class = Some(clean_val),
-                        "initialRoute" | "initial_route" => *initial_route = Some(clean_val),
+                        "prefix" => *prefix = Some(clean_val),
                         _ => {}
                     }
                 }
@@ -367,6 +622,14 @@ mod tests {
           output: 'lib/app/custom_modules.g.dart',
           routeClass: 'CustomRoute',
           initialRoute: 'CustomHomeMount',
+          useMicroPackage: true,
+          externalMicroPackages: [
+            ExternalMicroPackage(ShopKaiselModule),
+            ExternalMicroPackage(
+              PostsKaiselModule,
+              import: 'package:feature_posts/src/posts.kaisel.dart',
+            ),
+          ],
         )
         void configureRouting() {}
         "#;
@@ -375,5 +638,103 @@ mod tests {
         assert_eq!(init.output.as_deref(), Some("lib/app/custom_modules.g.dart"));
         assert_eq!(init.route_class.as_deref(), Some("CustomRoute"));
         assert_eq!(init.initial_route.as_deref(), Some("CustomHomeMount"));
+        assert_eq!(init.use_micro_package, Some(true));
+        assert_eq!(
+            init.external_micro_packages,
+            vec![
+                ExternalMicroPackageRef {
+                    module: "ShopKaiselModule".to_string(),
+                    import: None,
+                },
+                ExternalMicroPackageRef {
+                    module: "PostsKaiselModule".to_string(),
+                    import: Some("package:feature_posts/src/posts.kaisel.dart".to_string()),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn test_parse_kaisel_init_ignores_commented_external_packages() {
+        // Commented-out registrations are inert: the package is not composed, so
+        // the host never tries to resolve a manifest for it.
+        let dart_code = r#"
+        @KaiselInit(
+          externalMicroPackages: [
+            // ExternalMicroPackage(ProfileKaiselModule),
+            /* ExternalMicroPackage(OldKaiselModule), */
+          ],
+        )
+        void configureRouting() {}
+        "#;
+
+        let init = extract_init_metadata(dart_code).expect("init should parse");
+        assert!(init.external_micro_packages.is_empty());
+    }
+
+    #[test]
+    fn test_parse_kaisel_init_keeps_live_entries_around_comments() {
+        // The `)` and `import:` inside the comments must not truncate or invent
+        // the surrounding declarations.
+        let dart_code = r#"
+        @KaiselInit(
+          externalMicroPackages: [
+            // ExternalMicroPackage(ProfileKaiselModule),
+            ExternalMicroPackage(ShopKaiselModule),
+            ExternalMicroPackage(
+              // import: 'package:feature_posts/old.kaisel.dart'),
+              PostsKaiselModule,
+              import: 'package:feature_posts/feature_posts.kaisel.dart',
+            ),
+          ],
+        )
+        void configureRouting() {}
+        "#;
+
+        let init = extract_init_metadata(dart_code).expect("init should parse");
+        assert_eq!(
+            init.external_micro_packages,
+            vec![
+                ExternalMicroPackageRef {
+                    module: "ShopKaiselModule".to_string(),
+                    import: None,
+                },
+                ExternalMicroPackageRef {
+                    module: "PostsKaiselModule".to_string(),
+                    import: Some(
+                        "package:feature_posts/feature_posts.kaisel.dart".to_string()
+                    ),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn test_strip_dart_comments_keeps_string_literals() {
+        let source = "final a = 'x // y'; // trailing\nfinal b = \"/* z */\";\n";
+        let stripped = strip_dart_comments(source);
+
+        assert!(stripped.contains("'x // y'"));
+        assert!(stripped.contains("\"/* z */\""));
+        assert!(!stripped.contains("trailing"));
+        // Offsets and line count survive, so parsed node ranges stay valid.
+        assert_eq!(stripped.len(), source.len());
+    }
+
+    #[test]
+    fn test_parse_kaisel_micro_package() {
+        let dart_code = r#"
+        @KaiselMicroPackage(moduleName: 'Shop', prefix: '/shop')
+        void configureShopRoutes() {}
+        "#;
+
+        let mp = extract_micro_package_metadata(
+            &PathBuf::from("lib/features/shop/shop_micro_package.dart"),
+            dart_code,
+        ).expect("should parse @KaiselMicroPackage");
+
+        assert_eq!(mp.module_name, "Shop");
+        assert_eq!(mp.prefix.as_deref(), Some("/shop"));
+        assert_eq!(mp.folder_path, PathBuf::from("lib/features/shop"));
     }
 }

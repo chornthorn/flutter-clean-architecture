@@ -7,3 +7,6 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 dependencies:
   ffi: ^2.2.0
+  # `lib/micro_mount.dart` types its declarations against kaisel's runtime
+  # types. Generated code imports that library and nothing else from here.
+  kaisel: ^1.1.0

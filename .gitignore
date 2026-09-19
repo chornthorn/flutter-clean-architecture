@@ -45,8 +45,10 @@ app.*.map.json
 /android/app/release
 
 # Generated Dart sources. Codegen output is never committed — run
-# `dart run build_runner build` after cloning, and in CI before building.
-# Both editors hide these by pattern: .vscode/settings.json, .zed/settings.json.
+# `dart run build_runner build` and `dart run kaisel_generator` after cloning,
+# and in CI before building. A micro-package generates its own `*.kaisel.dart`.
+# Editors hide some of these by pattern: .vscode/settings.json, .zed/settings.json.
 **/*.config.dart
 **/*.cqrs.dart
 **/*.g.dart
+**/*.kaisel.dart

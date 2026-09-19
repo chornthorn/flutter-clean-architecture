@@ -1,6 +1,7 @@
 pub mod config;
 pub mod ffi;
 pub mod generator;
+pub mod micro_package;
 pub mod parser;
 pub mod scanner;
 

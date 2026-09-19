@@ -3,6 +3,10 @@ library;
 
 import 'src/ffi/bindings.dart';
 
+// `lib/micro_mount.dart` is deliberately NOT exported here: it imports kaisel,
+// and this library is the CLI's entrypoint — `dart run kaisel_generator` would
+// then compile Flutter and fail under the plain Dart VM. Generated code imports
+// it directly.
 export 'src/annotations.dart';
 export 'src/ffi/bindings.dart' show KaiselGenerationResult;
 
