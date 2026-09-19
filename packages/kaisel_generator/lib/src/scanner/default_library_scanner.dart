@@ -1,15 +1,14 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:spi/spi.dart';
 
 import '../model/init_info.dart';
 import '../model/library_scan.dart';
 import '../model/micro_package.dart';
 import '../model/module_info.dart';
 import '../spi/parser.dart';
-import '../spi/provider.dart';
 import '../spi/scanner.dart';
-import '../spi/session.dart';
 
 /// The built-in [LibraryScanner]: walks a package's `lib/` on disk and reads
 /// every annotation it names with the session's [AnnotationParser].
@@ -121,10 +120,10 @@ class DefaultLibraryScannerFactory implements LibraryScannerFactory {
   String get id => 'default';
 
   @override
-  int get order => kaiselProviderOrder;
+  int get order => defaultProviderOrder;
 
   @override
-  LibraryScanner create(KaiselSession session) => DefaultLibraryScanner(
+  LibraryScanner create(ProviderSession session) => DefaultLibraryScanner(
         parser: session.provider(AnnotationParserSpi.instance),
       );
 }

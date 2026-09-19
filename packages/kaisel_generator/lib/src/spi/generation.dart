@@ -1,15 +1,15 @@
+import 'package:spi/spi.dart';
+
 import '../model/generation_result.dart';
 import '../model/init_info.dart';
 import '../model/kaisel_config.dart';
 import '../model/module_info.dart';
-import 'provider.dart';
-import 'spi.dart';
 
 /// SPI: generating the output of a project.
 class GenerationSpi implements Spi<GenerationProvider> {
   const GenerationSpi();
 
-  /// The SPI as a session factory registers it.
+  /// The SPI as a bootstrap registers it.
   static const instance = GenerationSpi();
 
   @override

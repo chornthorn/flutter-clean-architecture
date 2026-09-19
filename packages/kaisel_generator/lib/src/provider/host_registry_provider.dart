@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:spi/spi.dart';
 
 import '../model/generation_result.dart';
 import '../model/micro_package.dart';
@@ -9,9 +10,7 @@ import '../model/naming.dart';
 import '../spi/emitter.dart';
 import '../spi/generation.dart';
 import '../spi/parser.dart';
-import '../spi/provider.dart';
 import '../spi/scanner.dart';
-import '../spi/session.dart';
 
 /// Serves a host application: the module registry an app runs on, plus the
 /// manifests of the registered packages that live inside the project.
@@ -25,7 +24,7 @@ class HostRegistryProvider implements GenerationProvider {
 
   /// The session this provider was created for; everything it needs — the
   /// scanners, parsers and emitters — comes from there.
-  final KaiselSession session;
+  final ProviderSession session;
 
   @override
   void close() {}
@@ -217,8 +216,8 @@ class HostRegistryProviderFactory implements GenerationProviderFactory {
   String get id => 'host-registry';
 
   @override
-  int get order => kaiselProviderOrder;
+  int get order => defaultProviderOrder;
 
   @override
-  GenerationProvider create(KaiselSession session) => HostRegistryProvider(session);
+  GenerationProvider create(ProviderSession session) => HostRegistryProvider(session);
 }

@@ -1,8 +1,8 @@
+import 'package:spi/spi.dart';
+
 import '../model/module_info.dart';
 import '../model/naming.dart';
 import '../spi/emitter.dart';
-import '../spi/provider.dart';
-import '../spi/session.dart';
 
 /// The built-in [ManifestEmitter]: one registry class declaring what a
 /// micro-package contributes, for a host to bind to its own marker routes.
@@ -98,10 +98,10 @@ class DefaultManifestEmitterFactory implements ManifestEmitterFactory {
   String get id => 'default';
 
   @override
-  int get order => kaiselProviderOrder;
+  int get order => defaultProviderOrder;
 
   @override
-  ManifestEmitter create(KaiselSession session) => DefaultManifestEmitter(
+  ManifestEmitter create(ProviderSession session) => DefaultManifestEmitter(
         imports: session.provider(ImportEmitterSpi.instance),
       );
 }

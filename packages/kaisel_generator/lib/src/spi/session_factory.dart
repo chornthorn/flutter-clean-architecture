@@ -1,7 +1,6 @@
-import 'provider.dart';
-import 'provider_manager.dart';
+import 'package:spi/spi.dart';
+
 import 'session.dart';
-import 'spi.dart';
 
 /// Creates sessions and holds the factories they run (Keycloak:
 /// `KeycloakSessionFactory`).

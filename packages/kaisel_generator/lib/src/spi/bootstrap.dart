@@ -1,3 +1,5 @@
+import 'package:spi/spi.dart';
+
 import '../emitter/default_import_emitter.dart';
 import '../emitter/default_manifest_emitter.dart';
 import '../emitter/default_registry_emitter.dart';
@@ -11,10 +13,8 @@ import '../scanner/default_project_scanner.dart';
 import 'emitter.dart';
 import 'generation.dart';
 import 'parser.dart';
-import 'provider.dart';
 import 'scanner.dart';
 import 'session_factory.dart';
-import 'spi.dart';
 
 /// The composition root: the SPIs and provider factories a Kaisel entry point
 /// runs.

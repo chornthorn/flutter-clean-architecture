@@ -1,10 +1,9 @@
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:spi/spi.dart';
 
 import '../model/micro_package.dart';
 import '../spi/parser.dart';
-import '../spi/provider.dart';
-import '../spi/session.dart';
 
 /// The built-in [ManifestParser]: reads the mounts a generated manifest
 /// declares.
@@ -115,8 +114,8 @@ class DefaultManifestParserFactory implements ManifestParserFactory {
   String get id => 'default';
 
   @override
-  int get order => kaiselProviderOrder;
+  int get order => defaultProviderOrder;
 
   @override
-  ManifestParser create(KaiselSession session) => const DefaultManifestParser();
+  ManifestParser create(ProviderSession session) => const DefaultManifestParser();
 }

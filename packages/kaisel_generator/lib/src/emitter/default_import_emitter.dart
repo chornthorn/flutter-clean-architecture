@@ -1,8 +1,7 @@
 import 'package:path/path.dart' as p;
+import 'package:spi/spi.dart';
 
 import '../spi/emitter.dart';
-import '../spi/provider.dart';
-import '../spi/session.dart';
 
 /// The built-in [ImportEmitter].
 ///
@@ -65,8 +64,8 @@ class DefaultImportEmitterFactory implements ImportEmitterFactory {
   String get id => 'default';
 
   @override
-  int get order => kaiselProviderOrder;
+  int get order => defaultProviderOrder;
 
   @override
-  ImportEmitter create(KaiselSession session) => const DefaultImportEmitter();
+  ImportEmitter create(ProviderSession session) => const DefaultImportEmitter();
 }

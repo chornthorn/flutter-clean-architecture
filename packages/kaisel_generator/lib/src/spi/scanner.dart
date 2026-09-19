@@ -1,15 +1,15 @@
 import 'dart:io';
 
+import 'package:spi/spi.dart';
+
 import '../model/kaisel_config.dart';
 import '../model/library_scan.dart';
-import 'provider.dart';
-import 'spi.dart';
 
 /// SPI: reading what a package declares.
 class LibraryScannerSpi implements Spi<LibraryScanner> {
   const LibraryScannerSpi();
 
-  /// The SPI as a session factory registers it.
+  /// The SPI as a bootstrap registers it.
   static const instance = LibraryScannerSpi();
 
   @override
@@ -37,7 +37,7 @@ abstract interface class LibraryScannerFactory implements ProviderFactory<Librar
 class ProjectScannerSpi implements Spi<ProjectScanner> {
   const ProjectScannerSpi();
 
-  /// The SPI as a session factory registers it.
+  /// The SPI as a bootstrap registers it.
   static const instance = ProjectScannerSpi();
 
   @override

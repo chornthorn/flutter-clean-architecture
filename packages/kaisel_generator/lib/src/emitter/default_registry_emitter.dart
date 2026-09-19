@@ -1,8 +1,8 @@
+import 'package:spi/spi.dart';
+
 import '../model/micro_package.dart';
 import '../model/module_info.dart';
 import '../spi/emitter.dart';
-import '../spi/provider.dart';
-import '../spi/session.dart';
 
 /// The built-in [RegistryEmitter]: the host's module registry, the sealed route
 /// hierarchy, the page builder, the URL mounts and the router config an app runs
@@ -260,10 +260,10 @@ class DefaultRegistryEmitterFactory implements RegistryEmitterFactory {
   String get id => 'default';
 
   @override
-  int get order => kaiselProviderOrder;
+  int get order => defaultProviderOrder;
 
   @override
-  RegistryEmitter create(KaiselSession session) => DefaultRegistryEmitter(
+  RegistryEmitter create(ProviderSession session) => DefaultRegistryEmitter(
         imports: session.provider(ImportEmitterSpi.instance),
       );
 }

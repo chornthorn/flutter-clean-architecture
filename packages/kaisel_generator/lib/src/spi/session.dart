@@ -1,16 +1,14 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:spi/spi.dart';
 
 import '../model/generation_result.dart';
 import '../model/library_scan.dart';
 import '../model/module_info.dart';
 import '../model/project_context.dart';
 import 'generation.dart';
-import 'provider.dart';
-import 'provider_manager.dart';
 import 'scanner.dart';
-import 'spi.dart';
 
 /// One generation run (Keycloak: `KeycloakSession`).
 ///
@@ -19,7 +17,12 @@ import 'spi.dart';
 /// on first use through the factories registered with the [providerManager],
 /// cached, and closed when the session closes. Nothing outside this class
 /// constructs a provider.
-class KaiselSession {
+///
+/// The provider half is the framework's [ProviderSession]; a Kaisel provider is
+/// handed this type, so it can ask for other providers but sees neither the
+/// project nor the scan — a generation provider is given the [GenerationRequest]
+/// it serves instead.
+class KaiselSession implements ProviderSession {
   KaiselSession({
     required this.providerManager,
     this.root,
@@ -70,6 +73,7 @@ class KaiselSession {
       );
 
   /// The provider of [spi] with [id], or the first one when [id] is `null`.
+  @override
   T provider<T extends Provider>(Spi<T> spi, [String? id]) {
     final factory = providerManager.factoryFor(spi, id);
     if (factory == null) {
@@ -88,11 +92,13 @@ class KaiselSession {
   }
 
   /// Every provider of [spi], in the order the SPI asks its factories.
+  @override
   List<T> providers<T extends Provider>(Spi<T> spi) => [
         for (final factory in providerManager.factoriesFor(spi)) provider(spi, factory.id),
       ];
 
   /// Closes every provider this session created.
+  @override
   void close() {
     for (final provider in _providers.values) {
       provider.close();

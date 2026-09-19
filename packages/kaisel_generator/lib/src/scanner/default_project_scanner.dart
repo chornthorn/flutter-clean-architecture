@@ -2,13 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:spi/spi.dart';
 import 'package:yaml/yaml.dart';
 
 import '../model/generation_result.dart';
 import '../model/kaisel_config.dart';
-import '../spi/provider.dart';
 import '../spi/scanner.dart';
-import '../spi/session.dart';
 
 /// The built-in [ProjectScanner]: `kaisel.yaml` and `pubspec.yaml` read from the
 /// project root, and `package:` imports resolved through the project's own
@@ -164,8 +163,8 @@ class DefaultProjectScannerFactory implements ProjectScannerFactory {
   String get id => 'default';
 
   @override
-  int get order => kaiselProviderOrder;
+  int get order => defaultProviderOrder;
 
   @override
-  ProjectScanner create(KaiselSession session) => const DefaultProjectScanner();
+  ProjectScanner create(ProviderSession session) => const DefaultProjectScanner();
 }

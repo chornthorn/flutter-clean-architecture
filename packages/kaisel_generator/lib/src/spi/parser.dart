@@ -1,14 +1,14 @@
+import 'package:spi/spi.dart';
+
 import '../model/init_info.dart';
 import '../model/micro_package.dart';
 import '../model/module_info.dart';
-import 'provider.dart';
-import 'spi.dart';
 
 /// SPI: reading Kaisel annotations out of Dart source.
 class AnnotationParserSpi implements Spi<AnnotationParser> {
   const AnnotationParserSpi();
 
-  /// The SPI as a session factory registers it.
+  /// The SPI as a bootstrap registers it.
   static const instance = AnnotationParserSpi();
 
   @override
@@ -44,7 +44,7 @@ abstract interface class AnnotationParserFactory
 class ManifestParserSpi implements Spi<ManifestParser> {
   const ManifestParserSpi();
 
-  /// The SPI as a session factory registers it.
+  /// The SPI as a bootstrap registers it.
   static const instance = ManifestParserSpi();
 
   @override

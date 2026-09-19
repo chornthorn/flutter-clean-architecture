@@ -1,13 +1,13 @@
+import 'package:spi/spi.dart';
+
 import '../model/micro_package.dart';
 import '../model/module_info.dart';
-import 'provider.dart';
-import 'spi.dart';
 
 /// SPI: emitting the import block a generated file opens with.
 class ImportEmitterSpi implements Spi<ImportEmitter> {
   const ImportEmitterSpi();
 
-  /// The SPI as a session factory registers it.
+  /// The SPI as a bootstrap registers it.
   static const instance = ImportEmitterSpi();
 
   @override
@@ -46,7 +46,7 @@ abstract interface class ImportEmitterFactory implements ProviderFactory<ImportE
 class RegistryEmitterSpi implements Spi<RegistryEmitter> {
   const RegistryEmitterSpi();
 
-  /// The SPI as a session factory registers it.
+  /// The SPI as a bootstrap registers it.
   static const instance = RegistryEmitterSpi();
 
   @override
@@ -78,7 +78,7 @@ abstract interface class RegistryEmitterFactory implements ProviderFactory<Regis
 class ManifestEmitterSpi implements Spi<ManifestEmitter> {
   const ManifestEmitterSpi();
 
-  /// The SPI as a session factory registers it.
+  /// The SPI as a bootstrap registers it.
   static const instance = ManifestEmitterSpi();
 
   @override

@@ -1,13 +1,12 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:spi/spi.dart';
 
 import '../model/naming.dart';
 import '../spi/emitter.dart';
 import '../spi/generation.dart';
-import '../spi/provider.dart';
 import '../spi/scanner.dart';
-import '../spi/session.dart';
 
 /// Serves a micro-package: one manifest declaring what the package contributes,
 /// for the host applications that compose it.
@@ -19,7 +18,7 @@ class MicroPackageProvider implements GenerationProvider {
 
   /// The session this provider was created for; everything it needs — the
   /// scanner and the emitter — comes from there.
-  final KaiselSession session;
+  final ProviderSession session;
 
   @override
   void close() {}
@@ -60,8 +59,8 @@ class MicroPackageProviderFactory implements GenerationProviderFactory {
   String get id => 'micro-package';
 
   @override
-  int get order => kaiselProviderOrder;
+  int get order => defaultProviderOrder;
 
   @override
-  GenerationProvider create(KaiselSession session) => MicroPackageProvider(session);
+  GenerationProvider create(ProviderSession session) => MicroPackageProvider(session);
 }

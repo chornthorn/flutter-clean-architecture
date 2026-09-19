@@ -1,14 +1,13 @@
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:spi/spi.dart';
 
 import '../model/init_info.dart';
 import '../model/micro_package.dart';
 import '../model/module_info.dart';
 import '../model/naming.dart';
 import '../spi/parser.dart';
-import '../spi/provider.dart';
-import '../spi/session.dart';
 
 /// The built-in [AnnotationParser]: reads Kaisel annotations out of Dart source
 /// with the Dart analyzer's own parser.
@@ -295,8 +294,8 @@ class DefaultAnnotationParserFactory implements AnnotationParserFactory {
   String get id => 'default';
 
   @override
-  int get order => kaiselProviderOrder;
+  int get order => defaultProviderOrder;
 
   @override
-  AnnotationParser create(KaiselSession session) => const DefaultAnnotationParser();
+  AnnotationParser create(ProviderSession session) => const DefaultAnnotationParser();
 }
