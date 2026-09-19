@@ -20,6 +20,23 @@ abstract interface class Provider {
   void close();
 }
 
+/// How long a provider lives.
+///
+/// Keycloak leaves this implicit — a factory that shares one instance across
+/// sessions must make `close()` a no-op — which is a quiet way to close a
+/// connection pool a screen still needed. Here it is declared, and the session
+/// honours it.
+enum ProviderScope {
+  /// Created with the session that asked for it, and closed when it closes.
+  session,
+
+  /// Created once per manager, shared by every session, closed by the manager.
+  ///
+  /// The factory must return the same instance for every session and keep no
+  /// session state in it: whichever session asked first is not the owner.
+  application,
+}
+
 /// Creates the providers of one SPI (Keycloak:
 /// `org.keycloak.provider.ProviderFactory`).
 ///
@@ -40,6 +57,9 @@ abstract interface class ProviderFactory<T extends Provider> {
   /// built-in ones registers a lower order — for framework providers that is
   /// [defaultProviderOrder].
   int get order;
+
+  /// How long the providers this factory creates live.
+  ProviderScope get scope;
 
   /// Creates a provider for [session].
   T create(ProviderSession session);

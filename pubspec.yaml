@@ -24,6 +24,11 @@ dependencies:
   profile:
     path: features/profile
   provider: ^6.1.5+1
+  # The SPI framework: the execution context is a ProviderSession, and its
+  # observers are providers. A direct dependency because `lib/` imports it — it
+  # also arrives transitively through kaisel_generator.
+  spi:
+    path: packages/spi
   retrofit: ^4.10.0
   dio: ^5.11.1
   # View-model state: one `AsyncSignal` per use case, exposed as a

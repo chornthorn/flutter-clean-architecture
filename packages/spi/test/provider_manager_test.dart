@@ -120,6 +120,9 @@ class FakeFactory implements FakeProviderFactory {
   final int order;
 
   @override
+  ProviderScope get scope => ProviderScope.session;
+
+  @override
   FakeProvider create(ProviderSession session) => FakeProvider(session);
 }
 
@@ -132,6 +135,9 @@ class OrphanFactory implements ProviderFactory<FakeProvider> {
 
   @override
   int get order => 0;
+
+  @override
+  ProviderScope get scope => ProviderScope.session;
 
   @override
   FakeProvider create(ProviderSession session) => FakeProvider(session);

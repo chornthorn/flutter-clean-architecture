@@ -6,30 +6,33 @@ import 'comment_fixture.dart';
 
 void main() {
   group('Comment', () {
-    test('should compare by every field, so a rebuilt thread is a real change', () {
-      expect(
-        comment,
-        const Comment(
-          id: 1,
-          postId: 1,
-          name: 'Ada Lovelace',
-          email: 'ada@example.com',
-          body: 'The first comment on the first post.',
-        ),
-      );
-      expect(
-        comment,
-        isNot(
+    test(
+      'should compare by every field, so a rebuilt thread is a real change',
+      () {
+        expect(
+          comment,
           const Comment(
-            id: 2,
+            id: 1,
             postId: 1,
             name: 'Ada Lovelace',
             email: 'ada@example.com',
             body: 'The first comment on the first post.',
           ),
-        ),
-      );
-    });
+        );
+        expect(
+          comment,
+          isNot(
+            const Comment(
+              id: 2,
+              postId: 1,
+              name: 'Ada Lovelace',
+              email: 'ada@example.com',
+              body: 'The first comment on the first post.',
+            ),
+          ),
+        );
+      },
+    );
 
     test('should name itself for a failure message', () {
       expect(comment.toString(), 'Comment(1, Ada Lovelace)');

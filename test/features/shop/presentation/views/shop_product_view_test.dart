@@ -6,6 +6,7 @@ import 'package:flutter_x/features/shop/presentation/views/shop_product_view.dar
 import 'package:mocktail/mocktail.dart';
 
 import '../../../../app/view_host.dart';
+import '../../../../core/execution/execution_context_fixture.dart';
 import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_cart_repository.dart';
 import '../../domain/repositories/mock_product_repository.dart';
@@ -22,7 +23,10 @@ void main() {
       when(() => repository.productById('sku-42'))
           .thenAnswer((_) async => product);
 
-      final viewModel = ShopProductViewModel(shopDispatcher(repository));
+      final viewModel = ShopProductViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');
 
@@ -39,7 +43,10 @@ void main() {
       final repository = MockProductRepository();
       when(() => repository.productById('nope')).thenAnswer((_) async => null);
 
-      final viewModel = ShopProductViewModel(shopDispatcher(repository));
+      final viewModel = ShopProductViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load('nope');
 
@@ -58,7 +65,10 @@ void main() {
           .thenAnswer((_) async => product);
 
       // Real cart: the count is the query's answer, not the button's.
-      final viewModel = ShopProductViewModel(shopDispatcher(repository));
+      final viewModel = ShopProductViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');
 
@@ -82,7 +92,8 @@ void main() {
       when(() => cart.save(any())).thenAnswer((_) async => throw Exception());
 
       final viewModel = ShopProductViewModel(
-        shopDispatcher(repository, cart: cart),
+        dispatcher: shopDispatcher(repository, cart: cart),
+        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');

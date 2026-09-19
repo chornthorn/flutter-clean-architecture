@@ -54,14 +54,16 @@ class SvgRendererFactory implements RendererFactory {
 
 ## What the framework does
 
-| Piece               | Role                                                                                                                                               |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Spi<T>`            | Names a capability. `accepts(factory)` binds a factory to it — Dart's stand-in for Keycloak's `getProviderFactoryClass()`.                         |
-| `Provider`          | A service scoped to one session. Closed by the session that created it.                                                                            |
-| `ProviderFactory`   | Creates providers. Holds no dependencies of its own: it is handed the session.                                                                     |
-| `ProviderManager`   | Files the registered factories under their SPIs and resolves them — by SPI, and by id. `order` decides precedence, registration order breaks ties. |
-| `ProviderSession`   | The scope providers live in. Implement it with whatever the providers need to see — a request, a build, a resolved project.                        |
-| `ProviderException` | A factory no SPI accepts: a wiring bug reported at composition time.                                                                               |
+| Piece                    | Role                                                                                                                                               |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Spi<T>`                 | Names a capability. `accepts(factory)` binds a factory to it — Dart's stand-in for Keycloak's `getProviderFactoryClass()`.                         |
+| `Provider`               | A service scoped to one session. Closed by whoever owns it.                                                                                        |
+| `ProviderFactory`        | Creates providers. Holds no dependencies of its own: it is handed the session.                                                                     |
+| `ProviderScope`          | Whether a provider lives with its session or with the application — a connection pool, a device store.                                             |
+| `ProviderManager`        | Files the registered factories under their SPIs and resolves them — by SPI, and by id. `order` decides precedence, registration order breaks ties. |
+| `ProviderSession`        | The scope providers live in. Implement it with whatever the providers need to see — a request, a build, a resolved project.                        |
+| `DefaultProviderSession` | The create-once / cache-by-`spi/id` / close-what-this-session-created loop, so an application extends it instead of rewriting it.                  |
+| `ProviderException`      | A factory no SPI accepts, or a look-up a session cannot serve.                                                                                     |
 
 ## Why not a `ServiceLoader`
 
@@ -81,6 +83,13 @@ belongs to no SPI is caught when the manager is built, not when it is first used
 
 ## Design notes
 
+- **Two lifetimes, declared.** A provider is created with the session that asked
+  for it unless its factory declares `ProviderScope.application` — a connection
+  pool, a device store. Then the manager creates it once, shares it with every
+  session, and closes it at teardown: a session never closes what it does not own.
+- **The session loop ships once.** `DefaultProviderSession` creates a provider on
+  first ask, caches it by `spi/id`, and releases what it created (innermost first)
+  when it closes. An application adds its own context by extending it.
 - **No dependencies.** The package imports nothing. A package that implements an
   SPI depends on this one and nothing else — no code generator, no framework.
 - **The vocabulary is the SPI's.** A capability's names (`Renderer`,

@@ -14,6 +14,8 @@ import '../../domain/entities/comment_fixture.dart';
 import '../../domain/repositories/mock_comment_repository.dart';
 import '../../posts_dispatcher_fixture.dart';
 
+import '../../../../core/execution/execution_context_fixture.dart';
+
 void main() {
   group('CommentViewModel', () {
     test('should report loading until the thread arrives', () async {
@@ -25,7 +27,10 @@ void main() {
         ),
       ).thenAnswer((_) async => const [comment]);
 
-      final viewModel = CommentViewModel(commentsDispatcher(repository));
+      final viewModel = CommentViewModel(
+        dispatcher: commentsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       expect(viewModel.comments.value.isLoading, isTrue);
@@ -45,7 +50,10 @@ void main() {
         ),
       ).thenAnswer((_) async => const []);
 
-      final viewModel = CommentViewModel(commentsDispatcher(repository));
+      final viewModel = CommentViewModel(
+        dispatcher: commentsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       await viewModel.load(2);
@@ -63,7 +71,10 @@ void main() {
         ),
       ).thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = CommentViewModel(commentsDispatcher(repository));
+      final viewModel = CommentViewModel(
+        dispatcher: commentsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       await viewModel.load(1);
@@ -72,78 +83,91 @@ void main() {
       expect(viewModel.comments.value.value, isNull);
     });
 
-    test('should start the write settled, so the page does not read it in flight', () {
-      final viewModel = CommentViewModel(
-        commentsDispatcher(InMemoryCommentRepository()),
-      );
-      addTearDown(viewModel.dispose);
+    test(
+      'should start the write settled, so the page does not read it in flight',
+      () {
+        final viewModel = CommentViewModel(
+          dispatcher: commentsDispatcher(InMemoryCommentRepository()),
+          context: testContext(),
+        );
+        addTearDown(viewModel.dispose);
 
-      expect(viewModel.create.value.isLoading, isFalse);
-      expect(viewModel.create.value.hasError, isFalse);
-    });
+        expect(viewModel.create.value.isLoading, isFalse);
+        expect(viewModel.create.value.hasError, isFalse);
+      },
+    );
 
-    test('should add the comment the store records to the thread it holds', () async {
-      final viewModel = CommentViewModel(
-        commentsDispatcher(InMemoryCommentRepository()),
-      );
-      addTearDown(viewModel.dispose);
-      await viewModel.load(1);
+    test(
+      'should add the comment the store records to the thread it holds',
+      () async {
+        final viewModel = CommentViewModel(
+          dispatcher: commentsDispatcher(InMemoryCommentRepository()),
+          context: testContext(),
+        );
+        addTearDown(viewModel.dispose);
+        await viewModel.load(1);
 
-      viewModel.prepareCreate();
-      viewModel.commentFormController.setValues({
-        CommentFormField.name: 'Ada Lovelace',
-        CommentFormField.email: 'ada@example.com',
-        CommentFormField.body: 'A new comment',
-      });
+        viewModel.prepareCreate();
+        viewModel.commentFormController.setValues({
+          CommentFormField.name: 'Ada Lovelace',
+          CommentFormField.email: 'ada@example.com',
+          CommentFormField.body: 'A new comment',
+        });
 
-      final created = await viewModel.createComment(1);
+        final created = await viewModel.createComment(1);
 
-      expect(created.isSuccess, isTrue);
-      expect(viewModel.create.value.hasError, isFalse);
-      expect(viewModel.commentFormController.hasErrors, isFalse);
-      // The fixture ends at 3, so 4 is the id the store assigned.
-      expect(
-        viewModel.comments.value.value,
-        contains(
-          const Comment(
-            id: 4,
-            postId: 1,
-            name: 'Ada Lovelace',
-            email: 'ada@example.com',
-            body: 'A new comment',
+        expect(created.isSuccess, isTrue);
+        expect(viewModel.create.value.hasError, isFalse);
+        expect(viewModel.commentFormController.hasErrors, isFalse);
+        // The fixture ends at 3, so 4 is the id the store assigned.
+        expect(
+          viewModel.comments.value.value,
+          contains(
+            const Comment(
+              id: 4,
+              postId: 1,
+              name: 'Ada Lovelace',
+              email: 'ada@example.com',
+              body: 'A new comment',
+            ),
           ),
-        ),
-      );
-      expect(
-        viewModel.commentFormController.text(
-          const FormFieldKey(CommentFormField.name),
-        ),
-        isEmpty,
-      );
-    });
+        );
+        expect(
+          viewModel.commentFormController.text(
+            const FormFieldKey(CommentFormField.name),
+          ),
+          isEmpty,
+        );
+      },
+    );
 
-    test('should keep the thread off the post a comment was added to', () async {
-      final viewModel = CommentViewModel(
-        commentsDispatcher(InMemoryCommentRepository()),
-      );
-      addTearDown(viewModel.dispose);
-      await viewModel.load(1);
+    test(
+      'should keep the thread off the post a comment was added to',
+      () async {
+        final viewModel = CommentViewModel(
+          dispatcher: commentsDispatcher(InMemoryCommentRepository()),
+          context: testContext(),
+        );
+        addTearDown(viewModel.dispose);
+        await viewModel.load(1);
 
-      viewModel.commentFormController.setValues({
-        CommentFormField.name: 'Ada Lovelace',
-        CommentFormField.email: 'ada@example.com',
-        CommentFormField.body: 'A new comment',
-      });
-      await viewModel.createComment(2);
-      await viewModel.load(1);
+        viewModel.commentFormController.setValues({
+          CommentFormField.name: 'Ada Lovelace',
+          CommentFormField.email: 'ada@example.com',
+          CommentFormField.body: 'A new comment',
+        });
+        await viewModel.createComment(2);
+        await viewModel.load(1);
 
-      // Post 1 still reads the two comments the fixture gave it.
-      expect(viewModel.comments.value.value, hasLength(2));
-    });
+        // Post 1 still reads the two comments the fixture gave it.
+        expect(viewModel.comments.value.value, hasLength(2));
+      },
+    );
 
     test('should return ActionFailure with field errors and bind to commentFormController when validation fails', () async {
       final viewModel = CommentViewModel(
-        commentsDispatcher(InMemoryCommentRepository()),
+        dispatcher: commentsDispatcher(InMemoryCommentRepository()),
+        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -167,40 +191,46 @@ void main() {
       );
     });
 
-    test('should keep the failure and answer failure when a create fails', () async {
-      final repository = MockCommentRepository();
-      when(
-        () => repository.commentsForPost(
-          1,
-          cancellation: any(named: 'cancellation'),
-        ),
-      ).thenAnswer((_) async => const [comment]);
-      when(
-        () => repository.createComment(
-          postId: any(named: 'postId'),
-          name: any(named: 'name'),
-          email: any(named: 'email'),
-          body: any(named: 'body'),
-        ),
-      ).thenAnswer((_) async => throw Exception('offline'));
+    test(
+      'should keep the failure and answer failure when a create fails',
+      () async {
+        final repository = MockCommentRepository();
+        when(
+          () => repository.commentsForPost(
+            1,
+            cancellation: any(named: 'cancellation'),
+          ),
+        ).thenAnswer((_) async => const [comment]);
+        when(
+          () => repository.createComment(
+            postId: any(named: 'postId'),
+            name: any(named: 'name'),
+            email: any(named: 'email'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = CommentViewModel(commentsDispatcher(repository));
-      addTearDown(viewModel.dispose);
-      await viewModel.load(1);
+        final viewModel = CommentViewModel(
+          dispatcher: commentsDispatcher(repository),
+          context: testContext(),
+        );
+        addTearDown(viewModel.dispose);
+        await viewModel.load(1);
 
-      viewModel.commentFormController.setValues({
-        CommentFormField.name: 'Ada Lovelace',
-        CommentFormField.email: 'ada@example.com',
-        CommentFormField.body: 'A new comment',
-      });
+        viewModel.commentFormController.setValues({
+          CommentFormField.name: 'Ada Lovelace',
+          CommentFormField.email: 'ada@example.com',
+          CommentFormField.body: 'A new comment',
+        });
 
-      final created = await viewModel.createComment(1);
+        final created = await viewModel.createComment(1);
 
-      expect(created.isFailure, isTrue);
-      expect(viewModel.create.value.hasError, isTrue);
-      // The thread the write failed to grow is still the one on screen.
-      expect(viewModel.comments.value.value, const [comment]);
-    });
+        expect(created.isFailure, isTrue);
+        expect(viewModel.create.value.hasError, isTrue);
+        // The thread the write failed to grow is still the one on screen.
+        expect(viewModel.comments.value.value, const [comment]);
+      },
+    );
 
     test('should stay silent when a thread load outlives its view', () async {
       final completer = Completer<List<Comment>>();
@@ -212,7 +242,10 @@ void main() {
         ),
       ).thenAnswer((_) => completer.future);
 
-      final viewModel = CommentViewModel(commentsDispatcher(repository));
+      final viewModel = CommentViewModel(
+        dispatcher: commentsDispatcher(repository),
+        context: testContext(),
+      );
       final pushed = <AsyncState<List<Comment>>>[];
       addTearDown(viewModel.comments.subscribe(pushed.add));
 

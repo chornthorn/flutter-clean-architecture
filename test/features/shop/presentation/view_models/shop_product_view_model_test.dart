@@ -5,6 +5,7 @@ import 'package:flutter_x/features/shop/presentation/view_models/shop_product_vi
 import 'package:mocktail/mocktail.dart';
 import 'package:signals/signals_flutter.dart';
 
+import '../../../../core/execution/execution_context_fixture.dart';
 import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_cart_repository.dart';
 import '../../domain/repositories/mock_product_repository.dart';
@@ -19,7 +20,10 @@ void main() {
       when(() => repository.productById('sku-42'))
           .thenAnswer((_) async => product);
 
-      final viewModel = ShopProductViewModel(shopDispatcher(repository));
+      final viewModel = ShopProductViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       await viewModel.load('sku-42');
@@ -36,7 +40,10 @@ void main() {
         when(() => repository.productById('no-such-sku'))
             .thenAnswer((_) async => null);
 
-        final viewModel = ShopProductViewModel(shopDispatcher(repository));
+        final viewModel = ShopProductViewModel(
+          dispatcher: shopDispatcher(repository),
+          context: testContext(),
+        );
         addTearDown(viewModel.dispose);
 
         await viewModel.load('no-such-sku');
@@ -53,7 +60,10 @@ void main() {
       when(() => repository.productById('sku-42'))
           .thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = ShopProductViewModel(shopDispatcher(repository));
+      final viewModel = ShopProductViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       await expectLater(viewModel.load('sku-42'), completes);
@@ -64,7 +74,8 @@ void main() {
 
     test('should start the add settled, so the page does not read it in flight', () {
       final viewModel = ShopProductViewModel(
-        shopDispatcher(MockProductRepository()),
+        dispatcher: shopDispatcher(MockProductRepository()),
+        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -83,7 +94,8 @@ void main() {
           .thenAnswer((_) async => const Cart(['sku-99', 'sku-99']));
 
       final viewModel = ShopProductViewModel(
-        shopDispatcher(repository, cart: cart),
+        dispatcher: shopDispatcher(repository, cart: cart),
+        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -98,7 +110,10 @@ void main() {
           .thenAnswer((_) async => product);
 
       // Real cart: the count is read back, so a write that failed shows as stale.
-      final viewModel = ShopProductViewModel(shopDispatcher(repository));
+      final viewModel = ShopProductViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');
 
@@ -122,7 +137,8 @@ void main() {
       when(() => cart.save(any())).thenAnswer((_) async => throw Exception());
 
       final viewModel = ShopProductViewModel(
-        shopDispatcher(repository, cart: cart),
+        dispatcher: shopDispatcher(repository, cart: cart),
+        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');

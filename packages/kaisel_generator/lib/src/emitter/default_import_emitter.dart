@@ -67,5 +67,8 @@ class DefaultImportEmitterFactory implements ImportEmitterFactory {
   int get order => defaultProviderOrder;
 
   @override
+  ProviderScope get scope => ProviderScope.session;
+
+  @override
   ImportEmitter create(ProviderSession session) => const DefaultImportEmitter();
 }

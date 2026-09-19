@@ -32,8 +32,7 @@ TestCqrsDispatcher shopDispatcher(
       getCartQueryHandler: () => GetCartQueryHandler(cartStore),
       getProductQueryHandler: () => GetProductQueryHandler(products),
       getProductsQueryHandler: () => GetProductsQueryHandler(products),
-      productAddedToCartAuditHandler: () =>
-          ProductAddedToCartAuditHandler(log),
+      productAddedToCartAuditHandler: () => ProductAddedToCartAuditHandler(log),
     ),
   );
 

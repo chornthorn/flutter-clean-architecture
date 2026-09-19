@@ -1,4 +1,3 @@
-import 'package:cqrs/cqrs.dart';
 import 'package:injectify/injectify.dart';
 import 'package:signals/signals_flutter.dart';
 
@@ -11,12 +10,8 @@ import '../../domain/usecases/get_product_query.dart';
 // State for the single-product screen: one signal per use case, per
 // `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
-class ShopProductViewModel implements ViewModel {
-  ShopProductViewModel(this._dispatcher);
-
-  final CqrsDispatcher _dispatcher;
-
-  bool _isDisposed = false;
+class ShopProductViewModel extends ViewModel {
+  ShopProductViewModel({required super.dispatcher, required super.context});
 
   final _product = asyncSignal<Product?>(AsyncState.loading());
 
@@ -35,13 +30,15 @@ class ShopProductViewModel implements ViewModel {
     _product.setLoading();
 
     try {
-      final product = await _dispatcher.query(GetProductQuery(id));
-      final cart = await _dispatcher.query(const GetCartQuery());
-      if (_isDisposed) return;
-      _product.setValue(product);
-      _cartCount.value = cart.itemCount;
+      await context.run(() async {
+        final product = await dispatcher.query(GetProductQuery(id));
+        final cart = await dispatcher.query(const GetCartQuery());
+        if (isDisposed) return;
+        _product.setValue(product);
+        _cartCount.value = cart.itemCount;
+      }, args: [id]);
     } catch (error, stackTrace) {
-      if (_isDisposed) return;
+      if (isDisposed) return;
       _product.setError(error, stackTrace);
     }
   }
@@ -53,13 +50,15 @@ class ShopProductViewModel implements ViewModel {
     _add.setLoading();
 
     try {
-      await _dispatcher.command(AddProductToCartCommand(id));
-      final cart = await _dispatcher.query(const GetCartQuery());
-      if (_isDisposed) return;
-      _cartCount.value = cart.itemCount;
-      _add.setValue(null);
+      await context.run(() async {
+        await dispatcher.command(AddProductToCartCommand(id));
+        final cart = await dispatcher.query(const GetCartQuery());
+        if (isDisposed) return;
+        _cartCount.value = cart.itemCount;
+        _add.setValue(null);
+      }, args: [id]);
     } catch (error, stackTrace) {
-      if (_isDisposed) return;
+      if (isDisposed) return;
       _add.setError(error, stackTrace);
     }
   }
@@ -68,7 +67,7 @@ class ShopProductViewModel implements ViewModel {
   // write, which is what the guards above are for.
   @override
   void dispose() {
-    _isDisposed = true;
+    super.dispose();
     _product.dispose();
     _add.dispose();
     _cartCount.dispose();

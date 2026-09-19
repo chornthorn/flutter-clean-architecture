@@ -107,6 +107,9 @@ class _RecordingFactory implements ImportEmitterFactory {
   @override
   final int order;
 
+  @override
+  ProviderScope get scope => ProviderScope.session;
+
   /// How many providers this factory created.
   int created = 0;
 

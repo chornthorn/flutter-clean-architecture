@@ -20,7 +20,12 @@ in the mirrored folder of whatever it stands in for:
 | File                                                                 | Doubles                                                                                               |
 | :------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
 | `app/view_host.dart`                                                 | pumps a page under a provider, in the app's token theme; `hostShell` is the same without a view model |
+| `core/execution/execution_context_fixture.dart`                      | `testContext()` — the scope a view model built by hand needs (`context: testContext()`)               |
 | `features/shop/domain/entities/product_fixture.dart`                 | the canonical `Product`                                                                               |
 | `features/shop/domain/repositories/mock_product_repository.dart`     | `ProductRepository`                                                                                   |
 | `features/shop/domain/repositories/mock_cart_repository.dart`        | `CartRepository`                                                                                      |
 | `features/posts/infrastructure/repositories/fake_http_adapters.dart` | the recording and pending `HttpClientAdapter`s, plus the JSON body helper                             |
+
+A view model test builds its view model with `context: testContext()` and does not
+close the context by hand: `dispose` does that, exactly as the route does in the
+app.

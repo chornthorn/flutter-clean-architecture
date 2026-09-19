@@ -16,13 +16,18 @@ import '../../domain/entities/post_fixture.dart';
 import '../../domain/repositories/mock_post_repository.dart';
 import '../../posts_dispatcher_fixture.dart';
 
+import '../../../../core/execution/execution_context_fixture.dart';
+
 void main() {
   group('PostsHomeView', () {
     testWidgets('should show a spinner while the list loads', (tester) async {
       final repository = MockPostRepository();
       when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
           .thenAnswer((_) => Completer<List<Post>>().future);
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
 
@@ -35,7 +40,10 @@ void main() {
       final repository = MockPostRepository();
       when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
           .thenAnswer((_) async => const [post]);
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
@@ -49,7 +57,10 @@ void main() {
       final repository = MockPostRepository();
       when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
           .thenAnswer((_) async => throw Exception('offline'));
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
@@ -62,7 +73,10 @@ void main() {
       final repository = MockPostRepository();
       when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
           .thenAnswer((_) async => const []);
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
@@ -86,7 +100,10 @@ void main() {
             if (attempts == 1) throw Exception('offline');
             return const [post];
           });
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
@@ -103,7 +120,8 @@ void main() {
     testWidgets('should add a post through the dialog', (tester) async {
       // A real store: the post shows up only if the command wrote it and the reload read it back.
       final viewModel = PostViewModel(
-        postsDispatcher(InMemoryPostRepository()),
+        dispatcher: postsDispatcher(InMemoryPostRepository()),
+        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load();

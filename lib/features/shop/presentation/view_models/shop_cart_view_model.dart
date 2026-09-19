@@ -1,4 +1,3 @@
-import 'package:cqrs/cqrs.dart';
 import 'package:injectify/injectify.dart';
 import 'package:signals/signals_flutter.dart';
 
@@ -8,12 +7,8 @@ import '../../domain/usecases/get_cart_products_query.dart';
 
 // State for the cart screen: one signal per use case, per `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
-class ShopCartViewModel implements ViewModel {
-  ShopCartViewModel(this._dispatcher);
-
-  final CqrsDispatcher _dispatcher;
-
-  bool _isDisposed = false;
+class ShopCartViewModel extends ViewModel {
+  ShopCartViewModel({required super.dispatcher, required super.context});
 
   final _products = asyncSignal<List<Product>>(AsyncState.loading());
 
@@ -33,11 +28,13 @@ class ShopCartViewModel implements ViewModel {
     _products.setLoading();
 
     try {
-      final products = await _dispatcher.query(const GetCartProductsQuery());
-      if (_isDisposed) return;
+      final products = await context.run(
+        () => dispatcher.query(const GetCartProductsQuery()),
+      );
+      if (isDisposed) return;
       _products.setValue(products);
     } catch (error, stackTrace) {
-      if (_isDisposed) return;
+      if (isDisposed) return;
       _products.setError(error, stackTrace);
     }
   }
@@ -46,7 +43,7 @@ class ShopCartViewModel implements ViewModel {
   // write, which is what the guards above are for.
   @override
   void dispose() {
-    _isDisposed = true;
+    super.dispose();
     _products.dispose();
     total.dispose();
   }

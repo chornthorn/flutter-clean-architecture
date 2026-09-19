@@ -105,7 +105,9 @@ void main() {
 
       final dispatcher = postsDispatcher(repository, comments);
 
-      expect(await dispatcher.query(const GetCommentsQuery(1)), const [comment]);
+      expect(await dispatcher.query(const GetCommentsQuery(1)), const [
+        comment,
+      ]);
       expect(
         await dispatcher.command(
           const CreateCommentCommand(

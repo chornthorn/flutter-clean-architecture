@@ -101,6 +101,9 @@ class DefaultManifestEmitterFactory implements ManifestEmitterFactory {
   int get order => defaultProviderOrder;
 
   @override
+  ProviderScope get scope => ProviderScope.session;
+
+  @override
   ManifestEmitter create(ProviderSession session) => DefaultManifestEmitter(
         imports: session.provider(ImportEmitterSpi.instance),
       );

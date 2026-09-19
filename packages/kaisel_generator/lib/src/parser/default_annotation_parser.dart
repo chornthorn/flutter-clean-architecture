@@ -297,5 +297,8 @@ class DefaultAnnotationParserFactory implements AnnotationParserFactory {
   int get order => defaultProviderOrder;
 
   @override
+  ProviderScope get scope => ProviderScope.session;
+
+  @override
   AnnotationParser create(ProviderSession session) => const DefaultAnnotationParser();
 }

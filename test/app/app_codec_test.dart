@@ -87,20 +87,23 @@ void main() {
       expect(defaultAppCodec.decode(Uri.parse('/posts/all')), isNull);
     });
 
-    test('should map a profile URL to the micro-package mount and its stack', () {
-      // `ProfileMount`, its prefix and its codec all come from the package's
-      // `ProfileKaiselModule.profileMount` declaration: the host declares no
-      // name, prefix or codec of its own for it.
-      expect(
-        defaultAppCodec.decode(Uri.parse('/profile/edit')),
-        KaiselConfig<AppRoute>(
-          mainStack: const [ProfileMount()],
-          nestedState: KaiselModuleConfig(
-            stack: const [ProfileOverviewRoute(), ProfileEditRoute()],
+    test(
+      'should map a profile URL to the micro-package mount and its stack',
+      () {
+        // `ProfileMount`, its prefix and its codec all come from the package's
+        // `ProfileKaiselModule.profileMount` declaration: the host declares no
+        // name, prefix or codec of its own for it.
+        expect(
+          defaultAppCodec.decode(Uri.parse('/profile/edit')),
+          KaiselConfig<AppRoute>(
+            mainStack: const [ProfileMount()],
+            nestedState: KaiselModuleConfig(
+              stack: const [ProfileOverviewRoute(), ProfileEditRoute()],
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
 
     test('should not claim an unknown path inside the profile prefix', () {
       expect(defaultAppCodec.decode(Uri.parse('/profile/nope')), isNull);

@@ -13,6 +13,8 @@ import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_product_repository.dart';
 import '../../shop_dispatcher_fixture.dart';
 
+import '../../../../core/execution/execution_context_fixture.dart';
+
 void main() {
   group('ShopHomeView', () {
     testWidgets('should show a spinner while the catalog loads', (
@@ -21,7 +23,10 @@ void main() {
       final repository = MockProductRepository();
       when(() => repository.allProducts())
           .thenAnswer((_) => Completer<List<Product>>().future);
-      final viewModel = ShopHomeViewModel(shopDispatcher(repository));
+      final viewModel = ShopHomeViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
 
@@ -35,7 +40,10 @@ void main() {
       final completer = Completer<List<Product>>();
       final repository = MockProductRepository();
       when(() => repository.allProducts()).thenAnswer((_) => completer.future);
-      final viewModel = ShopHomeViewModel(shopDispatcher(repository));
+      final viewModel = ShopHomeViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
 
@@ -53,7 +61,10 @@ void main() {
       final repository = MockProductRepository();
       when(() => repository.allProducts())
           .thenAnswer((_) async => throw Exception('offline'));
-      final viewModel = ShopHomeViewModel(shopDispatcher(repository));
+      final viewModel = ShopHomeViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
@@ -65,7 +76,10 @@ void main() {
     testWidgets('should say so when the catalog is empty', (tester) async {
       final repository = MockProductRepository();
       when(() => repository.allProducts()).thenAnswer((_) async => const []);
-      final viewModel = ShopHomeViewModel(shopDispatcher(repository));
+      final viewModel = ShopHomeViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
@@ -86,7 +100,10 @@ void main() {
         if (attempts == 1) throw Exception('offline');
         return const [product];
       });
-      final viewModel = ShopHomeViewModel(shopDispatcher(repository));
+      final viewModel = ShopHomeViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load();
 

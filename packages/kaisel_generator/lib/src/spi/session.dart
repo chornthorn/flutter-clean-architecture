@@ -13,25 +13,21 @@ import 'scanner.dart';
 /// One generation run (Keycloak: `KeycloakSession`).
 ///
 /// A session owns the run: the resolved project, the scan of its sources and the
-/// request built from both. It also owns the providers created for it — created
-/// on first use through the factories registered with the [providerManager],
-/// cached, and closed when the session closes. Nothing outside this class
-/// constructs a provider.
+/// request built from both. It also owns the providers created for it, which the
+/// framework's [DefaultProviderSession] creates on first use, caches, and closes —
+/// nothing outside this class constructs a provider.
 ///
-/// The provider half is the framework's [ProviderSession]; a Kaisel provider is
-/// handed this type, so it can ask for other providers but sees neither the
-/// project nor the scan — a generation provider is given the [GenerationRequest]
-/// it serves instead.
-class KaiselSession implements ProviderSession {
+/// A Kaisel provider is handed the framework's [ProviderSession] type, so it can
+/// ask for other providers but sees neither the project nor the scan — a
+/// generation provider is given the [GenerationRequest] it serves instead.
+class KaiselSession extends DefaultProviderSession {
   KaiselSession({
-    required this.providerManager,
+    required super.providerManager,
     this.root,
     this.libDir,
     this.output,
     this.write = true,
   });
-
-  final ProviderManager providerManager;
 
   /// Project root the run was asked for, or `null` to find the nearest one.
   final String? root;
@@ -46,7 +42,6 @@ class KaiselSession implements ProviderSession {
   /// Whether the caller wants the output written, or its source handed back.
   final bool write;
 
-  final Map<String, Provider> _providers = {};
   ProjectContext? _project;
   LibraryScan? _scan;
   GenerationRequest? _request;
@@ -73,37 +68,23 @@ class KaiselSession implements ProviderSession {
       );
 
   /// The provider of [spi] with [id], or the first one when [id] is `null`.
+  ///
+  /// The framework reports a look-up it cannot serve generically; a generation run
+  /// reports it with the ids the bootstrap registered, because a missing provider
+  /// there is a wiring mistake the user has to fix.
   @override
   T provider<T extends Provider>(Spi<T> spi, [String? id]) {
-    final factory = providerManager.factoryFor(spi, id);
-    if (factory == null) {
-      final registered = providerManager.factoriesFor(spi).map((factory) => factory.id).join(', ');
+    try {
+      return super.provider(spi, id);
+    } on ProviderException {
+      final registered =
+          providerManager.factoriesFor(spi).map((factory) => factory.id).join(', ');
       throw KaiselGenerationException(
         'No Kaisel provider of `${spi.name}` is registered'
         '${id == null ? '' : ' under id `$id`'}.'
         '${registered.isEmpty ? '' : ' Registered ids: $registered.'}',
       );
     }
-
-    return _providers.putIfAbsent(
-      '${spi.name}/${factory.id}',
-      () => factory.create(this),
-    ) as T;
-  }
-
-  /// Every provider of [spi], in the order the SPI asks its factories.
-  @override
-  List<T> providers<T extends Provider>(Spi<T> spi) => [
-        for (final factory in providerManager.factoriesFor(spi)) provider(spi, factory.id),
-      ];
-
-  /// Closes every provider this session created.
-  @override
-  void close() {
-    for (final provider in _providers.values) {
-      provider.close();
-    }
-    _providers.clear();
   }
 
   ProjectContext _resolveProject() {

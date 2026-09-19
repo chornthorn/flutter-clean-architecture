@@ -10,6 +10,8 @@ import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_product_repository.dart';
 import '../../shop_dispatcher_fixture.dart';
 
+import '../../../../core/execution/execution_context_fixture.dart';
+
 void main() {
   group('ShopHomeViewModel', () {
     test('should report loading until the catalog arrives', () async {
@@ -17,7 +19,10 @@ void main() {
       final repository = MockProductRepository();
       when(() => repository.allProducts()).thenAnswer((_) => completer.future);
 
-      final viewModel = ShopHomeViewModel(shopDispatcher(repository));
+      final viewModel = ShopHomeViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       final load = viewModel.load();
@@ -42,7 +47,10 @@ void main() {
       when(() => repository.allProducts())
           .thenAnswer((_) async => const [product]);
 
-      final viewModel = ShopHomeViewModel(shopDispatcher(repository));
+      final viewModel = ShopHomeViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       await viewModel.load();
@@ -60,7 +68,10 @@ void main() {
       when(() => repository.allProducts())
           .thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = ShopHomeViewModel(shopDispatcher(repository));
+      final viewModel = ShopHomeViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       await expectLater(viewModel.load(), completes);
@@ -76,7 +87,10 @@ void main() {
       final repository = MockProductRepository();
       when(() => repository.allProducts()).thenAnswer((_) => completer.future);
 
-      final viewModel = ShopHomeViewModel(shopDispatcher(repository));
+      final viewModel = ShopHomeViewModel(
+        dispatcher: shopDispatcher(repository),
+        context: testContext(),
+      );
       // Everything the read pushed, checked after the page disposed the signal.
       final pushed = <AsyncState<List<Product>>>[];
       addTearDown(viewModel.products.subscribe(pushed.add));

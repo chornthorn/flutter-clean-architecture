@@ -263,6 +263,9 @@ class DefaultRegistryEmitterFactory implements RegistryEmitterFactory {
   int get order => defaultProviderOrder;
 
   @override
+  ProviderScope get scope => ProviderScope.session;
+
+  @override
   RegistryEmitter create(ProviderSession session) => DefaultRegistryEmitter(
         imports: session.provider(ImportEmitterSpi.instance),
       );

@@ -17,30 +17,32 @@ void main() {
       handler = GetCommentsQueryHandler(comments);
     });
 
-    test('should ask for the comments under the post the query names', () async {
-      when(
-        () => comments.commentsForPost(
-          1,
-          cancellation: any(named: 'cancellation'),
-        ),
-      ).thenAnswer((_) async => const [comment]);
+    test(
+      'should ask for the comments under the post the query names',
+      () async {
+        when(
+          () => comments.commentsForPost(
+            1,
+            cancellation: any(named: 'cancellation'),
+          ),
+        ).thenAnswer((_) async => const [comment]);
 
-      final loaded = await handler.execute(const GetCommentsQuery(1));
+        final loaded = await handler.execute(const GetCommentsQuery(1));
 
-      expect(loaded, const [comment]);
-      verify(
-        () => comments.commentsForPost(
-          1,
-          cancellation: any(named: 'cancellation'),
-        ),
-      ).called(1);
-    });
+        expect(loaded, const [comment]);
+        verify(
+          () => comments.commentsForPost(
+            1,
+            cancellation: any(named: 'cancellation'),
+          ),
+        ).called(1);
+      },
+    );
 
     test('should hand the read the token it was given', () async {
       final token = Completer<void>().future;
-      when(
-        () => comments.commentsForPost(1, cancellation: token),
-      ).thenAnswer((_) async => const []);
+      when(() => comments.commentsForPost(1, cancellation: token))
+          .thenAnswer((_) async => const []);
 
       await handler.execute(GetCommentsQuery(1, cancellation: token));
 

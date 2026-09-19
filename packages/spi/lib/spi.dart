@@ -59,6 +59,7 @@
 /// ```
 library;
 
+export 'src/default_provider_session.dart';
 export 'src/provider.dart';
 export 'src/provider_exception.dart';
 export 'src/provider_manager.dart';

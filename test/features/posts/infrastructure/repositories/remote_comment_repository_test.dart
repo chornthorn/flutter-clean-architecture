@@ -168,7 +168,10 @@ void main() {
       );
       final walkedAway = Completer<void>();
 
-      final read = repository.commentsForPost(1, cancellation: walkedAway.future);
+      final read = repository.commentsForPost(
+        1,
+        cancellation: walkedAway.future,
+      );
       // Let the request reach the transport before pulling the plug.
       await pumpEventQueue();
       expect(adapter.cancelFuture, isNotNull);

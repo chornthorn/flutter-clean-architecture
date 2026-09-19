@@ -1,5 +1,6 @@
 import 'provider.dart';
 import 'provider_exception.dart';
+import 'provider_session.dart';
 import 'spi.dart';
 
 /// The factories registered for each SPI (Keycloak: `DefaultProviderManager`).
@@ -39,6 +40,29 @@ class ProviderManager {
   final List<Spi<dynamic>> spis;
 
   final Map<String, List<ProviderFactory<dynamic>>> _factoriesForSpi = {};
+  final Map<String, Provider> _shared = {};
+
+  /// The application-scoped provider for [factory], created on the first ask and
+  /// handed to every session until [close].
+  ///
+  /// Keycloak: the singleton `Provider` implementations a factory caches — except
+  /// that here the manager owns the lifetime, so no session can close one out from
+  /// under another.
+  Provider shared(
+    Spi<dynamic> spi,
+    ProviderFactory<dynamic> factory,
+    ProviderSession session,
+  ) =>
+      _shared.putIfAbsent('${spi.name}/${factory.id}', () => factory.create(session));
+
+  /// Closes the application-scoped providers. The application calls this on
+  /// teardown; a session must never close what it does not own.
+  void close() {
+    for (final provider in _shared.values) {
+      provider.close();
+    }
+    _shared.clear();
+  }
 
   /// The SPI [factory] belongs to, or `null` when no registered SPI accepts it.
   Spi<dynamic>? spiOf(ProviderFactory<dynamic> factory) {

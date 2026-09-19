@@ -10,6 +10,8 @@ import '../../domain/repositories/mock_cart_repository.dart';
 import '../../domain/repositories/mock_product_repository.dart';
 import '../../shop_dispatcher_fixture.dart';
 
+import '../../../../core/execution/execution_context_fixture.dart';
+
 void main() {
   group('ShopCartView', () {
     testWidgets('should render the items and what they add up to', (
@@ -22,7 +24,10 @@ void main() {
       when(() => products.productById('sku-42'))
           .thenAnswer((_) async => product);
 
-      final viewModel = ShopCartViewModel(shopDispatcher(products, cart: cart));
+      final viewModel = ShopCartViewModel(
+        dispatcher: shopDispatcher(products, cart: cart),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
@@ -38,7 +43,8 @@ void main() {
       when(() => cart.cart()).thenAnswer((_) async => const Cart.empty());
 
       final viewModel = ShopCartViewModel(
-        shopDispatcher(MockProductRepository(), cart: cart),
+        dispatcher: shopDispatcher(MockProductRepository(), cart: cart),
+        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load();
@@ -55,7 +61,8 @@ void main() {
           .thenAnswer((_) async => throw Exception('offline'));
 
       final viewModel = ShopCartViewModel(
-        shopDispatcher(MockProductRepository(), cart: cart),
+        dispatcher: shopDispatcher(MockProductRepository(), cart: cart),
+        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load();
@@ -80,7 +87,10 @@ void main() {
       when(() => products.productById('sku-42'))
           .thenAnswer((_) async => product);
 
-      final viewModel = ShopCartViewModel(shopDispatcher(products, cart: cart));
+      final viewModel = ShopCartViewModel(
+        dispatcher: shopDispatcher(products, cart: cart),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
       await viewModel.load();
 

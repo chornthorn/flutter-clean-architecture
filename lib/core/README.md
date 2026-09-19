@@ -5,6 +5,15 @@ it — one feature's code belongs inside that feature.
 
 ```
 lib/core/
+  execution/
+    execution_context.dart   one screen's scope: the capture, its providers, its
+                             cancellation. A `ProviderSession`, closed by the
+                             route that owns the view model.
+    execution_event.dart     what the capture records, in order
+    execution_observer.dart  the SPI: who watches executions (providers, per
+                             environment)
+    executions.dart          creates one context per screen, holds the providers
+    observers/               the observers: `TraceObserver` prints in dev
   networking/
     network_client.dart    the Dio every feature's endpoints shares, with its
                            timeouts and base URL. Bound in `provider.dart` —
@@ -38,6 +47,59 @@ lib/core/
   storage/                 arrives with the first persisted data: the database or
                            key-value stack features' repositories sit on
 ```
+
+## Execution context
+
+Every view model receives the dispatcher and an `ExecutionContext` through its
+constructor — both declared with `super`, the way a widget takes its `key` — and
+runs each user action through the context:
+
+```dart
+class PostViewModel extends ViewModel {
+  PostViewModel({required super.dispatcher, required super.context});
+
+  Future<void> loadPosts() async {
+    _posts.setLoading();
+
+    try {
+      final posts = await context.run(
+        () => dispatcher.query(GetPostsQuery(cancellation: context.cancellation)),
+      );
+      if (context.isCancelled) return;
+      _posts.setValue(posts);
+    } catch (error, stackTrace) {
+      if (context.isCancelled || error is CancelledException) return;
+      _posts.setError(error, stackTrace);
+    }
+  }
+}
+```
+
+`run` captures while the work happens — the action's name (the calling method),
+the providers it asked for, how long it took, how it ended — and rethrows what the
+body threw, so error handling stays where it was. It decides nothing: an
+`ExecutionObserver` provider reads the capture, and `DevExecutionObservers` prints
+it in the dev environment:
+
+```
+▶ ctx-7 loadPosts
+    · http-client/api
+    ✔
+◀ ctx-7 412ms
+```
+
+Rules worth knowing:
+
+- **One context per view model**, created by DI (`Scope.factory`), closed by
+  `ViewModel.dispose()`. A screen is a scope; a tap is an action inside it.
+- **A closed context is frozen.** Once the route pops, `run` reports the
+  cancellation, `fail`/`note` do nothing, and `isClosed` is what replaces a
+  `_isDisposed` flag.
+- **A body that swallows an error must report it** — `context.fail(error)` in the
+  catch — or the capture says the action succeeded.
+- **The context never reaches domain.** Queries still carry `Cancellation`; a
+  `context` in a query is the next step, when an adapter needs the screen's
+  providers.
 
 ## Error Handling Architecture
 

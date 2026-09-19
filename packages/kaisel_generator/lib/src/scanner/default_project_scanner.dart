@@ -166,5 +166,8 @@ class DefaultProjectScannerFactory implements ProjectScannerFactory {
   int get order => defaultProviderOrder;
 
   @override
+  ProviderScope get scope => ProviderScope.session;
+
+  @override
   ProjectScanner create(ProviderSession session) => const DefaultProjectScanner();
 }

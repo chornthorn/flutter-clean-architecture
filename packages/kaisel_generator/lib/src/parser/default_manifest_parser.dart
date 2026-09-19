@@ -117,5 +117,8 @@ class DefaultManifestParserFactory implements ManifestParserFactory {
   int get order => defaultProviderOrder;
 
   @override
+  ProviderScope get scope => ProviderScope.session;
+
+  @override
   ManifestParser create(ProviderSession session) => const DefaultManifestParser();
 }

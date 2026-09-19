@@ -123,6 +123,9 @@ class DefaultLibraryScannerFactory implements LibraryScannerFactory {
   int get order => defaultProviderOrder;
 
   @override
+  ProviderScope get scope => ProviderScope.session;
+
+  @override
   LibraryScanner create(ProviderSession session) => DefaultLibraryScanner(
         parser: session.provider(AnnotationParserSpi.instance),
       );

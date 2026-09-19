@@ -219,5 +219,8 @@ class HostRegistryProviderFactory implements GenerationProviderFactory {
   int get order => defaultProviderOrder;
 
   @override
+  ProviderScope get scope => ProviderScope.session;
+
+  @override
   GenerationProvider create(ProviderSession session) => HostRegistryProvider(session);
 }

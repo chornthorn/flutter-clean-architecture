@@ -81,6 +81,9 @@ class _SampleImportEmitterFactory implements ImportEmitterFactory {
   int get order => 10;
 
   @override
+  ProviderScope get scope => ProviderScope.session;
+
+  @override
   ImportEmitter create(ProviderSession session) {
     created++;
     return _SampleImportEmitter();

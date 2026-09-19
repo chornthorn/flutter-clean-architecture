@@ -13,6 +13,8 @@ import 'package:signals/signals_flutter.dart';
 
 import '../../posts_dispatcher_fixture.dart';
 
+import '../../../../core/execution/execution_context_fixture.dart';
+
 class MockPostRepository extends Mock implements PostRepository {}
 
 void main() {
@@ -29,7 +31,10 @@ void main() {
       when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
           .thenAnswer((_) async => const [post]);
 
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       expect(viewModel.posts.value.isLoading, isTrue);
@@ -45,7 +50,10 @@ void main() {
       when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
           .thenAnswer((_) async => const []);
 
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       await viewModel.load();
@@ -59,7 +67,10 @@ void main() {
       when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
           .thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       await viewModel.load();
@@ -70,7 +81,8 @@ void main() {
 
     test('should start the writes settled, so the page does not read them in flight', () {
       final viewModel = PostViewModel(
-        postsDispatcher(InMemoryPostRepository()),
+        dispatcher: postsDispatcher(InMemoryPostRepository()),
+        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -86,7 +98,8 @@ void main() {
       'should create from the createFormController values and re-read the list',
       () async {
         final viewModel = PostViewModel(
-          postsDispatcher(InMemoryPostRepository()),
+          dispatcher: postsDispatcher(InMemoryPostRepository()),
+          context: testContext(),
         );
         addTearDown(viewModel.dispose);
         await viewModel.load();
@@ -124,7 +137,10 @@ void main() {
 
     test('should return ActionFailure with field errors and bind to createFormController when validation fails', () async {
       final store = InMemoryPostRepository();
-      final viewModel = PostViewModel(postsDispatcher(store));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(store),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       viewModel.createFormController.setValues({
@@ -158,7 +174,10 @@ void main() {
           ),
         ).thenAnswer((_) async => throw Exception('offline'));
 
-        final viewModel = PostViewModel(postsDispatcher(store));
+        final viewModel = PostViewModel(
+          dispatcher: postsDispatcher(store),
+          context: testContext(),
+        );
         addTearDown(viewModel.dispose);
         await viewModel.load();
 
@@ -181,7 +200,10 @@ void main() {
       when(() => repository.allPosts(cancellation: any(named: 'cancellation')))
           .thenAnswer((_) => completer.future);
 
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       final pushed = <AsyncState<List<Post>>>[];
       addTearDown(viewModel.posts.subscribe(pushed.add));
 
@@ -203,7 +225,10 @@ void main() {
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => post);
 
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       expect(viewModel.post.value.isLoading, isTrue);
@@ -220,7 +245,10 @@ void main() {
         () => repository.postById(99, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => null);
 
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       await viewModel.load(99);
@@ -235,7 +263,10 @@ void main() {
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = PostViewModel(postsDispatcher(repository));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(repository),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       await viewModel.load(1);
@@ -246,7 +277,8 @@ void main() {
 
     test('should start the writes settled, so the page does not read them in flight', () {
       final viewModel = PostViewModel(
-        postsDispatcher(InMemoryPostRepository()),
+        dispatcher: postsDispatcher(InMemoryPostRepository()),
+        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -258,7 +290,10 @@ void main() {
 
     test('should return ActionFailure with field errors and bind to updateFormController when updatePost validation fails', () async {
       final store = InMemoryPostRepository();
-      final viewModel = PostViewModel(postsDispatcher(store));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(store),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       viewModel.updateFormController.setValues({
@@ -280,7 +315,10 @@ void main() {
 
     test('should edit the id it is handed', () async {
       final store = InMemoryPostRepository();
-      final viewModel = PostViewModel(postsDispatcher(store));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(store),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       viewModel.updateFormController.setValues({
@@ -295,7 +333,10 @@ void main() {
 
     test('should edit post using viewModel.updateFormController directly after prepareEdit', () async {
       final store = InMemoryPostRepository();
-      final viewModel = PostViewModel(postsDispatcher(store));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(store),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       const currentPost = Post(
@@ -337,7 +378,10 @@ void main() {
           ),
         ).thenAnswer((_) async => throw Exception('offline'));
 
-        final viewModel = PostViewModel(postsDispatcher(store));
+        final viewModel = PostViewModel(
+          dispatcher: postsDispatcher(store),
+          context: testContext(),
+        );
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
 
@@ -353,7 +397,10 @@ void main() {
 
     test('should delete through the command and settle', () async {
       final store = InMemoryPostRepository();
-      final viewModel = PostViewModel(postsDispatcher(store));
+      final viewModel = PostViewModel(
+        dispatcher: postsDispatcher(store),
+        context: testContext(),
+      );
       addTearDown(viewModel.dispose);
 
       final result = await viewModel.deletePost(1);
@@ -368,7 +415,10 @@ void main() {
         when(() => store.deletePost(1))
             .thenAnswer((_) async => throw Exception('offline'));
 
-        final viewModel = PostViewModel(postsDispatcher(store));
+        final viewModel = PostViewModel(
+          dispatcher: postsDispatcher(store),
+          context: testContext(),
+        );
         addTearDown(viewModel.dispose);
 
         final result = await viewModel.deletePost(1);
