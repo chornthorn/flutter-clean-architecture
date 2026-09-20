@@ -66,9 +66,7 @@ class PostViewModel extends ViewModel {
     _posts.setLoading();
 
     try {
-      final posts = await dispatcher.query(
-        GetPostsQuery(cancellation: _cancellation.token),
-      );
+      final posts = await dispatcher.query(GetPostsQuery(cancellation: _cancellation.token));
       if (_cancellation.isCancelled) return;
       _posts.setValue(posts);
     } catch (error, stackTrace) {
@@ -81,9 +79,7 @@ class PostViewModel extends ViewModel {
     _post.setLoading();
 
     try {
-      final post = await dispatcher.query(
-        GetPostQuery(id, cancellation: _cancellation.token),
-      );
+      final post = await dispatcher.query(GetPostQuery(id, cancellation: _cancellation.token));
       if (_cancellation.isCancelled) return;
       _post.setValue(post);
     } catch (error, stackTrace) {
@@ -101,12 +97,8 @@ class PostViewModel extends ViewModel {
     _create.setLoading();
 
     try {
-      await dispatcher.command(
-        CreatePostCommand(userId: _authorId, title: title, body: body),
-      );
-      final posts = await dispatcher.query(
-        GetPostsQuery(cancellation: _cancellation.token),
-      );
+      await dispatcher.command(CreatePostCommand(userId: _authorId, title: title, body: body));
+      final posts = await dispatcher.query(GetPostsQuery(cancellation: _cancellation.token));
       if (_cancellation.isCancelled) return const ActionResult.success();
       _posts.setValue(posts);
       _create.setValue(null);
@@ -117,9 +109,7 @@ class PostViewModel extends ViewModel {
         return const ActionResult.failure('Could not create post.');
       }
       _create.setError(error, stackTrace);
-      final message = error is AppException
-          ? error.message
-          : 'Could not create post.';
+      final message = error is AppException ? error.message : 'Could not create post.';
       final fieldErrors = error is ValidationException
           ? error.fieldErrors
           : const <String, String>{};
@@ -136,12 +126,8 @@ class PostViewModel extends ViewModel {
     _update.setLoading();
 
     try {
-      await dispatcher.command(
-        UpdatePostCommand(id: id, title: title, body: body),
-      );
-      final updated = await dispatcher.query(
-        GetPostQuery(id, cancellation: _cancellation.token),
-      );
+      await dispatcher.command(UpdatePostCommand(id: id, title: title, body: body));
+      final updated = await dispatcher.query(GetPostQuery(id, cancellation: _cancellation.token));
       if (_cancellation.isCancelled) return const ActionResult.success();
       _post.setValue(updated);
       _update.setValue(null);
@@ -152,9 +138,7 @@ class PostViewModel extends ViewModel {
         return const ActionResult.failure('Could not update post.');
       }
       _update.setError(error, stackTrace);
-      final message = error is AppException
-          ? error.message
-          : 'Could not update post.';
+      final message = error is AppException ? error.message : 'Could not update post.';
       final fieldErrors = error is ValidationException
           ? error.fieldErrors
           : const <String, String>{};
@@ -177,9 +161,7 @@ class PostViewModel extends ViewModel {
         return const ActionResult.failure('Could not delete post.');
       }
       _delete.setError(error, stackTrace);
-      final message = error is AppException
-          ? error.message
-          : 'Could not delete post.';
+      final message = error is AppException ? error.message : 'Could not delete post.';
       return ActionResult.failure(message);
     }
   }

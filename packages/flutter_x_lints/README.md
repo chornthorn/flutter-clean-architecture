@@ -62,6 +62,7 @@ rule silently.
 | `no_get_it_in_ui`                     | A library that declares a widget, or a file under `presentation/`, imports `package:get_it` or calls through a `GetIt` instance. |
 | `view_model_exposes_readonly_signals` | A `ViewModel` getter exposes a writable signal rather than a `ReadonlySignal`.                                                   |
 | `view_model_must_extend_base`         | A class declared under a `view_models/` directory does not extend or implement `ViewModel`.                                      |
+| `view_model_signals_must_be_private`  | A `ViewModel` has a public field whose type is a writable signal.                                                                |
 
 All are lint rules, so they are **off** until `analysis_options.yaml` turns
 them on — adding a rule to this package never starts failing an existing build.
@@ -123,6 +124,27 @@ It applies to a class that extends or implements `ViewModel`, and to public
 getters only: a `_private` getter is the view model's own business. Reporting at
 the return type keeps the fix to the type — the body still reads `=> _posts`.
 
+### How `view_model_signals_must_be_private` decides
+
+A field of a `ViewModel` whose resolved type is a **writable** signal must be
+private. The type is resolved, so an inferred `final posts = asyncSignal(...)`
+counts the same as a written annotation.
+
+| Field type          |                                               |
+| :------------------ | :-------------------------------------------- |
+| `AsyncSignal<T>`    | reported — it extends `Signal<AsyncState<T>>` |
+| `Signal<T>`         | reported                                      |
+| `Computed<T>`       | fine — read-only                              |
+| `ReadonlySignal<T>` | fine — read-only                              |
+
+A read-only signal cannot be written through, so there is nothing to hide behind
+a private name. A writable one held publicly is part of the surface a view
+builds against, and the view can set it.
+
+Statics and locals are not part of the view's surface and are left alone.
+Together with `view_model_exposes_readonly_signals` this leaves one way to
+_change_ state from outside a view model: none.
+
 ### How `view_model_must_extend_base` finds a view model
 
 The directory, not the name: every class in a file under a `view_models/` folder
@@ -156,6 +178,7 @@ plugins:
       no_get_it_in_ui: error
       view_model_exposes_readonly_signals: error
       view_model_must_extend_base: error
+      view_model_signals_must_be_private: error
 ```
 
 A relative `path` works, so this is safe to commit.

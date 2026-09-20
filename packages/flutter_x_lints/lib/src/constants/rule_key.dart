@@ -17,7 +17,8 @@ enum RuleKey {
   noDispatcherOutsideViewModel('no_dispatcher_outside_view_model'),
   noGetItInUi('no_get_it_in_ui'),
   viewModelExposesReadonlySignals('view_model_exposes_readonly_signals'),
-  viewModelMustExtendBase('view_model_must_extend_base');
+  viewModelMustExtendBase('view_model_must_extend_base'),
+  viewModelSignalsMustBePrivate('view_model_signals_must_be_private');
 
   const RuleKey(this.value);
 
