@@ -1,5 +1,5 @@
 import 'package:analyzer_testing/analysis_rule/analysis_rule.dart';
-import 'package:flutter_x_lints/src/rules/no_cqrs_in_widgets.dart';
+import 'package:flutter_x_lints/src/rules/no_cqrs_in_widgets_rule.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 void main() {
@@ -15,7 +15,7 @@ class NoCqrsInWidgetsTest extends AnalysisRuleTest {
 
   @override
   void setUp() {
-    rule = NoCqrsInWidgets();
+    rule = NoCqrsInWidgetsRule();
     newPackage('cqrs').addFile('lib/cqrs.dart', '''
 class CqrsDispatcher {
   Future<void> query(Object query) async {}

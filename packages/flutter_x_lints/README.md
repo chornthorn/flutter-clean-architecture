@@ -22,16 +22,80 @@ Rules see the **resolved** AST: `RuleContext` exposes `libraryElement`,
 `package`, `typeProvider` and `typeSystem`, so a rule can resolve what a name
 actually refers to instead of matching text.
 
+## Layout
+
+```
+lib/
+  main.dart                      the plugin entry point: `plugin`, and `register`
+  src/
+    constants/rule_key.dart      every rule name, in one enum
+    rules/*_rule.dart            one AnalysisRule per rule: name, LintCode, registration
+    visitors/*_visitor.dart      one SimpleAstVisitor per rule: the actual checks
+    utils/                       what the `cqrs` package looks like; supertypes, resolved
+```
+
+A rule file holds only the rule's identity — its `RuleKey`, its `LintCode`, and
+what it registers — so a reader sees what the rule is before how it works. The
+check itself lives in its visitor, which takes the rule as an `AnalysisRule` and
+reports through it.
+
+Every class is named after what it is: `XxxRule` and `XxxVisitor`, in `rules/`
+and `visitors/` respectively, so a rule and the visitor that serves it are found
+the same way.
+
+Rule names live in `RuleKey` because a name is a rule's public API: it is what
+`analysis_options.yaml` enables and sets the severity of, and what `// ignore:`
+suppresses. A `LintCode` cannot be `const` once its name comes from the enum, and
+that is safe — `LintCode` implements `==` and `hashCode` on its name, so the
+analyzer matches codes by name rather than identity. `test/rule_key_test.dart`
+pins the names, because a rename that misses the app's config would disable the
+rule silently.
+
 ## The rules
 
 | Rule                               | Reports                                                                                      |
 | :--------------------------------- | :------------------------------------------------------------------------------------------- |
+| `layer_dependency_direction`       | A feature layer imports a layer outside it.                                                  |
 | `no_cqrs_in_widgets`               | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                      |
 | `no_dispatcher_outside_view_model` | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`. |
-| `view_model_must_extend_base`      | A class named `...ViewModel` does not extend or implement the base `ViewModel`.              |
+| `view_model_must_extend_base`      | A class declared under a `view_models/` directory does not extend or implement `ViewModel`.  |
 
 All are lint rules, so they are **off** until `analysis_options.yaml` turns
 them on — adding a rule to this package never starts failing an existing build.
+
+### How `layer_dependency_direction` reads the layering
+
+A file's layer is the directory segment after its feature: `features/<feature>/<layer>/`.
+Dependencies point inward.
+
+| Layer            | May depend on              |
+| :--------------- | :------------------------- |
+| `domain`         | `domain`                   |
+| `infrastructure` | `domain`, `infrastructure` |
+| `presentation`   | `domain`, `presentation`   |
+
+The shared `core/` is a kernel both sides sit on, so it is outside the rule, as
+are `app/` and a feature's own module file. Both `import` and `export` are
+checked. Tests are exempt: `test/` mirrors the feature layout, and a test wires
+the real layers together on purpose — the view model tests import the
+infrastructure repositories they drive.
+
+### How `view_model_must_extend_base` finds a view model
+
+The directory, not the name: every class in a file under a `view_models/` folder
+is held to the contract. "View model" is not something the analyzer can see, and
+a name convention only covers the classes that already follow it, so the folder
+is taken to say what its classes are.
+
+Two exemptions:
+
+- Files in a package's `test/` directory. A test declares mocks and fakes in a
+  `view_models/` folder on purpose (`MockPostRepository` in
+  `test/features/posts/presentation/view_models/`).
+- A class named exactly `ViewModel`, which is a base rather than a view model
+  that lost its base.
+
+Enums, mixins and extensions in the folder are not classes and are not checked.
 
 ## Enabling it
 
@@ -43,6 +107,7 @@ plugins:
   flutter_x_lints:
     path: packages/flutter_x_lints
     diagnostics:
+      layer_dependency_direction: error
       no_cqrs_in_widgets: error
       no_dispatcher_outside_view_model: error
       view_model_must_extend_base: error

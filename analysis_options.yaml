@@ -10,13 +10,16 @@ plugins:
   flutter_x_lints:
     path: packages/flutter_x_lints
     diagnostics:
+      # Clean architecture's dependency direction: `domain` names neither outer
+      # layer, and `presentation` never reaches into `infrastructure`.
+      layer_dependency_direction: error
       # A widget that holds a Command or a Query has taken over a decision that
       # belongs to its view model.
       no_cqrs_in_widgets: error
       # Dispatching outside a view model loses the screen lifecycle: the
       # cancellation and the error state the route is owed.
       no_dispatcher_outside_view_model: error
-      # A class that takes the `...ViewModel` name without the base takes on a
+      # A class that lives in `view_models/` without the base takes on a
       # screen's work without the screen's lifecycle.
       view_model_must_extend_base: error
 

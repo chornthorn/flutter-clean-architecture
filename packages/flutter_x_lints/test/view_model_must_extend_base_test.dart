@@ -1,5 +1,5 @@
 import 'package:analyzer_testing/analysis_rule/analysis_rule.dart';
-import 'package:flutter_x_lints/src/rules/view_model_must_extend_base.dart';
+import 'package:flutter_x_lints/src/rules/view_model_must_extend_base_rule.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 void main() {
@@ -28,7 +28,7 @@ class ViewModelMustExtendBaseTest extends AnalysisRuleTest {
 
   @override
   void setUp() {
-    rule = ViewModelMustExtendBase();
+    rule = ViewModelMustExtendBaseRule();
     super.setUp();
   }
 

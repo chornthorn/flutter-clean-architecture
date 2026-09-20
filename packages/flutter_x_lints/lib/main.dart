@@ -7,9 +7,10 @@ library;
 import 'package:analysis_server_plugin/plugin.dart';
 import 'package:analysis_server_plugin/registry.dart';
 
-import 'src/rules/no_cqrs_in_widgets.dart';
-import 'src/rules/no_dispatcher_outside_view_model.dart';
-import 'src/rules/view_model_must_extend_base.dart';
+import 'src/rules/layer_dependency_direction_rule.dart';
+import 'src/rules/no_cqrs_in_widgets_rule.dart';
+import 'src/rules/no_dispatcher_outside_view_model_rule.dart';
+import 'src/rules/view_model_must_extend_base_rule.dart';
 
 final plugin = FlutterXLintsPlugin();
 
@@ -21,8 +22,9 @@ class FlutterXLintsPlugin extends Plugin {
   void register(PluginRegistry registry) {
     // Lint rules: off unless `analysis_options.yaml` turns them on, so adding
     // one here never starts failing somebody else's build.
-    registry.registerLintRule(NoCqrsInWidgets());
-    registry.registerLintRule(NoDispatcherOutsideViewModel());
-    registry.registerLintRule(ViewModelMustExtendBase());
+    registry.registerLintRule(LayerDependencyDirectionRule());
+    registry.registerLintRule(NoCqrsInWidgetsRule());
+    registry.registerLintRule(NoDispatcherOutsideViewModelRule());
+    registry.registerLintRule(ViewModelMustExtendBaseRule());
   }
 }

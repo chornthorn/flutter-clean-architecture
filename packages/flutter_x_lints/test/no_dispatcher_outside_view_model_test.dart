@@ -1,5 +1,5 @@
 import 'package:analyzer_testing/analysis_rule/analysis_rule.dart';
-import 'package:flutter_x_lints/src/rules/no_dispatcher_outside_view_model.dart';
+import 'package:flutter_x_lints/src/rules/no_dispatcher_outside_view_model_rule.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 void main() {
@@ -12,7 +12,7 @@ void main() {
 class NoDispatcherOutsideViewModelTest extends AnalysisRuleTest {
   @override
   void setUp() {
-    rule = NoDispatcherOutsideViewModel();
+    rule = NoDispatcherOutsideViewModelRule();
     // Mirrors the real package: `query` and `command` are declared on the
     // dispatcher interfaces, and `CqrsDispatcher` only implements them.
     newPackage('cqrs')..addFile('lib/cqrs.dart', '''
