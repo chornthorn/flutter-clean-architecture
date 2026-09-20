@@ -1,9 +1,22 @@
-import '../model/micro_package.dart';
-import '../model/module_info.dart';
-import 'import_emitter.dart';
-import 'registry_emitter.dart';
+import '../models/scan.dart';
+import 'emitters.dart';
 
-/// The built-in [RegistryEmitter]: the host's module registry, the sealed route
+/// Writes the sealed route hierarchy, the page builder, the URL mounts and the
+/// router config an app runs on.
+abstract interface class RegistryEmitter {
+  /// Writes the registry for a project whose modules are [modules] and whose
+  /// composed micro-packages are [microPackages].
+  String write({
+    required List<ModuleInfo> modules,
+    required String routeClass,
+    required String? initialRouteOverride,
+    required List<MicroPackageInfo> microPackages,
+    required String packageName,
+    required String libDir,
+  });
+}
+
+/// The default [RegistryEmitter]: the host's module registry, the sealed route
 /// hierarchy, the page builder, the URL mounts and the router config an app runs
 /// on.
 class DefaultRegistryEmitter implements RegistryEmitter {
@@ -20,18 +33,23 @@ class DefaultRegistryEmitter implements RegistryEmitter {
     required String packageName,
     required String libDir,
   }) {
-    final localFiles = _uniqueSorted([for (final module in modules) module.filePath]);
+    final localFiles =
+        _uniqueSorted([for (final module in modules) module.filePath]);
     final localAliases = imports.aliasesFor(localFiles, '_i');
     final packageAliases = [
-      for (var index = 0; index < microPackages.length; index++) '_mp${index + 1}',
+      for (var index = 0; index < microPackages.length; index++)
+        '_mp${index + 1}',
     ];
 
     // Routed modules, longest prefix first, so an overlapping mount (`/shop/v2`)
     // is tried before the mount it nests inside (`/shop`).
-    final routed = [for (final module in modules) if (module.isRouted) module]
-      ..sort(_byPrefixLengthThenName);
+    final routed = [
+      for (final module in modules)
+        if (module.isRouted) module
+    ]..sort(_byPrefixLengthThenName);
 
-    final initialMount = _initialMount(modules, microPackages, initialRouteOverride);
+    final initialMount =
+        _initialMount(modules, microPackages, initialRouteOverride);
     final mountNames = _mountNames(modules, microPackages);
 
     final buffer = StringBuffer();
@@ -50,13 +68,18 @@ class DefaultRegistryEmitter implements RegistryEmitter {
         (uri: microPackages[index].importUri, alias: packageAliases[index]),
       for (final file in localFiles)
         (
-          uri: imports.packageUri(packageName: packageName, libDir: libDir, file: file),
+          uri: imports.packageUri(
+            packageName: packageName,
+            libDir: libDir,
+            file: file,
+          ),
           alias: localAliases[file]!,
         ),
     ]);
     buffer.write('\n');
 
-    buffer.write("// Host's sealed route hierarchy: one marker mount per feature module.\n");
+    buffer.write(
+        "// Host's sealed route hierarchy: one marker mount per feature module.\n");
     buffer.write('sealed class $routeClass extends KaiselRoute {\n');
     buffer.write('  const $routeClass();\n');
     buffer.write('}\n\n');
@@ -70,7 +93,8 @@ class DefaultRegistryEmitter implements RegistryEmitter {
     buffer.write('/// The default initial route for the host router.\n');
     buffer.write('const $routeClass kInitialAppRoute = $initialMount();\n\n');
 
-    buffer.write('/// Dispatches each feature module inside a `KaiselModuleMount`.\n');
+    buffer.write(
+        '/// Dispatches each feature module inside a `KaiselModuleMount`.\n');
     buffer.write(
       'Widget buildAppModulePage(BuildContext context, $routeClass route) => switch (route) {\n',
     );
@@ -92,7 +116,8 @@ class DefaultRegistryEmitter implements RegistryEmitter {
     }
     buffer.write('};\n\n');
 
-    buffer.write('/// Declarative module mounts for `ConfigCodecWithModules`.\n');
+    buffer
+        .write('/// Declarative module mounts for `ConfigCodecWithModules`.\n');
     buffer.write(
       '${microPackages.isEmpty ? 'const' : 'final'} List<ModuleMount<$routeClass>> '
       'appModuleMounts = [\n',
@@ -117,7 +142,8 @@ class DefaultRegistryEmitter implements RegistryEmitter {
     buffer.write('];\n\n');
 
     buffer.write('/// Encodes host mount markers to their canonical URLs.\n');
-    buffer.write('Uri? encodeAppModuleRoute($routeClass route) => switch (route) {\n');
+    buffer.write(
+        'Uri? encodeAppModuleRoute($routeClass route) => switch (route) {\n');
     for (final module in modules) {
       buffer.write(
         "  ${module.mountName}() => Uri(path: '${module.prefix ?? '/'}'),\n",
@@ -134,8 +160,10 @@ class DefaultRegistryEmitter implements RegistryEmitter {
     }
     buffer.write('};\n\n');
 
-    buffer.write('/// Default host codec delegating unmounted paths to the initial route.\n');
-    buffer.write('class DefaultBaseAppCodec extends KaiselConfigCodec<$routeClass> {\n');
+    buffer.write(
+        '/// Default host codec delegating unmounted paths to the initial route.\n');
+    buffer.write(
+        'class DefaultBaseAppCodec extends KaiselConfigCodec<$routeClass> {\n');
     buffer.write('  const DefaultBaseAppCodec();\n\n');
     buffer.write('  @override\n');
     buffer.write('  KaiselConfig<$routeClass>? decode(Uri uri) {\n');
@@ -143,13 +171,15 @@ class DefaultRegistryEmitter implements RegistryEmitter {
     buffer.write('        .where((segment) => segment.isNotEmpty)\n');
     buffer.write('        .toList(growable: false);\n\n');
     buffer.write('    return switch (segments) {\n');
-    buffer.write('      [] => KaiselConfig(mainStack: const [kInitialAppRoute]),\n');
+    buffer.write(
+        '      [] => KaiselConfig(mainStack: const [kInitialAppRoute]),\n');
     buffer.write('      _ => null,\n');
     buffer.write('    };\n');
     buffer.write('  }\n\n');
     buffer.write('  @override\n');
     buffer.write('  Uri encode(KaiselConfig<$routeClass> config) {\n');
-    buffer.write('    final uri = encodeAppModuleRoute(config.mainStack.last);\n');
+    buffer.write(
+        '    final uri = encodeAppModuleRoute(config.mainStack.last);\n');
     buffer.write("    return uri ?? Uri(path: '/');\n");
     buffer.write('  }\n');
     buffer.write('}\n\n');
@@ -169,14 +199,17 @@ class DefaultRegistryEmitter implements RegistryEmitter {
     buffer.write('  modules: appModuleMounts,\n');
     buffer.write(');\n\n');
 
-    buffer.write('/// Ready-to-use default router configuration for the host app.\n');
-    buffer.write('final defaultAppRouterConfig = KaiselRouterConfig<$routeClass>(\n');
+    buffer.write(
+        '/// Ready-to-use default router configuration for the host app.\n');
+    buffer.write(
+        'final defaultAppRouterConfig = KaiselRouterConfig<$routeClass>(\n');
     buffer.write('  initial: kInitialAppRoute,\n');
     buffer.write('  builder: buildAppModulePage,\n');
     buffer.write('  codec: defaultAppCodec,\n');
     buffer.write(');\n\n');
 
-    buffer.write('/// Convenience factory for customizing host router configuration.\n');
+    buffer.write(
+        '/// Convenience factory for customizing host router configuration.\n');
     buffer.write('KaiselRouterConfig<$routeClass> createAppRouterConfig({\n');
     buffer.write('  $routeClass? initial,\n');
     buffer.write('  KaiselPageBuilder<$routeClass>? builder,\n');

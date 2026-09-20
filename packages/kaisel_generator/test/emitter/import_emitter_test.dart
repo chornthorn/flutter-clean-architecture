@@ -1,4 +1,4 @@
-import 'package:kaisel_generator/src/emitter/default_import_emitter.dart';
+import 'package:kaisel_generator/src/service/emitters.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -58,7 +58,8 @@ void main() {
 
     test('should keep the path when the package name is unknown', () {
       expect(
-        emitter.packageUri(packageName: '', libDir: '/app/lib', file: '/app/lib/x.dart'),
+        emitter.packageUri(
+            packageName: '', libDir: '/app/lib', file: '/app/lib/x.dart'),
         '/app/lib/x.dart',
       );
     });

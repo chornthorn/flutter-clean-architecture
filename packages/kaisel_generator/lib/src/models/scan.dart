@@ -1,14 +1,77 @@
-/// The micro-package contract.
+/// What a scan of a package's `lib/` finds: its modules, its entry point, and the
+/// micro-package contract.
 ///
-/// A micro-package generates its own `<package>.kaisel.dart` manifest, which
-/// declares one typed mount per module it contributes. A host application
-/// composes that manifest without scanning the package for routes of its own:
-/// it binds each declaration to one of its own marker routes, so a mount is never
-/// resolved by name.
+/// Plain values read from source, so they can be asserted on without a build: the
+/// scan needs an AST, never a resolved program.
 library;
 
-import 'module_info.dart';
-import 'naming.dart';
+import '../helper/naming.dart';
+import 'config.dart';
+
+/// One `@KaiselModule` class, with the names its registry entry needs.
+class ModuleInfo {
+  const ModuleInfo({
+    required this.className,
+    required this.routeType,
+    required this.mountName,
+    required this.codecName,
+    required this.filePath,
+    this.prefix,
+    this.isInitial = false,
+  });
+
+  /// The module class, e.g. `ShopRouterModule`.
+  final String className;
+
+  /// The module's route family, e.g. `ShopRoute`.
+  final String routeType;
+
+  /// The host marker route generated for this module, e.g. `ShopMount`.
+  final String mountName;
+
+  /// The module's codec, e.g. `ShopRouteCodec`. Never null: a module without an
+  /// explicit `codec:` or `codec` getter falls back to `<routeType>Codec`.
+  final String codecName;
+
+  /// Absolute path of the file that declares the module.
+  final String filePath;
+
+  /// URL prefix the module owns, or `null` when it is not URL-routed.
+  final String? prefix;
+
+  /// Whether the host should land on this mount by default.
+  final bool isInitial;
+
+  /// Whether this module owns a URL prefix, and so belongs in `appModuleMounts`.
+  bool get isRouted => prefix != null;
+}
+
+/// Everything Kaisel annotations declare under a package's `lib/`.
+class LibraryScan {
+  const LibraryScan({
+    required this.modules,
+    required this.microPackages,
+    required this.filesScanned,
+    required this.filesParsed,
+    this.init,
+  });
+
+  /// Every `@KaiselModule` class, in file order.
+  final List<ModuleInfo> modules;
+
+  /// The `@KaiselInit` entry point, when the package declares one.
+  final InitInfo? init;
+
+  /// Every `@KaiselMicroPackage` declaration, in file order. A package generates
+  /// one manifest, from the first one.
+  final List<MicroPackageDeclaration> microPackages;
+
+  /// `.dart` files the walk considered.
+  final int filesScanned;
+
+  /// Files that named a Kaisel annotation and were therefore parsed.
+  final int filesParsed;
+}
 
 /// A `@KaiselMicroPackage` declaration: the package generates one manifest from
 /// the first one it finds.
@@ -123,43 +186,3 @@ class MicroPackageInfo {
         mounts: mounts,
       );
 }
-
-/// Gives every mount a package contributes a host marker name that cannot collide
-/// with a name the host already uses: `<Feature>Mount` becomes
-/// `<Feature><Owner>Mount`, so the package `profile` declaring `ShopMount` next
-/// to the host's own `ShopMount` is bound to `ShopProfileMount`.
-///
-/// A name that is still free is left exactly as the package declared it, so
-/// registering a package never renames a marker the host already has.
-List<MicroPackageInfo> qualifyMarkers(
-  List<MicroPackageInfo> packages,
-  List<ModuleInfo> modules,
-) {
-  // The host's own mounts hold their names; a package that wants one of them is
-  // the one that moves.
-  final taken = {for (final module in modules) module.mountName};
-
-  final qualified = <MicroPackageInfo>[];
-  for (final package in packages) {
-    final mounts = [
-      for (final mount in package.mounts)
-        mount.withHostMarker(_claim(mount.mountName, package.owner, taken)),
-    ];
-    qualified.add(package.withMounts(mounts));
-  }
-  return qualified;
-}
-
-String _claim(String preferred, String owner, Set<String> taken) {
-  var marker = preferred;
-  while (taken.contains(marker)) {
-    marker = _insertOwner(marker, owner);
-  }
-  taken.add(marker);
-  return marker;
-}
-
-/// `ShopMount` + `Profile` → `ShopProfileMount`.
-String _insertOwner(String marker, String owner) => marker.endsWith('Mount')
-    ? '${marker.substring(0, marker.length - 'Mount'.length)}${owner}Mount'
-    : '$marker$owner';

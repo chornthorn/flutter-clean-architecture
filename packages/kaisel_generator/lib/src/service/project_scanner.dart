@@ -4,11 +4,34 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
-import '../model/generation_result.dart';
-import '../model/kaisel_config.dart';
-import 'project_scanner.dart';
+import '../models/config.dart';
+import '../models/generation.dart';
 
-/// The built-in [ProjectScanner]: `kaisel.yaml` and `pubspec.yaml` read from the
+/// Reads a project's configuration and the `package:` config that names other
+/// packages' files.
+abstract interface class ProjectScanner {
+  /// Reads `<root>/kaisel.yaml`, or returns `null` when the project has none.
+  KaiselConfig? readConfig(String root);
+
+  /// The `name:` of the package rooted at [root], or `null` when it has none.
+  String? readPackageName(String root);
+
+  /// Resolves the file an import URI names.
+  ///
+  /// `package:` imports resolve through the project's
+  /// `.dart_tool/package_config.json`; relative imports resolve against the
+  /// directory of the generated output file.
+  String resolveImportUri({
+    required String root,
+    required String outputDir,
+    required String importUri,
+  });
+
+  /// The `lib/` directory of a dependency package.
+  String resolvePackageLibDir({required String root, required String package});
+}
+
+/// The default [ProjectScanner]: `kaisel.yaml` and `pubspec.yaml` read from the
 /// project root, and `package:` imports resolved through the project's own
 /// `.dart_tool/package_config.json`.
 ///
@@ -71,7 +94,9 @@ class DefaultProjectScanner implements ProjectScanner {
       }
       final package = rest.substring(0, separator);
       final path = rest.substring(separator + 1);
-      return p.normalize(p.join(resolvePackageLibDir(root: root, package: package), path));
+      return p.normalize(
+        p.join(resolvePackageLibDir(root: root, package: package), path),
+      );
     }
 
     if (importUri.startsWith('file:')) {
@@ -100,10 +125,13 @@ class DefaultProjectScanner implements ProjectScanner {
     try {
       decoded = jsonDecode(configFile.readAsStringSync());
     } on FormatException catch (error) {
-      throw KaiselGenerationException('Invalid `$configPath`: ${error.message}');
+      throw KaiselGenerationException(
+          'Invalid `$configPath`: ${error.message}');
     }
     if (decoded is! Map<String, Object?> || decoded['packages'] is! List) {
-      throw KaiselGenerationException('Invalid `$configPath`: no `packages` list.');
+      throw KaiselGenerationException(
+        'Invalid `$configPath`: no `packages` list.',
+      );
     }
 
     for (final entry in decoded['packages']! as List<Object?>) {
@@ -113,7 +141,9 @@ class DefaultProjectScanner implements ProjectScanner {
 
       final rootUri = entry['rootUri'];
       if (rootUri is! String) {
-        throw KaiselGenerationException('Invalid `$configPath`: `$package` has no rootUri.');
+        throw KaiselGenerationException(
+          'Invalid `$configPath`: `$package` has no rootUri.',
+        );
       }
       // A path dependency's `rootUri` is relative to the package config's own
       // directory (`.dart_tool/`), so `../features/profile` resolves upward.
@@ -135,9 +165,13 @@ class DefaultProjectScanner implements ProjectScanner {
     try {
       return loadYaml(file.readAsStringSync());
     } on FileSystemException catch (error) {
-      throw KaiselGenerationException('Could not read `${file.path}`: ${error.message}');
+      throw KaiselGenerationException(
+        'Could not read `${file.path}`: ${error.message}',
+      );
     } on YamlException catch (error) {
-      throw KaiselGenerationException('Invalid `${file.path}`: ${error.message}');
+      throw KaiselGenerationException(
+        'Invalid `${file.path}`: ${error.message}',
+      );
     }
   }
 
@@ -150,4 +184,3 @@ class DefaultProjectScanner implements ProjectScanner {
     return null;
   }
 }
-

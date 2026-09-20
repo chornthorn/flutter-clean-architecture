@@ -9,7 +9,8 @@ import '../support/temp_project.dart';
 void main() {
   final generator = const KaiselGenerator();
 
-  test('should generate the manifest contract of a standalone micro-package', () async {
+  test('should generate the manifest contract of a standalone micro-package',
+      () async {
     final repo = TempProject.create('standalone');
     addTearDown(repo.delete);
     final featureShop = _writeFeatureShopFixture(repo);
@@ -18,13 +19,16 @@ void main() {
 
     expect(result.success, isTrue, reason: result.error);
     expect(result.modulesCount, 1);
-    expect(result.outputPath, '${repo.root}/feature_shop/lib/feature_shop.kaisel.dart');
+    expect(result.outputPath,
+        '${repo.root}/feature_shop/lib/feature_shop.kaisel.dart');
 
     final manifest = repo.read('feature_shop/lib/feature_shop.kaisel.dart');
-    expect(manifest, contains("import 'package:kaisel_generator/micro_mount.dart';"));
+    expect(manifest,
+        contains("import 'package:kaisel_generator/micro_mount.dart';"));
     expect(manifest, contains('abstract final class FeatureShopKaiselModule'));
     // The mount is a typed declaration: no name for a host to dispatch on.
-    expect(manifest, contains('static const KaiselMicroMount<i1.ShopRoute> shopMount ='));
+    expect(manifest,
+        contains('static const KaiselMicroMount<i1.ShopRoute> shopMount ='));
     expect(manifest, contains('    module: i1.ShopRouterModule(),'));
     expect(manifest, contains('    codec: i1.ShopRouteCodec(),'));
     expect(manifest, contains("    prefix: '/shop/products',"));
@@ -40,26 +44,38 @@ void main() {
     _writeFeatureShopFixture(repo);
     _writeHostApp(repo, withPackageConfig: true);
 
-    final feature = await generator.generate(root: repo.path('feature_shop'), force: true);
+    final feature =
+        await generator.generate(root: repo.path('feature_shop'), force: true);
     expect(feature.success, isTrue, reason: feature.error);
 
     final host = await generator.generate(root: repo.path('app'), force: true);
     expect(host.success, isTrue, reason: host.error);
 
     final registry = repo.read('app/lib/app/app_modules.g.dart');
-    expect(registry, contains("import 'package:kaisel_generator/micro_mount.dart';"));
-    expect(registry, contains("import 'package:feature_shop/feature_shop.kaisel.dart' as _mp1;"));
+    expect(registry,
+        contains("import 'package:kaisel_generator/micro_mount.dart';"));
+    expect(
+        registry,
+        contains(
+            "import 'package:feature_shop/feature_shop.kaisel.dart' as _mp1;"));
     expect(registry, contains('final class ShopMount extends AppRoute'));
-    expect(registry, contains('ShopMount() => _mp1.FeatureShopKaiselModule.shopMount.page,'));
-    expect(registry, contains('ShopMount() => _mp1.FeatureShopKaiselModule.shopMount.url,'));
+    expect(
+        registry,
+        contains(
+            'ShopMount() => _mp1.FeatureShopKaiselModule.shopMount.page,'));
+    expect(registry,
+        contains('ShopMount() => _mp1.FeatureShopKaiselModule.shopMount.url,'));
     expect(
       registry,
-      contains('_mp1.FeatureShopKaiselModule.shopMount.moduleMount(const ShopMount()),'),
+      contains(
+          '_mp1.FeatureShopKaiselModule.shopMount.moduleMount(const ShopMount()),'),
     );
-    expect(registry, contains('const AppRoute kInitialAppRoute = HomeMount();'));
+    expect(
+        registry, contains('const AppRoute kInitialAppRoute = HomeMount();'));
   });
 
-  test('should compose a registered manifest without touching the package', () async {
+  test('should compose a registered manifest without touching the package',
+      () async {
     final repo = TempProject.create('registered_external');
     addTearDown(repo.delete);
     final app = _writeRegisteredProfileFixture(repo, packageInsideApp: true);
@@ -82,7 +98,10 @@ void main() {
       contains("import 'package:profile/profile.kaisel.dart' as _mp1;"),
       reason: registry,
     );
-    expect(registry, contains('ProfileMount() => _mp1.ProfileKaiselModule.profileMount.page,'));
+    expect(
+        registry,
+        contains(
+            'ProfileMount() => _mp1.ProfileKaiselModule.profileMount.page,'));
     expect(
       '_mp1.ProfileKaiselModule.profileMount.moduleMount(const ProfileMount())'
           .allMatches(registry)
@@ -90,24 +109,31 @@ void main() {
       1,
       reason: 'package mounted twice:\n$registry',
     );
-    expect(registry, isNot(contains('_mp2')), reason: 'package composed twice:\n$registry');
+    expect(registry, isNot(contains('_mp2')),
+        reason: 'package composed twice:\n$registry');
 
     // Regenerating an unchanged manifest does not rewrite it.
     expect(repo.read('app/features/profile/lib/profile.kaisel.dart'), manifest);
   });
 
-  test('should generate the manifest of an in-project package from the host run', () async {
+  test(
+      'should generate the manifest of an in-project package from the host run',
+      () async {
     final repo = TempProject.create('registered_in_project');
     addTearDown(repo.delete);
     final app = _writeRegisteredProfileFixture(repo, packageInsideApp: true);
-    expect(repo.exists('app/features/profile/lib/profile.kaisel.dart'), isFalse);
+    expect(
+        repo.exists('app/features/profile/lib/profile.kaisel.dart'), isFalse);
 
     final result = await generator.generate(root: app, force: true);
 
     expect(result.success, isTrue, reason: result.error);
     final manifest = repo.read('app/features/profile/lib/profile.kaisel.dart');
     expect(manifest, contains('abstract final class ProfileKaiselModule'));
-    expect(manifest, contains('static const KaiselMicroMount<i1.ProfileRoute> profileMount ='));
+    expect(
+        manifest,
+        contains(
+            'static const KaiselMicroMount<i1.ProfileRoute> profileMount ='));
     // Imports inside the manifest are package URIs too, not relative paths.
     expect(
       manifest,
@@ -116,26 +142,37 @@ void main() {
     );
 
     final registry = repo.read('app/lib/app/app_modules.g.dart');
-    expect(registry, contains("import 'package:profile/profile.kaisel.dart' as _mp1;"));
-    expect(registry, contains('ProfileMount() => _mp1.ProfileKaiselModule.profileMount.page,'));
+    expect(registry,
+        contains("import 'package:profile/profile.kaisel.dart' as _mp1;"));
+    expect(
+        registry,
+        contains(
+            'ProfileMount() => _mp1.ProfileKaiselModule.profileMount.page,'));
   });
 
-  test('should refresh a stale in-project manifest from the package sources', () async {
+  test('should refresh a stale in-project manifest from the package sources',
+      () async {
     final repo = TempProject.create('refresh_manifest');
     addTearDown(repo.delete);
     final app = _writeRegisteredProfileFixture(repo, packageInsideApp: true);
-    repo.write('app/features/profile/lib/profile.kaisel.dart', '// stale manifest\n');
+    repo.write(
+        'app/features/profile/lib/profile.kaisel.dart', '// stale manifest\n');
 
     final result = await generator.generate(root: app, force: true);
 
     expect(result.success, isTrue, reason: result.error);
     final manifest = repo.read('app/features/profile/lib/profile.kaisel.dart');
     expect(manifest, contains('abstract final class ProfileKaiselModule'));
-    expect(manifest, contains('static const KaiselMicroMount<i1.ProfileRoute> profileMount ='));
-    expect(manifest, contains("import 'package:profile/profile_module.dart' as i1;"));
+    expect(
+        manifest,
+        contains(
+            'static const KaiselMicroMount<i1.ProfileRoute> profileMount ='));
+    expect(manifest,
+        contains("import 'package:profile/profile_module.dart' as i1;"));
   });
 
-  test('should insert the owner when a package mount takes a host name', () async {
+  test('should insert the owner when a package mount takes a host name',
+      () async {
     final repo = TempProject.create('owner_infix');
     addTearDown(repo.delete);
     final app = _writeRegisteredProfileFixture(repo, packageInsideApp: true);
@@ -144,7 +181,8 @@ void main() {
     repo.write('app/lib/features/shop/shop_module.dart', _hostShopModule);
     repo.write(
       'app/features/profile/lib/profile_module.dart',
-      _profileModule.replaceFirst("mount: 'ProfileMount'", "mount: 'ShopMount'"),
+      _profileModule.replaceFirst(
+          "mount: 'ProfileMount'", "mount: 'ShopMount'"),
     );
 
     final result = await generator.generate(root: app, force: true);
@@ -157,19 +195,26 @@ void main() {
       reason: registry,
     );
     expect(
-      'final class ShopProfileMount extends AppRoute'.allMatches(registry).length,
+      'final class ShopProfileMount extends AppRoute'
+          .allMatches(registry)
+          .length,
       1,
       reason: registry,
     );
     expect(
       registry,
-      contains('ShopProfileMount() => _mp1.ProfileKaiselModule.shopMount.page,'),
+      contains(
+          'ShopProfileMount() => _mp1.ProfileKaiselModule.shopMount.page,'),
     );
     expect(
       registry,
-      contains('_mp1.ProfileKaiselModule.shopMount.moduleMount(const ShopProfileMount()),'),
+      contains(
+          '_mp1.ProfileKaiselModule.shopMount.moduleMount(const ShopProfileMount()),'),
     );
-    expect(registry, contains('ShopProfileMount() => _mp1.ProfileKaiselModule.shopMount.url,'));
+    expect(
+        registry,
+        contains(
+            'ShopProfileMount() => _mp1.ProfileKaiselModule.shopMount.url,'));
   });
 
   test('should leave the registry to the caller that owns it', () async {
@@ -177,38 +222,44 @@ void main() {
     addTearDown(repo.delete);
     final app = _writeRegisteredProfileFixture(repo, packageInsideApp: true);
 
-    final result = await generator.generate(root: app, force: true, write: false);
+    final result =
+        await generator.generate(root: app, force: true, write: false);
 
     expect(result.success, isTrue, reason: result.error);
     final code = result.code;
     expect(code, isNotNull);
     expect(code, contains('final class ProfileMount extends AppRoute'));
-    expect(code, contains("import 'package:profile/profile.kaisel.dart' as _mp1;"));
+    expect(code,
+        contains("import 'package:profile/profile.kaisel.dart' as _mp1;"));
     // The caller (build_runner) owns the registry file...
     expect(repo.exists('app/lib/app/app_modules.g.dart'), isFalse);
     // ...but manifests live in other packages, so they are always written.
     expect(repo.exists('app/features/profile/lib/profile.kaisel.dart'), isTrue);
   });
 
-  test('should not generate the manifest of a package outside the project', () async {
+  test('should not generate the manifest of a package outside the project',
+      () async {
     final repo = TempProject.create('foreign_manifest');
     addTearDown(repo.delete);
     final app = _writeRegisteredProfileFixture(repo, packageInsideApp: false);
 
     final result = await generator.generate(root: app, force: true);
 
-    expect(result.success, isFalse, reason: 'the host must not generate a foreign package');
+    expect(result.success, isFalse,
+        reason: 'the host must not generate a foreign package');
     expect(result.error, contains('Generate it first'));
     expect(repo.exists('feature_profile/lib/profile.kaisel.dart'), isFalse);
   });
 
-  test('should report an actionable error when the host has no pub get', () async {
+  test('should report an actionable error when the host has no pub get',
+      () async {
     final repo = TempProject.create('missing_pub_get');
     addTearDown(repo.delete);
     _writeFeatureShopFixture(repo);
     _writeHostApp(repo, withPackageConfig: false);
 
-    final feature = await generator.generate(root: repo.path('feature_shop'), force: true);
+    final feature =
+        await generator.generate(root: repo.path('feature_shop'), force: true);
     expect(feature.success, isTrue, reason: feature.error);
 
     final host = await generator.generate(root: repo.path('app'), force: true);
@@ -217,7 +268,8 @@ void main() {
     expect(host.error, contains('dart pub get'));
   });
 
-  test('should report a duplicate host mount instead of dropping a route', () async {
+  test('should report a duplicate host mount instead of dropping a route',
+      () async {
     final repo = TempProject.create('duplicate_mount');
     addTearDown(repo.delete);
     final app = _writeRegisteredProfileFixture(repo, packageInsideApp: true);
@@ -260,9 +312,9 @@ class ShopRouterModule extends RouteModule<ShopRoute> {
 
 /// Writes `<repo>/feature_shop`, returning its root.
 String _writeFeatureShopFixture(TempProject repo) {
-  repo.write('feature_shop/pubspec.yaml', 'name: feature_shop\nversion: 0.1.0\n');
+  repo.write(
+      'feature_shop/pubspec.yaml', 'name: feature_shop\nversion: 0.1.0\n');
   repo.write('feature_shop/lib/feature_shop.dart', '''
-import 'package:kaisel_generator/kaisel_generator.dart';
 
 @KaiselMicroPackage(moduleName: 'FeatureShop', prefix: '/shop')
 void configureFeatureShop() {}
@@ -287,7 +339,6 @@ String _writeHostApp(TempProject repo, {required bool withPackageConfig}) {
     'name: host_app\nversion: 0.1.0\ndependencies:\n  feature_shop:\n    path: ../feature_shop\n',
   );
   repo.write('app/lib/app/app.dart', '''
-import 'package:kaisel_generator/kaisel_generator.dart';
 
 @KaiselInit(
   externalMicroPackages: [
@@ -317,7 +368,6 @@ void configureRouting() {}
 }
 
 const _profileAnnotation = '''
-import 'package:kaisel_generator/kaisel_generator.dart';
 
 @KaiselMicroPackage(moduleName: 'Profile')
 void configureProfileModule() {}
@@ -335,7 +385,6 @@ class ProfileRouterModule extends RouteModule<ProfileRoute> {
 ''';
 
 const _hostWithRegisteredProfile = '''
-import 'package:kaisel_generator/kaisel_generator.dart';
 import 'package:profile/profile.kaisel.dart';
 
 @KaiselInit(
@@ -353,7 +402,8 @@ String _writeRegisteredProfileFixture(
   TempProject repo, {
   required bool packageInsideApp,
 }) {
-  final profilePath = packageInsideApp ? 'features/profile' : '../feature_profile';
+  final profilePath =
+      packageInsideApp ? 'features/profile' : '../feature_profile';
 
   repo.write(
     'app/pubspec.yaml',
@@ -362,7 +412,8 @@ String _writeRegisteredProfileFixture(
   repo.write('app/lib/app/app.dart', _hostWithRegisteredProfile);
   repo.write('app/lib/features/home/home_module.dart', _hostModule);
 
-  final profileRoot = packageInsideApp ? 'app/features/profile' : 'feature_profile';
+  final profileRoot =
+      packageInsideApp ? 'app/features/profile' : 'feature_profile';
   repo.write('$profileRoot/pubspec.yaml', 'name: profile\nversion: 0.1.0\n');
   repo.write('$profileRoot/lib/profile.dart', _profileAnnotation);
   repo.write('$profileRoot/lib/profile_module.dart', _profileModule);

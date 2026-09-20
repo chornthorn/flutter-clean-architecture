@@ -62,7 +62,8 @@ class KaiselBuilder implements Builder {
   Future<void> build(BuildStep buildStep) async {
     final packageRoot = await _packageRoot(buildStep.inputId.package);
     if (packageRoot == null) {
-      log.severe('kaisel: cannot resolve the root of ${buildStep.inputId.package}');
+      log.severe(
+          'kaisel: cannot resolve the root of ${buildStep.inputId.package}');
       return;
     }
 
@@ -84,7 +85,8 @@ class KaiselBuilder implements Builder {
     }
 
     final resolved = result.outputPath;
-    if (resolved != null && !p.equals(resolved, p.join(packageRoot, _outputPath))) {
+    if (resolved != null &&
+        !p.equals(resolved, p.join(packageRoot, _outputPath))) {
       log.severe(
         'kaisel: kaisel.yaml outputs `$resolved`, but this builder declares '
         '`$_outputPath`. Align them, or declare your own builder with matching '
@@ -118,7 +120,8 @@ class KaiselBuilder implements Builder {
     }
 
     await for (final asset in buildStep.findAssets(Glob('lib/**/*.dart'))) {
-      if (asset.path == _outputPath || _generatedSuffixes.hasMatch(asset.path)) {
+      if (asset.path == _outputPath ||
+          _generatedSuffixes.hasMatch(asset.path)) {
         continue;
       }
       try {

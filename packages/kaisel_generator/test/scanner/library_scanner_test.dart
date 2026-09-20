@@ -1,9 +1,7 @@
-import 'package:kaisel_generator/src/model/init_info.dart';
-import 'package:kaisel_generator/src/model/micro_package.dart';
-import 'package:kaisel_generator/src/model/module_info.dart';
-import 'package:kaisel_generator/src/parser/annotation_parser.dart';
-import 'package:kaisel_generator/src/parser/default_annotation_parser.dart';
-import 'package:kaisel_generator/src/scanner/default_library_scanner.dart';
+import 'package:kaisel_generator/src/models/config.dart';
+import 'package:kaisel_generator/src/models/scan.dart';
+import 'package:kaisel_generator/src/service/annotation_parser.dart';
+import 'package:kaisel_generator/src/service/library_scanner.dart';
 import 'package:test/test.dart';
 
 import '../support/temp_project.dart';
@@ -60,7 +58,8 @@ class ShopRouterModule extends RouteModule<ShopRoute> {
     expect(scan.filesScanned, 1);
   });
 
-  test('should read the init entry point and the micro-package declarations', () {
+  test('should read the init entry point and the micro-package declarations',
+      () {
     final project = TempProject.create('scan_annotations');
     addTearDown(project.delete);
     project.write('lib/app/app.dart', '''
@@ -75,7 +74,8 @@ void configureFeatureShop() {}
     final scan = scanner.scan(project.directory('lib'));
 
     expect(scan.init, isNotNull);
-    expect(scan.init!.externalMicroPackages.single.module, 'FeatureShopKaiselModule');
+    expect(scan.init!.externalMicroPackages.single.module,
+        'FeatureShopKaiselModule');
     expect(scan.microPackages.single.moduleName, 'FeatureShop');
     expect(scan.modules, isEmpty);
     expect(scan.filesParsed, 2);
@@ -96,7 +96,8 @@ void configureFeatureShop() {}
   test('should scan with the parser it was given', () {
     final project = TempProject.create('scan_custom_parser');
     addTearDown(project.delete);
-    project.write('lib/shop_module.dart', '@KaiselModule(prefix: \'/\')\nclass X {}\n');
+    project.write(
+        'lib/shop_module.dart', '@KaiselModule(prefix: \'/\')\nclass X {}\n');
 
     final scanner = DefaultLibraryScanner(parser: _StubParser());
     final scan = scanner.scan(project.directory('lib'));
@@ -121,5 +122,6 @@ class _StubParser implements AnnotationParser {
   InitInfo? parseInit(String source) => null;
 
   @override
-  MicroPackageDeclaration? parseMicroPackage(String filePath, String source) => null;
+  MicroPackageDeclaration? parseMicroPackage(String filePath, String source) =>
+      null;
 }

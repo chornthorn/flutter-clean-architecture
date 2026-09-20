@@ -1,19 +1,63 @@
-import '../model/generation_result.dart';
-import '../model/init_info.dart';
-import '../model/kaisel_config.dart';
-import '../model/module_info.dart';
+/// What a run is asked for, what a generation produces, and how a run ends.
+library;
 
-/// Generates the files a project needs from what its scan found.
+import 'config.dart';
+import 'scan.dart';
+
+/// What a generation run produced, and the failure it raises when it cannot
+/// produce one.
 ///
-/// One implementation serves one kind of project: `HostRegistryGeneration` a host
-/// application, `MicroPackageGeneration` a package that generates its own manifest.
-/// `KaiselGenerator` picks between them on [GenerationRequest.isHost].
-abstract interface class Generation {
-  /// Produces the files for [request].
-  ///
-  /// Throws a [KaiselGenerationException] when the request cannot be served; the
-  /// generator turns that into a failed [KaiselGenerationResult].
-  GeneratedOutput generate(GenerationRequest request);
+/// A failed run carries the reason in [error] rather than throwing, so the CLI
+/// can exit non-zero with it and a `build_runner` builder can log it.
+class KaiselGenerationResult {
+  const KaiselGenerationResult({
+    required this.success,
+    this.error,
+    this.filesScanned = 0,
+    this.filesParsed = 0,
+    this.modulesCount = 0,
+    this.elapsedUs = 0,
+    this.outputPath,
+    this.code,
+  });
+
+  final bool success;
+
+  /// Why the run failed, or `null` when it succeeded.
+  final String? error;
+
+  /// `.dart` files under `lib/` the scan considered.
+  final int filesScanned;
+
+  /// Files that contained an annotation the scan had to read.
+  final int filesParsed;
+
+  /// `@KaiselModule` classes found.
+  final int modulesCount;
+
+  final int elapsedUs;
+
+  /// Path of the generated registry (or of the manifest, for a micro-package).
+  final String? outputPath;
+
+  /// The registry source, when the caller owns the output file and asked for the
+  /// source instead of having it written.
+  final String? code;
+
+  String get elapsedDisplay => elapsedUs >= 1000
+      ? '${(elapsedUs / 1000).toStringAsFixed(1)} ms'
+      : '$elapsedUs µs';
+}
+
+/// Raised inside a run when it cannot proceed; `KaiselGenerator.generate` turns it
+/// into a failed [KaiselGenerationResult].
+class KaiselGenerationException implements Exception {
+  const KaiselGenerationException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }
 
 /// Everything a generation needs: the project it was asked about, and what the

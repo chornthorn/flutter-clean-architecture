@@ -1,4 +1,4 @@
-import 'package:kaisel_generator/src/model/naming.dart';
+import 'package:kaisel_generator/src/helper/naming.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -1,13 +1,21 @@
-import 'package:kaisel_generator/src/model/generation_result.dart';
-import 'package:kaisel_generator/src/model/module_info.dart';
+import 'package:kaisel_generator/src/helper/naming.dart';
+import 'package:kaisel_generator/src/models/generation.dart';
+import 'package:kaisel_generator/src/models/scan.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('sortModules', () {
-    test('should put the initial module first and sort the rest by mount name', () {
+    test('should put the initial module first and sort the rest by mount name',
+        () {
       final sorted = sortModules([
-        _module(mountName: 'ShopMount', prefix: '/shop', filePath: '/app/lib/shop_module.dart'),
-        _module(mountName: 'PostsMount', prefix: '/posts', filePath: '/app/lib/posts_module.dart'),
+        _module(
+            mountName: 'ShopMount',
+            prefix: '/shop',
+            filePath: '/app/lib/shop_module.dart'),
+        _module(
+            mountName: 'PostsMount',
+            prefix: '/posts',
+            filePath: '/app/lib/posts_module.dart'),
         _module(
           mountName: 'HomeMount',
           routeType: 'HomeRoute',
@@ -24,7 +32,10 @@ void main() {
 
     test('should not reorder the list it was given', () {
       final modules = [
-        _module(mountName: 'ShopMount', prefix: '/shop', filePath: '/app/lib/shop_module.dart'),
+        _module(
+            mountName: 'ShopMount',
+            prefix: '/shop',
+            filePath: '/app/lib/shop_module.dart'),
         _module(
           mountName: 'HomeMount',
           routeType: 'HomeRoute',
@@ -35,7 +46,8 @@ void main() {
 
       sortModules(modules);
 
-      expect(modules.map((module) => module.mountName), ['ShopMount', 'HomeMount']);
+      expect(modules.map((module) => module.mountName),
+          ['ShopMount', 'HomeMount']);
     });
   });
 
@@ -43,8 +55,14 @@ void main() {
     test('should reject a mount the host declares twice', () {
       expect(
         () => validateMountNames([
-          _module(mountName: 'ShopMount', prefix: '/shop', filePath: '/app/lib/a.dart'),
-          _module(mountName: 'ShopMount', prefix: '/shop/v2', filePath: '/app/lib/b.dart'),
+          _module(
+              mountName: 'ShopMount',
+              prefix: '/shop',
+              filePath: '/app/lib/a.dart'),
+          _module(
+              mountName: 'ShopMount',
+              prefix: '/shop/v2',
+              filePath: '/app/lib/b.dart'),
         ]),
         throwsA(
           isA<KaiselGenerationException>().having(
@@ -59,8 +77,14 @@ void main() {
     test('should accept distinct mount names', () {
       expect(
         () => validateMountNames([
-          _module(mountName: 'ShopMount', prefix: '/shop', filePath: '/app/lib/a.dart'),
-          _module(mountName: 'HomeMount', routeType: 'HomeRoute', filePath: '/app/lib/b.dart'),
+          _module(
+              mountName: 'ShopMount',
+              prefix: '/shop',
+              filePath: '/app/lib/a.dart'),
+          _module(
+              mountName: 'HomeMount',
+              routeType: 'HomeRoute',
+              filePath: '/app/lib/b.dart'),
         ]),
         returnsNormally,
       );

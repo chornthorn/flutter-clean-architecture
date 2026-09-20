@@ -1,5 +1,5 @@
-import 'package:kaisel_generator/src/model/micro_package.dart';
-import 'package:kaisel_generator/src/model/module_info.dart';
+import 'package:kaisel_generator/src/helper/naming.dart';
+import 'package:kaisel_generator/src/models/scan.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -16,7 +16,8 @@ void main() {
     });
 
     test('should prefer the marker name the host qualified', () {
-      expect(mount.withHostMarker('ShopProfileMount').marker, 'ShopProfileMount');
+      expect(
+          mount.withHostMarker('ShopProfileMount').marker, 'ShopProfileMount');
     });
   });
 
@@ -36,8 +37,10 @@ void main() {
         className: 'FeatureShopKaiselModule',
         importUri: 'package:feature_shop/feature_shop.kaisel.dart',
         mounts: [
-          MicroPackageMountInfo(fieldName: 'homeMount', isRouted: false, isInitial: true),
-          MicroPackageMountInfo(fieldName: 'cartMount', isRouted: true, isInitial: false),
+          MicroPackageMountInfo(
+              fieldName: 'homeMount', isRouted: false, isInitial: true),
+          MicroPackageMountInfo(
+              fieldName: 'cartMount', isRouted: true, isInitial: false),
         ],
       );
 
@@ -49,7 +52,8 @@ void main() {
         className: 'FeatureShopKaiselModule',
         importUri: 'package:feature_shop/feature_shop.kaisel.dart',
         mounts: [
-          MicroPackageMountInfo(fieldName: 'cartMount', isRouted: true, isInitial: false),
+          MicroPackageMountInfo(
+              fieldName: 'cartMount', isRouted: true, isInitial: false),
         ],
       );
 
@@ -99,11 +103,13 @@ void main() {
   });
 }
 
-MicroPackageInfo _microPackage(String className, String fieldName) => MicroPackageInfo(
+MicroPackageInfo _microPackage(String className, String fieldName) =>
+    MicroPackageInfo(
       className: className,
       importUri: 'package:shop/shop.kaisel.dart',
       mounts: [
-        MicroPackageMountInfo(fieldName: fieldName, isRouted: true, isInitial: false),
+        MicroPackageMountInfo(
+            fieldName: fieldName, isRouted: true, isInitial: false),
       ],
     );
 

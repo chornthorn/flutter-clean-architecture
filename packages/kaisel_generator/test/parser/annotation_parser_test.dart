@@ -1,12 +1,14 @@
-import 'package:kaisel_generator/src/parser/default_annotation_parser.dart';
+import 'package:kaisel_generator/src/service/annotation_parser.dart';
 import 'package:test/test.dart';
 
 void main() {
   const parser = DefaultAnnotationParser();
 
   group('parseModules', () {
-    test('should read prefix, mount and explicit codec from the annotation', () {
-      final modules = parser.parseModules('lib/features/shop/shop_module.dart', '''
+    test('should read prefix, mount and explicit codec from the annotation',
+        () {
+      final modules =
+          parser.parseModules('lib/features/shop/shop_module.dart', '''
 import 'package:kaisel/kaisel.dart';
 import 'package:kaisel_generator/kaisel_generator.dart';
 
@@ -28,8 +30,10 @@ class ShopRouterModule extends RouteModule<ShopRoute> {
       expect(module.filePath, 'lib/features/shop/shop_module.dart');
     });
 
-    test('should mark the initial module and default its names from the class', () {
-      final modules = parser.parseModules('lib/features/home/home_module.dart', '''
+    test('should mark the initial module and default its names from the class',
+        () {
+      final modules =
+          parser.parseModules('lib/features/home/home_module.dart', '''
 @KaiselModule(isInitial: true)
 class HomeRouterModule extends RouteModule<HomeRoute> {
   const HomeRouterModule();
@@ -44,7 +48,9 @@ class HomeRouterModule extends RouteModule<HomeRoute> {
       expect(module.isRouted, isFalse);
     });
 
-    test('should derive the route type from a module named without RouterModule', () {
+    test(
+        'should derive the route type from a module named without RouterModule',
+        () {
       final modules = parser.parseModules('lib/shop_module.dart', '''
 @KaiselModule(prefix: '/shop')
 class ShopModule extends RouteModule<ShopRoute> {
@@ -70,7 +76,8 @@ class ShopRouterModule extends RouteModule<ShopRoute> {
       expect(modules.single.codecName, 'ShopRouteCodec');
     });
 
-    test('should fall back to <RouteType>Codec when the module declares none', () {
+    test('should fall back to <RouteType>Codec when the module declares none',
+        () {
       final modules = parser.parseModules('lib/home_module.dart', '''
 @KaiselModule()
 class HomeRouterModule extends RouteModule<HomeRoute> {
@@ -107,7 +114,8 @@ class NotAModule {
       expect(modules, isEmpty);
     });
 
-    test('should keep the declaration order of several modules in one file', () {
+    test('should keep the declaration order of several modules in one file',
+        () {
       final modules = parser.parseModules('lib/modules.dart', '''
 @KaiselModule(prefix: '/b')
 class BRouterModule extends RouteModule<BRoute> {
@@ -130,7 +138,6 @@ class ARouterModule extends RouteModule<ARoute> {
   group('parseInit', () {
     test('should read the configuration of an init function', () {
       final init = parser.parseInit('''
-import 'package:kaisel_generator/kaisel_generator.dart';
 
 @KaiselInit(
   output: 'lib/app/generated.dart',
@@ -230,7 +237,8 @@ void configureFeatureShop() {}
     });
 
     test('should return null when the file declares no micro-package', () {
-      expect(parser.parseMicroPackage('lib/shop.dart', 'class Shop {}'), isNull);
+      expect(
+          parser.parseMicroPackage('lib/shop.dart', 'class Shop {}'), isNull);
     });
   });
 }

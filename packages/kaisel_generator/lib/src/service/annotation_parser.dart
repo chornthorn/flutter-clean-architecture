@@ -2,13 +2,30 @@ import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 
-import '../model/init_info.dart';
-import '../model/micro_package.dart';
-import '../model/module_info.dart';
-import '../model/naming.dart';
-import 'annotation_parser.dart';
+import '../helper/ast.dart';
+import '../helper/naming.dart';
+import '../models/config.dart';
+import '../models/scan.dart';
 
-/// The built-in [AnnotationParser]: reads Kaisel annotations out of Dart source
+/// Reads Kaisel annotations out of source.
+///
+/// The default reads Dart source text; a test that needs a fixture implements
+/// this instead. Callers hand it the file path (for the metadata it records) and
+/// the source.
+abstract interface class AnnotationParser {
+  /// Reads every `@KaiselModule` class declared in [source].
+  List<ModuleInfo> parseModules(String filePath, String source);
+
+  /// Reads the `@KaiselInit` configuration [source] declares, or `null` when it
+  /// declares none.
+  InitInfo? parseInit(String source);
+
+  /// Reads the `@KaiselMicroPackage` declaration [source] holds, or `null` when
+  /// it holds none.
+  MicroPackageDeclaration? parseMicroPackage(String filePath, String source);
+}
+
+/// The default [AnnotationParser]: reads Kaisel annotations out of Dart source
 /// with the Dart analyzer's own parser.
 ///
 /// The parse is deliberately *syntactic*: a declaration is read from its AST, not
@@ -26,8 +43,6 @@ class DefaultAnnotationParser implements AnnotationParser {
     return visitor.modules;
   }
 
-  /// Reads the `@KaiselInit` configuration [source] declares, or `null` when it
-  /// declares none.
   @override
   InitInfo? parseInit(String source) {
     final visitor = _InitVisitor();
@@ -35,8 +50,6 @@ class DefaultAnnotationParser implements AnnotationParser {
     return visitor.init;
   }
 
-  /// Reads the `@KaiselMicroPackage` declaration [source] holds, or `null` when
-  /// it holds none.
   @override
   MicroPackageDeclaration? parseMicroPackage(String filePath, String source) {
     final visitor = _MicroPackageVisitor(filePath);
@@ -68,30 +81,30 @@ class _ModuleVisitor extends RecursiveAstVisitor<void> {
 }
 
 ModuleInfo? _moduleFromClass(ClassDeclaration node, String filePath) {
-  final annotation = _annotationNamed(node.metadata, 'KaiselModule');
+  final annotation = annotationNamed(node.metadata, 'KaiselModule');
   if (annotation == null) {
     return null;
   }
 
-  final className = _classNameOf(node);
+  final className = classNameOf(node);
   if (className == null) {
     return null;
   }
 
-  final arguments = _namedArguments(annotation.arguments);
+  final arguments = namedArguments(annotation.arguments);
   final base = moduleBaseName(className);
   final routeType = _superclassTypeArgument(node) ?? '${base}Route';
 
   return ModuleInfo(
     className: className,
     routeType: routeType,
-    mountName: _stringArgument(arguments, 'mount') ?? '${base}Mount',
-    codecName: _typeNameOf(arguments['codec']) ??
+    mountName: stringArgument(arguments, 'mount') ?? '${base}Mount',
+    codecName: typeNameOf(arguments['codec']) ??
         _codecGetterName(node) ??
         '${routeType}Codec',
     filePath: filePath,
-    prefix: _stringArgument(arguments, 'prefix'),
-    isInitial: _boolArgument(arguments, 'isInitial') ?? false,
+    prefix: stringArgument(arguments, 'prefix'),
+    isInitial: boolArgument(arguments, 'isInitial') ?? false,
   );
 }
 
@@ -101,15 +114,16 @@ class _InitVisitor extends RecursiveAstVisitor<void> {
   @override
   void visitAnnotation(Annotation node) {
     if (init == null && node.name.name == 'KaiselInit') {
-      final arguments = _namedArguments(node.arguments);
+      final arguments = namedArguments(node.arguments);
       init = InitInfo(
-        output: _stringArgument(arguments, 'output'),
-        routeClass: _stringArgument(arguments, 'routeClass') ??
-            _stringArgument(arguments, 'route_class'),
-        initialRoute: _stringArgument(arguments, 'initialRoute') ??
-            _stringArgument(arguments, 'initial_route'),
+        output: stringArgument(arguments, 'output'),
+        routeClass: stringArgument(arguments, 'routeClass') ??
+            stringArgument(arguments, 'route_class'),
+        initialRoute: stringArgument(arguments, 'initialRoute') ??
+            stringArgument(arguments, 'initial_route'),
         externalMicroPackages: _externalMicroPackageReferences(
-          arguments['externalMicroPackages'] ?? arguments['external_micro_packages'],
+          arguments['externalMicroPackages'] ??
+              arguments['external_micro_packages'],
         ),
       );
     }
@@ -126,15 +140,15 @@ class _MicroPackageVisitor extends RecursiveAstVisitor<void> {
   @override
   void visitAnnotation(Annotation node) {
     if (microPackage == null && node.name.name == 'KaiselMicroPackage') {
-      final arguments = _namedArguments(node.arguments);
-      final moduleName = _stringArgument(arguments, 'moduleName') ??
-          _stringArgument(arguments, 'module_name');
+      final arguments = namedArguments(node.arguments);
+      final moduleName = stringArgument(arguments, 'moduleName') ??
+          stringArgument(arguments, 'module_name');
       if (moduleName != null && moduleName.isNotEmpty) {
         microPackage = MicroPackageDeclaration(
           moduleName: moduleName,
           filePath: filePath,
-          output: _stringArgument(arguments, 'output'),
-          prefix: _stringArgument(arguments, 'prefix'),
+          output: stringArgument(arguments, 'output'),
+          prefix: stringArgument(arguments, 'prefix'),
         );
       }
     }
@@ -152,11 +166,11 @@ List<ExternalMicroPackageReference> _externalMicroPackageReferences(
 
   final references = <ExternalMicroPackageReference>[];
   for (final element in expression.elements) {
-    if (_calledName(element) != 'ExternalMicroPackage') {
+    if (calledName(element) != 'ExternalMicroPackage') {
       continue;
     }
 
-    final arguments = _callArguments(element)?.arguments ?? const <Argument>[];
+    final arguments = callArguments(element)?.arguments ?? const <Argument>[];
     final positional = <Expression>[
       for (final argument in arguments)
         if (argument is! NamedArgument) argument.argumentExpression,
@@ -165,7 +179,7 @@ List<ExternalMicroPackageReference> _externalMicroPackageReferences(
       continue;
     }
 
-    final module = _typeNameOf(positional.first);
+    final module = typeNameOf(positional.first);
     if (module == null || module.isEmpty) {
       continue;
     }
@@ -173,32 +187,14 @@ List<ExternalMicroPackageReference> _externalMicroPackageReferences(
     references.add(
       ExternalMicroPackageReference(
         module: module,
-        import: _stringArgument(
-          _namedArguments(_callArguments(element)),
-          'import',
-        ),
+        import:
+            stringArgument(namedArguments(callArguments(element)), 'import'),
       ),
     );
   }
 
   return references;
 }
-
-Annotation? _annotationNamed(List<Annotation> metadata, String name) {
-  for (final annotation in metadata) {
-    if (annotation.name.name == name) {
-      return annotation;
-    }
-  }
-  return null;
-}
-
-/// The class's name.
-///
-/// `namePart` wraps either the name with its type parameters or a primary
-/// constructor, so the name is read from the token that follows `class` — the
-/// one position every declaration form agrees on.
-String? _classNameOf(ClassDeclaration node) => node.classKeyword.next?.lexeme;
 
 /// The route family a module extends, e.g. `ShopRoute` from
 /// `extends RouteModule<ShopRoute>`.
@@ -224,61 +220,8 @@ String? _codecGetterName(ClassDeclaration node) {
 
     final body = member.body;
     if (body is ExpressionFunctionBody) {
-      return _typeNameOf(body.expression);
+      return typeNameOf(body.expression);
     }
   }
   return null;
 }
-
-/// The type name behind an expression that names a type: a plain identifier
-/// (`ShopRouteCodec`), an invocation of one (`ShopRouteCodec()`, `const
-/// ShopRouteCodec()`), or a generic type literal.
-String? _typeNameOf(AstNode? expression) =>
-    _calledName(expression) ??
-    switch (expression) {
-      TypeLiteral(:final type) => type.name.lexeme,
-      SimpleIdentifier(:final name) => name,
-      PrefixedIdentifier(:final identifier) => identifier.name,
-      _ => null,
-    };
-
-/// The name of the class or function an expression calls, without its type
-/// arguments or prefix.
-///
-/// A call parses as a `MethodInvocation` unless it is written with `new` or
-/// `const`, so both forms have to be read.
-String? _calledName(AstNode? expression) => switch (expression) {
-      MethodInvocation(:final methodName) => methodName.name,
-      InstanceCreationExpression(:final constructorName) =>
-        constructorName.type.name.lexeme,
-      _ => null,
-    };
-
-/// The arguments of a call, in either of the forms [_calledName] reads.
-ArgumentList? _callArguments(AstNode? expression) => switch (expression) {
-      MethodInvocation(:final argumentList) => argumentList,
-      InstanceCreationExpression(:final argumentList) => argumentList,
-      _ => null,
-    };
-
-/// The named arguments of an annotation or constructor call, by name.
-Map<String, Expression> _namedArguments(ArgumentList? arguments) {
-  final result = <String, Expression>{};
-  for (final argument in arguments?.arguments ?? const <Argument>[]) {
-    if (argument is NamedArgument) {
-      result[argument.name.lexeme] = argument.argumentExpression;
-    }
-  }
-  return result;
-}
-
-String? _stringArgument(Map<String, Expression> arguments, String name) {
-  final expression = arguments[name];
-  return expression is StringLiteral ? expression.stringValue : null;
-}
-
-bool? _boolArgument(Map<String, Expression> arguments, String name) {
-  final expression = arguments[name];
-  return expression is BooleanLiteral ? expression.value : null;
-}
-

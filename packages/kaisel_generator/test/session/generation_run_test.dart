@@ -1,4 +1,4 @@
-import 'package:kaisel_generator/src/session/generation_run.dart';
+import 'package:kaisel_generator/src/service/generation.dart';
 import 'package:test/test.dart';
 
 import '../support/temp_project.dart';

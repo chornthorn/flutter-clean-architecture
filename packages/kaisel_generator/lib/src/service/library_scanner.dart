@@ -2,15 +2,23 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-import '../model/init_info.dart';
-import '../model/library_scan.dart';
-import '../model/micro_package.dart';
-import '../model/module_info.dart';
-import '../parser/annotation_parser.dart';
-import 'library_scanner.dart';
+import '../models/config.dart';
+import '../models/scan.dart';
+import 'annotation_parser.dart';
 
-/// The built-in [LibraryScanner]: walks a package's `lib/` on disk and reads
-/// every annotation it names with the session's [AnnotationParser].
+/// Reads everything Kaisel annotations declare under a package's `lib/`.
+///
+/// The default reads a directory on disk; a test that needs a fixture implements
+/// this instead.
+abstract interface class LibraryScanner {
+  /// Reads the modules, the `@KaiselInit` entry point and the micro-package
+  /// declarations under [libDir] in one pass. A package with none of them is an
+  /// empty scan, not an error.
+  LibraryScan scan(Directory libDir);
+}
+
+/// The default [LibraryScanner]: walks a package's `lib/` on disk and reads every
+/// annotation it names with the [AnnotationParser] it was given.
 ///
 /// `*.g.dart` files are skipped. Their annotations belong to another generator,
 /// and the registry this run writes is one of them — a scan that read it would
@@ -107,4 +115,3 @@ class DefaultLibraryScanner implements LibraryScanner {
   /// Directories that hold build output rather than a package's sources.
   static const _skippedDirectories = {'build', 'target'};
 }
-

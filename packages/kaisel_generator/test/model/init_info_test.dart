@@ -1,4 +1,4 @@
-import 'package:kaisel_generator/src/model/init_info.dart';
+import 'package:kaisel_generator/src/models/config.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -13,9 +13,11 @@ void main() {
     });
 
     test('should infer the conventional manifest URI', () {
-      const reference = ExternalMicroPackageReference(module: 'FeatureShopKaiselModule');
+      const reference =
+          ExternalMicroPackageReference(module: 'FeatureShopKaiselModule');
 
-      expect(reference.importUri, 'package:feature_shop/feature_shop.kaisel.dart');
+      expect(
+          reference.importUri, 'package:feature_shop/feature_shop.kaisel.dart');
     });
 
     test('should return null when the name carries no package', () {

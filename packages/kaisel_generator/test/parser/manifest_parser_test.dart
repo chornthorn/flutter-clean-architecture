@@ -1,4 +1,4 @@
-import 'package:kaisel_generator/src/parser/default_manifest_parser.dart';
+import 'package:kaisel_generator/src/service/manifest_parser.dart';
 import 'package:test/test.dart';
 
 void main() {

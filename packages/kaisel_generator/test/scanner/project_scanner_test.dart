@@ -1,5 +1,5 @@
-import 'package:kaisel_generator/src/model/generation_result.dart';
-import 'package:kaisel_generator/src/scanner/default_project_scanner.dart';
+import 'package:kaisel_generator/src/models/generation.dart';
+import 'package:kaisel_generator/src/service/project_scanner.dart';
 import 'package:test/test.dart';
 
 import '../support/temp_project.dart';
@@ -70,7 +70,8 @@ initial_route: HomeMount
       addTearDown(project.delete);
 
       project.write('pubspec.yaml', 'name: flutter_x\n');
-      project.write('features/feature_shop/pubspec.yaml', 'name: feature_shop\n');
+      project.write(
+          'features/feature_shop/pubspec.yaml', 'name: feature_shop\n');
       project.write(
         '.dart_tool/package_config.json',
         '''
@@ -106,7 +107,8 @@ initial_route: HomeMount
       );
     });
 
-    test('should tell the reader to run pub get when the package is unknown', () {
+    test('should tell the reader to run pub get when the package is unknown',
+        () {
       final project = TempProject.create('missing_package_config');
       addTearDown(project.delete);
       project.write('pubspec.yaml', 'name: flutter_x\n');

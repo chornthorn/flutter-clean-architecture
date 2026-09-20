@@ -1,6 +1,5 @@
-import 'package:kaisel_generator/src/emitter/default_import_emitter.dart';
-import 'package:kaisel_generator/src/emitter/default_manifest_emitter.dart';
-import 'package:kaisel_generator/src/model/module_info.dart';
+import 'package:kaisel_generator/src/service/emitters.dart';
+import 'package:kaisel_generator/src/models/scan.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -22,9 +21,11 @@ void main() {
       basePrefix: '/shop',
     );
 
-    expect(code, contains("import 'package:kaisel_generator/micro_mount.dart';"));
+    expect(
+        code, contains("import 'package:kaisel_generator/micro_mount.dart';"));
     expect(code, contains('abstract final class FeatureShopKaiselModule {'));
-    expect(code, contains('static const KaiselMicroMount<i1.ShopRoute> shopMount ='));
+    expect(code,
+        contains('static const KaiselMicroMount<i1.ShopRoute> shopMount ='));
     expect(code, contains('    module: i1.ShopRouterModule(),'));
     expect(code, contains('    codec: i1.ShopRouteCodec(),'));
     expect(code, contains("    prefix: '/shop/products',"));
@@ -48,7 +49,8 @@ void main() {
       basePrefix: null,
     );
 
-    expect(code, contains('static const KaiselMicroMount<i1.HomeRoute> homeMount ='));
+    expect(code,
+        contains('static const KaiselMicroMount<i1.HomeRoute> homeMount ='));
     expect(code, isNot(contains('prefix:')));
     expect(code, isNot(contains('isInitial')));
   });
@@ -75,8 +77,10 @@ void main() {
       basePrefix: null,
     );
 
-    expect(code, contains("import 'package:feature_shop/cart_module.dart' as i1;"));
-    expect(code, contains("import 'package:feature_shop/home_module.dart' as i2;"));
+    expect(code,
+        contains("import 'package:feature_shop/cart_module.dart' as i1;"));
+    expect(code,
+        contains("import 'package:feature_shop/home_module.dart' as i2;"));
     expect(code, contains('    isInitial: true,'));
   });
 }

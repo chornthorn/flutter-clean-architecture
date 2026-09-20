@@ -1,11 +1,19 @@
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 
-import '../model/micro_package.dart';
-import 'manifest_parser.dart';
+import '../helper/ast.dart';
+import '../models/scan.dart';
 
-/// The built-in [ManifestParser]: reads the mounts a generated manifest
-/// declares.
+/// Reads the mounts a generated manifest declares.
+abstract interface class ManifestParser {
+  /// Reads the manifest [source] declares, or `null` when it was not produced by
+  /// a compatible generator — the caller then reports that the manifest must be
+  /// regenerated rather than composing a package that would silently contribute
+  /// no mounts.
+  MicroPackageManifest? parse(String source);
+}
+
+/// The default [ManifestParser]: reads the mounts a generated manifest declares.
 ///
 /// A host composes another package's manifest without resolving it, so the
 /// manifest's declarations are read from its AST: one `static const
@@ -26,7 +34,7 @@ class DefaultManifestParser implements ManifestParser {
         continue;
       }
 
-      final className = declaration.classKeyword.next?.lexeme;
+      final className = classNameOf(declaration);
       if (className == null || !className.endsWith('KaiselModule')) {
         continue;
       }
@@ -49,16 +57,16 @@ class DefaultManifestParser implements ManifestParser {
       }
       for (final variable in member.fields.variables) {
         final initializer = variable.initializer;
-        if (_calledName(initializer) != 'KaiselMicroMount') {
+        if (calledName(initializer) != 'KaiselMicroMount') {
           continue;
         }
 
-        final arguments = _namedArguments(_callArguments(initializer));
+        final arguments = namedArguments(callArguments(initializer));
         mounts.add(
           MicroPackageMountInfo(
             fieldName: variable.name.lexeme,
             isRouted: arguments.containsKey('prefix'),
-            isInitial: _boolArgument(arguments, 'isInitial') ?? false,
+            isInitial: boolArgument(arguments, 'isInitial') ?? false,
           ),
         );
       }
@@ -67,38 +75,3 @@ class DefaultManifestParser implements ManifestParser {
     return mounts;
   }
 }
-
-/// The name of the class or function an expression calls, without its type
-/// arguments or prefix.
-///
-/// A call parses as a `MethodInvocation` unless it is written with `new` or
-/// `const`, so both forms have to be read.
-String? _calledName(AstNode? expression) => switch (expression) {
-      MethodInvocation(:final methodName) => methodName.name,
-      InstanceCreationExpression(:final constructorName) =>
-        constructorName.type.name.lexeme,
-      _ => null,
-    };
-
-/// The arguments of a call, in either of the forms [_calledName] reads.
-ArgumentList? _callArguments(AstNode? expression) => switch (expression) {
-      MethodInvocation(:final argumentList) => argumentList,
-      InstanceCreationExpression(:final argumentList) => argumentList,
-      _ => null,
-    };
-
-Map<String, Expression> _namedArguments(ArgumentList? arguments) {
-  final result = <String, Expression>{};
-  for (final argument in arguments?.arguments ?? const <Argument>[]) {
-    if (argument is NamedArgument) {
-      result[argument.name.lexeme] = argument.argumentExpression;
-    }
-  }
-  return result;
-}
-
-bool? _boolArgument(Map<String, Expression> arguments, String name) {
-  final expression = arguments[name];
-  return expression is BooleanLiteral ? expression.value : null;
-}
-
