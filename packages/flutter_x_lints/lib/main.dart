@@ -12,6 +12,7 @@ import 'src/rules/no_cqrs_in_widgets_rule.dart';
 import 'src/rules/no_dispatcher_outside_view_model_rule.dart';
 import 'src/rules/no_get_it_in_ui_rule.dart';
 import 'src/rules/view_model_exposes_readonly_signals_rule.dart';
+import 'src/rules/view_model_must_be_injectable_rule.dart';
 import 'src/rules/view_model_must_extend_base_rule.dart';
 import 'src/rules/view_model_signals_must_be_private_rule.dart';
 
@@ -30,6 +31,7 @@ class FlutterXLintsPlugin extends Plugin {
     registry.registerLintRule(NoDispatcherOutsideViewModelRule());
     registry.registerLintRule(NoGetItInUiRule());
     registry.registerLintRule(ViewModelExposesReadonlySignalsRule());
+    registry.registerLintRule(ViewModelMustBeInjectableRule());
     registry.registerLintRule(ViewModelMustExtendBaseRule());
     registry.registerLintRule(ViewModelSignalsMustBePrivateRule());
   }

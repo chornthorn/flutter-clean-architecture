@@ -62,6 +62,7 @@ rule silently.
 | `no_get_it_in_ui`                     | A library that declares a widget, or a file under `presentation/`, imports `package:get_it` or calls through a `GetIt` instance. |
 | `view_model_exposes_readonly_signals` | A `ViewModel` getter exposes a writable signal rather than a `ReadonlySignal`.                                                   |
 | `view_model_must_extend_base`         | A class declared under a `view_models/` directory does not extend or implement `ViewModel`.                                      |
+| `view_model_must_be_injectable`       | A concrete `ViewModel` subclass is not annotated `@Injectable`.                                                                  |
 | `view_model_signals_must_be_private`  | A `ViewModel` has a public field whose type is a writable signal.                                                                |
 
 All are lint rules, so they are **off** until `analysis_options.yaml` turns
@@ -145,6 +146,19 @@ Statics and locals are not part of the view's surface and are left alone.
 Together with `view_model_exposes_readonly_signals` this leaves one way to
 _change_ state from outside a view model: none.
 
+### How `view_model_must_be_injectable` decides
+
+The annotation is resolved to `Injectable` in the `injectify` package, so a
+same-named annotation from elsewhere does not satisfy it — that class registers
+nothing. Arguments are not required: `@Injectable()`, `@Injectable(scope: ...)`
+and a constructor tear-off all count.
+
+Two exemptions:
+
+- The base `ViewModel` itself, which does not extend `ViewModel`.
+- An `abstract` view model. The container builds the concrete subclasses, and
+  asking injectify to register something it cannot construct fails later.
+
 ### How `view_model_must_extend_base` finds a view model
 
 The directory, not the name: every class in a file under a `view_models/` folder
@@ -177,6 +191,7 @@ plugins:
       no_dispatcher_outside_view_model: error
       no_get_it_in_ui: error
       view_model_exposes_readonly_signals: error
+      view_model_must_be_injectable: error
       view_model_must_extend_base: error
       view_model_signals_must_be_private: error
 ```

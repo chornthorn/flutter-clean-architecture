@@ -13,6 +13,7 @@ void main() {
       'no_dispatcher_outside_view_model',
       'no_get_it_in_ui',
       'view_model_exposes_readonly_signals',
+      'view_model_must_be_injectable',
       'view_model_must_extend_base',
       'view_model_signals_must_be_private',
     ]);
