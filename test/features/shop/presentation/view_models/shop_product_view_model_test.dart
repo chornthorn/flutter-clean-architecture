@@ -5,7 +5,6 @@ import 'package:flutter_x/features/shop/presentation/view_models/shop_product_vi
 import 'package:mocktail/mocktail.dart';
 import 'package:signals/signals_flutter.dart';
 
-import '../../../../core/execution/execution_context_fixture.dart';
 import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_cart_repository.dart';
 import '../../domain/repositories/mock_product_repository.dart';
@@ -22,7 +21,6 @@ void main() {
 
       final viewModel = ShopProductViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -42,7 +40,6 @@ void main() {
 
         final viewModel = ShopProductViewModel(
           dispatcher: shopDispatcher(repository),
-          context: testContext(),
         );
         addTearDown(viewModel.dispose);
 
@@ -62,7 +59,6 @@ void main() {
 
       final viewModel = ShopProductViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -75,7 +71,6 @@ void main() {
     test('should start the add settled, so the page does not read it in flight', () {
       final viewModel = ShopProductViewModel(
         dispatcher: shopDispatcher(MockProductRepository()),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -95,7 +90,6 @@ void main() {
 
       final viewModel = ShopProductViewModel(
         dispatcher: shopDispatcher(repository, cart: cart),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -112,7 +106,6 @@ void main() {
       // Real cart: the count is read back, so a write that failed shows as stale.
       final viewModel = ShopProductViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');
@@ -138,7 +131,6 @@ void main() {
 
       final viewModel = ShopProductViewModel(
         dispatcher: shopDispatcher(repository, cart: cart),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');

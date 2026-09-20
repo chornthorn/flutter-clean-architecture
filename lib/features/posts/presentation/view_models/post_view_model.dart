@@ -1,6 +1,7 @@
 import 'package:injectify/injectify.dart';
 import 'package:signals/signals_flutter.dart';
 
+import '../../../../core/async/cancellation.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/form/app_form_controller.dart';
@@ -15,10 +16,14 @@ import '../forms/post_form_field.dart';
 
 @Injectable(scope: Scope.factory)
 class PostViewModel extends ViewModel {
-  PostViewModel({required super.dispatcher, required super.context});
+  PostViewModel({required super.dispatcher});
 
   // jsonplaceholder only echoes this back, and the demo has no signed-in user.
   static const _authorId = 1;
+
+  // Doubles as the disposed flag: `dispose` cancels it and nothing else does, so
+  // a cancelled source means the page that started the work is gone.
+  final _cancellation = CancellationSource();
 
   final _posts = asyncSignal<List<Post>>(AsyncState.loading());
   final _post = asyncSignal<Post?>(AsyncState.loading());
@@ -61,14 +66,13 @@ class PostViewModel extends ViewModel {
     _posts.setLoading();
 
     try {
-      final posts = await context.run(
-        () =>
-            dispatcher.query(GetPostsQuery(cancellation: context.cancellation)),
+      final posts = await dispatcher.query(
+        GetPostsQuery(cancellation: _cancellation.token),
       );
-      if (context.isCancelled) return;
+      if (_cancellation.isCancelled) return;
       _posts.setValue(posts);
     } catch (error, stackTrace) {
-      if (context.isCancelled || error is CancelledException) return;
+      if (_cancellation.isCancelled || error is CancelledException) return;
       _posts.setError(error, stackTrace);
     }
   }
@@ -77,23 +81,20 @@ class PostViewModel extends ViewModel {
     _post.setLoading();
 
     try {
-      final post = await context.run(
-        () => dispatcher.query(
-          GetPostQuery(id, cancellation: context.cancellation),
-        ),
-        args: [id],
+      final post = await dispatcher.query(
+        GetPostQuery(id, cancellation: _cancellation.token),
       );
-      if (context.isCancelled) return;
+      if (_cancellation.isCancelled) return;
       _post.setValue(post);
     } catch (error, stackTrace) {
-      if (context.isCancelled || error is CancelledException) return;
+      if (_cancellation.isCancelled || error is CancelledException) return;
       _post.setError(error, stackTrace);
     }
   }
 
   // The form controller is the one source of truth for what the user typed,
   // so the view only has to say "submit".
-  Future<ActionResult> createPost() => context.run(() async {
+  Future<ActionResult> createPost() async {
     final title = _formValue(createFormController, PostFormField.title);
     final body = _formValue(createFormController, PostFormField.body);
 
@@ -104,18 +105,15 @@ class PostViewModel extends ViewModel {
         CreatePostCommand(userId: _authorId, title: title, body: body),
       );
       final posts = await dispatcher.query(
-        GetPostsQuery(cancellation: context.cancellation),
+        GetPostsQuery(cancellation: _cancellation.token),
       );
-      if (context.isCancelled) return const ActionResult.success();
+      if (_cancellation.isCancelled) return const ActionResult.success();
       _posts.setValue(posts);
       _create.setValue(null);
       createFormController.clearAll();
       return const ActionResult.success('Post created successfully.');
     } catch (error, stackTrace) {
-      // This body swallows the error, so the capture has to be told.
-      if (error is AppException) context.fail(error);
-
-      if (context.isCancelled) {
+      if (_cancellation.isCancelled) {
         return const ActionResult.failure('Could not create post.');
       }
       _create.setError(error, stackTrace);
@@ -129,9 +127,9 @@ class PostViewModel extends ViewModel {
       createFormController.bind(result);
       return result;
     }
-  });
+  }
 
-  Future<ActionResult> updatePost(int id) => context.run(() async {
+  Future<ActionResult> updatePost(int id) async {
     final title = _formValue(updateFormController, PostFormField.title);
     final body = _formValue(updateFormController, PostFormField.body);
 
@@ -142,17 +140,15 @@ class PostViewModel extends ViewModel {
         UpdatePostCommand(id: id, title: title, body: body),
       );
       final updated = await dispatcher.query(
-        GetPostQuery(id, cancellation: context.cancellation),
+        GetPostQuery(id, cancellation: _cancellation.token),
       );
-      if (context.isCancelled) return const ActionResult.success();
+      if (_cancellation.isCancelled) return const ActionResult.success();
       _post.setValue(updated);
       _update.setValue(null);
       updateFormController.clear();
       return const ActionResult.success('Post updated successfully.');
     } catch (error, stackTrace) {
-      if (error is AppException) context.fail(error);
-
-      if (context.isCancelled) {
+      if (_cancellation.isCancelled) {
         return const ActionResult.failure('Could not update post.');
       }
       _update.setError(error, stackTrace);
@@ -166,20 +162,18 @@ class PostViewModel extends ViewModel {
       updateFormController.bind(result);
       return result;
     }
-  }, args: [id]);
+  }
 
-  Future<ActionResult> deletePost(int id) => context.run(() async {
+  Future<ActionResult> deletePost(int id) async {
     _delete.setLoading();
 
     try {
       await dispatcher.command(DeletePostCommand(id));
-      if (context.isCancelled) return const ActionResult.success();
+      if (_cancellation.isCancelled) return const ActionResult.success();
       _delete.setValue(null);
       return const ActionResult.success('Post deleted successfully.');
     } catch (error, stackTrace) {
-      if (error is AppException) context.fail(error);
-
-      if (context.isCancelled) {
+      if (_cancellation.isCancelled) {
         return const ActionResult.failure('Could not delete post.');
       }
       _delete.setError(error, stackTrace);
@@ -188,7 +182,7 @@ class PostViewModel extends ViewModel {
           : 'Could not delete post.';
       return ActionResult.failure(message);
     }
-  }, args: [id]);
+  }
 
   // `getValue` trims, and answers null only when no field was ever seeded.
   String _formValue(AppFormController controller, PostFormField field) =>
@@ -198,7 +192,7 @@ class PostViewModel extends ViewModel {
   // write, which is what the guards above are for.
   @override
   void dispose() {
-    super.dispose();
+    _cancellation.cancel();
     _posts.dispose();
     _post.dispose();
     _create.dispose();

@@ -14,9 +14,6 @@ lib/
     app.dart                         MaterialApp.router + theme + the router config
     app_modules.g.dart               generated — module registry, AppRoute, mounts, codecs
   core/                              shared foundation (see core/README.md)
-    execution/                       the execution context: one scope per screen,
-                                     the capture of what a user action did, and
-                                     the observer SPI that reads it
     networking/
       network_client.dart           the Dio every feature's endpoints shares
     design_system/
@@ -71,54 +68,6 @@ are not this project's to write.
 Generated kaisel files come back with a build and can be removed with
 `dart run kaisel_generator --clean` (`build_runner clean` leaves
 `build_to: source` outputs in place).
-
-## Execution context
-
-A user action — a tap, a submit, a page load — runs inside an `ExecutionContext`:
-one object per view model that is simultaneously the action's **capture** (what it
-did, in order, and what it cost) and its **scope** (the providers it created, and
-the cancellation that drops its work when the route pops).
-
-It is NestJS' request scope and Keycloak's session, at the size this app needs it:
-the capture is the whole contract, and one SPI reads it.
-
-```dart
-class PostViewModel extends ViewModel {
-  PostViewModel({required super.dispatcher, required super.context});
-
-  Future<void> loadPosts() async {
-    _posts.setLoading();
-    try {
-      final posts = await context.run(
-        () => dispatcher.query(GetPostsQuery(cancellation: context.cancellation)),
-      );
-      if (context.isCancelled) return;
-      _posts.setValue(posts);
-    } catch (error, stackTrace) {
-      if (context.isCancelled || error is CancelledException) return;
-      _posts.setError(error, stackTrace);
-    }
-  }
-}
-```
-
-The capture records the action's name (taken from the calling method), every
-provider the screen asked for, notes anyone adds (`context.note`), and how the
-action ended. `ExecutionObserverSpi` is the one extension point: providers
-registered per environment read the timeline. Dev registers `TraceObserver`, which
-prints each action as it happens; prod has nowhere to send them yet.
-
-Where the pieces live:
-
-| Piece                                      | Lives for                  | Created by             | Closed by             |
-| :----------------------------------------- | :------------------------- | :--------------------- | :-------------------- |
-| `Executions`, `ProviderManager`, observers | the app                    | `lib/provider.dart`    | app teardown          |
-| `ExecutionContext`                         | one route / one view model | DI, `Scope.factory`    | `ViewModel.dispose()` |
-| providers the screen asks for              | one route                  | the context, on demand | `context.close()`     |
-| application-scoped providers               | the app                    | first ask              | `manager.close()`     |
-
-A closed context is frozen: `run` reports the cancellation, `fail`/`note` do
-nothing, and a body that finishes after its route popped captures nothing more.
 
 ## Extending the generator
 

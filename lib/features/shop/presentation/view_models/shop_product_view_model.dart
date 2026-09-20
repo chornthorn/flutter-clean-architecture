@@ -11,7 +11,9 @@ import '../../domain/usecases/get_product_query.dart';
 // `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
 class ShopProductViewModel extends ViewModel {
-  ShopProductViewModel({required super.dispatcher, required super.context});
+  ShopProductViewModel({required super.dispatcher});
+
+  bool _isDisposed = false;
 
   final _product = asyncSignal<Product?>(AsyncState.loading());
 
@@ -30,15 +32,13 @@ class ShopProductViewModel extends ViewModel {
     _product.setLoading();
 
     try {
-      await context.run(() async {
-        final product = await dispatcher.query(GetProductQuery(id));
-        final cart = await dispatcher.query(const GetCartQuery());
-        if (isDisposed) return;
-        _product.setValue(product);
-        _cartCount.value = cart.itemCount;
-      }, args: [id]);
+      final product = await dispatcher.query(GetProductQuery(id));
+      final cart = await dispatcher.query(const GetCartQuery());
+      if (_isDisposed) return;
+      _product.setValue(product);
+      _cartCount.value = cart.itemCount;
     } catch (error, stackTrace) {
-      if (isDisposed) return;
+      if (_isDisposed) return;
       _product.setError(error, stackTrace);
     }
   }
@@ -50,15 +50,13 @@ class ShopProductViewModel extends ViewModel {
     _add.setLoading();
 
     try {
-      await context.run(() async {
-        await dispatcher.command(AddProductToCartCommand(id));
-        final cart = await dispatcher.query(const GetCartQuery());
-        if (isDisposed) return;
-        _cartCount.value = cart.itemCount;
-        _add.setValue(null);
-      }, args: [id]);
+      await dispatcher.command(AddProductToCartCommand(id));
+      final cart = await dispatcher.query(const GetCartQuery());
+      if (_isDisposed) return;
+      _cartCount.value = cart.itemCount;
+      _add.setValue(null);
     } catch (error, stackTrace) {
-      if (isDisposed) return;
+      if (_isDisposed) return;
       _add.setError(error, stackTrace);
     }
   }
@@ -67,7 +65,7 @@ class ShopProductViewModel extends ViewModel {
   // write, which is what the guards above are for.
   @override
   void dispose() {
-    super.dispose();
+    _isDisposed = true;
     _product.dispose();
     _add.dispose();
     _cartCount.dispose();

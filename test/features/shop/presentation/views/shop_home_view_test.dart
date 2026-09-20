@@ -13,8 +13,6 @@ import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_product_repository.dart';
 import '../../shop_dispatcher_fixture.dart';
 
-import '../../../../core/execution/execution_context_fixture.dart';
-
 void main() {
   group('ShopHomeView', () {
     testWidgets('should show a spinner while the catalog loads', (
@@ -25,7 +23,6 @@ void main() {
           .thenAnswer((_) => Completer<List<Product>>().future);
       final viewModel = ShopHomeViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
@@ -42,7 +39,6 @@ void main() {
       when(() => repository.allProducts()).thenAnswer((_) => completer.future);
       final viewModel = ShopHomeViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
@@ -63,7 +59,6 @@ void main() {
           .thenAnswer((_) async => throw Exception('offline'));
       final viewModel = ShopHomeViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load();
@@ -78,7 +73,6 @@ void main() {
       when(() => repository.allProducts()).thenAnswer((_) async => const []);
       final viewModel = ShopHomeViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load();
@@ -102,7 +96,6 @@ void main() {
       });
       final viewModel = ShopHomeViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
       await viewModel.load();

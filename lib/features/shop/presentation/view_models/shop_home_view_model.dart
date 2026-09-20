@@ -8,7 +8,9 @@ import '../../domain/usecases/get_products_query.dart';
 // State for the shop list: one signal per use case, per `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
 class ShopHomeViewModel extends ViewModel {
-  ShopHomeViewModel({required super.dispatcher, required super.context});
+  ShopHomeViewModel({required super.dispatcher});
+
+  bool _isDisposed = false;
 
   final _products = asyncSignal<List<Product>>(AsyncState.loading());
 
@@ -18,13 +20,11 @@ class ShopHomeViewModel extends ViewModel {
     _products.setLoading();
 
     try {
-      final products = await context.run(
-        () => dispatcher.query(const GetProductsQuery()),
-      );
-      if (isDisposed) return;
+      final products = await dispatcher.query(const GetProductsQuery());
+      if (_isDisposed) return;
       _products.setValue(products);
     } catch (error, stackTrace) {
-      if (isDisposed) return;
+      if (_isDisposed) return;
       _products.setError(error, stackTrace);
     }
   }
@@ -33,7 +33,7 @@ class ShopHomeViewModel extends ViewModel {
   // write, which is what the guards above are for.
   @override
   void dispose() {
-    super.dispose();
+    _isDisposed = true;
     _products.dispose();
   }
 }

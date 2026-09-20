@@ -1,42 +1,25 @@
 import 'package:cqrs/cqrs.dart';
 
-import '../execution/execution_context.dart';
-
 /// The lifecycle a page's state holder owes the route that owns it.
 ///
-/// Every view model receives the two things every screen needs — the app's
-/// dispatcher, and the scope its screen runs in — through the constructor, the
-/// way a widget takes its arguments and its `key`:
+/// Every view model receives the app's dispatcher through the constructor and
+/// forwards it with `super`, so a subclass uses `dispatcher` directly instead of
+/// holding a field of its own:
 ///
 /// ```dart
 /// class PostsHomeViewModel extends ViewModel {
-///   PostsHomeViewModel({required super.dispatcher, required super.context});
+///   PostsHomeViewModel({required super.dispatcher});
 /// }
 /// ```
-///
-/// Both are forwarded with `super`, so a subclass uses them directly and never
-/// reaches for a container: `dispatcher` for every read and write, `context` to
-/// capture the action, carry the cancellation and reach the screen's providers.
-///
-/// This file used to hold an `interface class` with `dispose()` as its only
-/// member, on the grounds that a view model should inherit nothing it did not ask
-/// for. These two are what every view model does ask for.
 abstract class ViewModel {
-  ViewModel({required this.dispatcher, required this.context}) {
-    context.host = runtimeType;
-  }
+  ViewModel({required this.dispatcher});
 
   /// The app's CQRS entry point: every read and every write a screen makes goes
   /// through here, and nothing else in the app dispatches.
   final CqrsDispatcher dispatcher;
 
-  /// This screen's scope: its providers, its cancellation, its capture.
-  final ExecutionContext context;
-
-  /// Whether the route is gone — the replacement for a `_isDisposed` flag.
-  bool get isDisposed => context.isClosed;
-
-  /// The route unmounted: stop the work in flight and release what the screen
-  /// created. An override must call `super.dispose()`.
-  void dispose() => context.close();
+  /// Stops the work this view model started and releases what it holds.
+  ///
+  /// The route's provider calls this when the page unmounts. Idempotent.
+  void dispose();
 }

@@ -10,8 +10,6 @@ import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_product_repository.dart';
 import '../../shop_dispatcher_fixture.dart';
 
-import '../../../../core/execution/execution_context_fixture.dart';
-
 void main() {
   group('ShopHomeViewModel', () {
     test('should report loading until the catalog arrives', () async {
@@ -21,7 +19,6 @@ void main() {
 
       final viewModel = ShopHomeViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -49,7 +46,6 @@ void main() {
 
       final viewModel = ShopHomeViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -70,7 +66,6 @@ void main() {
 
       final viewModel = ShopHomeViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -89,7 +84,6 @@ void main() {
 
       final viewModel = ShopHomeViewModel(
         dispatcher: shopDispatcher(repository),
-        context: testContext(),
       );
       // Everything the read pushed, checked after the page disposed the signal.
       final pushed = <AsyncState<List<Product>>>[];

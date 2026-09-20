@@ -645,7 +645,7 @@ packages:
     source: hosted
     version: "1.10.2"
   spi:
-    dependency: "direct main"
+    dependency: transitive
     description:
       path: "packages/spi"
       relative: true

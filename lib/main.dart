@@ -3,7 +3,7 @@ import 'package:injectify/injectify.dart';
 
 import 'app/app.dart';
 import 'provider.dart';
-
+  
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 

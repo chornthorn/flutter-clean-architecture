@@ -1,6 +1,7 @@
 import 'package:injectify/injectify.dart';
 import 'package:signals/signals_flutter.dart';
 
+import '../../../../core/async/cancellation.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/form/app_form_controller.dart';
@@ -14,7 +15,11 @@ import '../forms/comment_form_field.dart';
 // own view model, so a page that never opens a thread never reads one.
 @Injectable(scope: Scope.factory)
 class CommentViewModel extends ViewModel {
-  CommentViewModel({required super.dispatcher, required super.context});
+  CommentViewModel({required super.dispatcher});
+
+  // Doubles as the disposed flag: `dispose` cancels it and nothing else does, so
+  // a cancelled source means the page that started the work is gone.
+  final _cancellation = CancellationSource();
 
   final _comments = asyncSignal<List<Comment>>(AsyncState.loading());
 
@@ -34,21 +39,18 @@ class CommentViewModel extends ViewModel {
     _comments.setLoading();
 
     try {
-      final comments = await context.run(
-        () => dispatcher.query(
-          GetCommentsQuery(postId, cancellation: context.cancellation),
-        ),
-        args: [postId],
+      final comments = await dispatcher.query(
+        GetCommentsQuery(postId, cancellation: _cancellation.token),
       );
-      if (context.isCancelled) return;
+      if (_cancellation.isCancelled) return;
       _comments.setValue(comments);
     } catch (error, stackTrace) {
-      if (context.isCancelled || error is CancelledException) return;
+      if (_cancellation.isCancelled || error is CancelledException) return;
       _comments.setError(error, stackTrace);
     }
   }
 
-  Future<ActionResult> createComment(int postId) => context.run(() async {
+  Future<ActionResult> createComment(int postId) async {
     final name = _formValue(CommentFormField.name);
     final email = _formValue(CommentFormField.email);
     final body = _formValue(CommentFormField.body);
@@ -64,7 +66,7 @@ class CommentViewModel extends ViewModel {
           body: body,
         ),
       );
-      if (context.isCancelled) return const ActionResult.success();
+      if (_cancellation.isCancelled) return const ActionResult.success();
       // jsonplaceholder answers with the comment it recorded and stores
       // nothing, so the thread keeps the echo rather than re-reading a source
       // that has already forgotten it.
@@ -73,10 +75,7 @@ class CommentViewModel extends ViewModel {
       commentFormController.clearAll();
       return const ActionResult.success('Comment added successfully.');
     } catch (error, stackTrace) {
-      // This body swallows the error, so the capture has to be told.
-      if (error is AppException) context.fail(error);
-
-      if (context.isCancelled) {
+      if (_cancellation.isCancelled) {
         return const ActionResult.failure('Could not add comment.');
       }
       _create.setError(error, stackTrace);
@@ -90,7 +89,7 @@ class CommentViewModel extends ViewModel {
       commentFormController.bind(result);
       return result;
     }
-  }, args: [postId]);
+  }
 
   // `getValue` trims, and answers null only when no field was ever seeded.
   String _formValue(CommentFormField field) =>
@@ -100,7 +99,7 @@ class CommentViewModel extends ViewModel {
   // write, which is what the guards above are for.
   @override
   void dispose() {
-    super.dispose();
+    _cancellation.cancel();
     _comments.dispose();
     _create.dispose();
     commentFormController.dispose();

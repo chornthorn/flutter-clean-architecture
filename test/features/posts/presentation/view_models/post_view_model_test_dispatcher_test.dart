@@ -9,8 +9,6 @@ import 'package:flutter_x/features/posts/presentation/view_models/post_view_mode
 
 import '../../posts_dispatcher_fixture.dart';
 
-import '../../../../core/execution/execution_context_fixture.dart';
-
 void main() {
   const post = Post(
     id: 1,
@@ -24,10 +22,7 @@ void main() {
       final dispatcher = TestCqrsDispatcher();
       dispatcher.whenQuery<GetPostsQuery, List<Post>>((_) => const [post]);
 
-      final viewModel = PostViewModel(
-        dispatcher: dispatcher,
-        context: testContext(),
-      );
+      final viewModel = PostViewModel(dispatcher: dispatcher);
       addTearDown(viewModel.dispose);
 
       await viewModel.load();
@@ -46,10 +41,7 @@ void main() {
           const Post(id: 99, userId: 1, title: 'New Title', body: 'New Body'),
         );
 
-        final viewModel = PostViewModel(
-          dispatcher: dispatcher,
-          context: testContext(),
-        );
+        final viewModel = PostViewModel(dispatcher: dispatcher);
         addTearDown(viewModel.dispose);
 
         viewModel.createFormController.setValues({
@@ -75,10 +67,7 @@ void main() {
       // Override just GetPostsQuery with a stubbed return value
       dispatcher.whenQueryValue<GetPostsQuery, List<Post>>(const [post]);
 
-      final viewModel = PostViewModel(
-        dispatcher: dispatcher,
-        context: testContext(),
-      );
+      final viewModel = PostViewModel(dispatcher: dispatcher);
       addTearDown(viewModel.dispose);
 
       await viewModel.load();

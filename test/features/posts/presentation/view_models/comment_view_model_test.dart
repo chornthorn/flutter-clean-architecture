@@ -14,8 +14,6 @@ import '../../domain/entities/comment_fixture.dart';
 import '../../domain/repositories/mock_comment_repository.dart';
 import '../../posts_dispatcher_fixture.dart';
 
-import '../../../../core/execution/execution_context_fixture.dart';
-
 void main() {
   group('CommentViewModel', () {
     test('should report loading until the thread arrives', () async {
@@ -29,7 +27,6 @@ void main() {
 
       final viewModel = CommentViewModel(
         dispatcher: commentsDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -52,7 +49,6 @@ void main() {
 
       final viewModel = CommentViewModel(
         dispatcher: commentsDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -73,7 +69,6 @@ void main() {
 
       final viewModel = CommentViewModel(
         dispatcher: commentsDispatcher(repository),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -88,7 +83,6 @@ void main() {
       () {
         final viewModel = CommentViewModel(
           dispatcher: commentsDispatcher(InMemoryCommentRepository()),
-          context: testContext(),
         );
         addTearDown(viewModel.dispose);
 
@@ -102,7 +96,6 @@ void main() {
       () async {
         final viewModel = CommentViewModel(
           dispatcher: commentsDispatcher(InMemoryCommentRepository()),
-          context: testContext(),
         );
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
@@ -146,7 +139,6 @@ void main() {
       () async {
         final viewModel = CommentViewModel(
           dispatcher: commentsDispatcher(InMemoryCommentRepository()),
-          context: testContext(),
         );
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
@@ -167,7 +159,6 @@ void main() {
     test('should return ActionFailure with field errors and bind to commentFormController when validation fails', () async {
       final viewModel = CommentViewModel(
         dispatcher: commentsDispatcher(InMemoryCommentRepository()),
-        context: testContext(),
       );
       addTearDown(viewModel.dispose);
 
@@ -212,7 +203,6 @@ void main() {
 
         final viewModel = CommentViewModel(
           dispatcher: commentsDispatcher(repository),
-          context: testContext(),
         );
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
@@ -244,7 +234,6 @@ void main() {
 
       final viewModel = CommentViewModel(
         dispatcher: commentsDispatcher(repository),
-        context: testContext(),
       );
       final pushed = <AsyncState<List<Comment>>>[];
       addTearDown(viewModel.comments.subscribe(pushed.add));
