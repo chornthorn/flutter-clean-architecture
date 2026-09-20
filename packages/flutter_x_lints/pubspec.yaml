@@ -1,0 +1,22 @@
+name: flutter_x_lints
+description: Analyzer plugin rules for this app's layering, starting with the CQRS boundary.
+version: 0.0.1
+publish_to: 'none'
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  analysis_server_plugin: ^0.3.23
+  analyzer: ^14.4.0
+
+dev_dependencies:
+  analyzer_testing: ^0.4.2
+  test: ^1.32.0
+  test_reflective_loader: ^0.4.0
+
+plugin:
+  platforms:
+    dart:
+      pluginClass: FlutterXLintsPlugin
+      fileName: main.dart

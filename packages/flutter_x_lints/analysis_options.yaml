@@ -1,0 +1,5 @@
+analyzer:
+  errors:
+    # `analyzer_testing` discovers test cases by the `test_` prefix, so its
+    # reflective convention collides with this naming lint.
+    non_constant_identifier_names: ignore

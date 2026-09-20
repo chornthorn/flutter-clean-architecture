@@ -1,0 +1,6 @@
+# Dart / Pub
+.dart_tool/
+.packages
+
+# Dart build output. The repo-root /build/ is root-anchored, so it misses this one.
+build/
