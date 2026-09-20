@@ -8,13 +8,14 @@ import 'package:analysis_server_plugin/plugin.dart';
 import 'package:analysis_server_plugin/registry.dart';
 
 import 'src/rules/layer_dependency_direction_rule.dart';
+import 'src/rules/no_context_watch_in_callback_rule.dart';
 import 'src/rules/no_cqrs_in_widgets_rule.dart';
 import 'src/rules/no_dispatcher_outside_view_model_rule.dart';
 import 'src/rules/no_get_it_in_ui_rule.dart';
 import 'src/rules/view_model_exposes_readonly_signals_rule.dart';
 import 'src/rules/view_model_must_be_injectable_rule.dart';
 import 'src/rules/view_model_must_extend_base_rule.dart';
-import 'src/rules/view_model_signals_must_be_private_rule.dart';
+import 'src/rules/view_model_writable_signals_must_be_private_rule.dart';
 
 final plugin = FlutterXLintsPlugin();
 
@@ -27,12 +28,13 @@ class FlutterXLintsPlugin extends Plugin {
     // Lint rules: off unless `analysis_options.yaml` turns them on, so adding
     // one here never starts failing somebody else's build.
     registry.registerLintRule(LayerDependencyDirectionRule());
+    registry.registerLintRule(NoContextWatchInCallbackRule());
     registry.registerLintRule(NoCqrsInWidgetsRule());
     registry.registerLintRule(NoDispatcherOutsideViewModelRule());
     registry.registerLintRule(NoGetItInUiRule());
     registry.registerLintRule(ViewModelExposesReadonlySignalsRule());
     registry.registerLintRule(ViewModelMustBeInjectableRule());
     registry.registerLintRule(ViewModelMustExtendBaseRule());
-    registry.registerLintRule(ViewModelSignalsMustBePrivateRule());
+    registry.registerLintRule(ViewModelWritableSignalsMustBePrivateRule());
   }
 }

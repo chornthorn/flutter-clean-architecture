@@ -4,7 +4,7 @@ import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../constants/rule_key.dart';
-import '../visitors/view_model_signals_must_be_private_visitor.dart';
+import '../visitors/view_model_writable_signals_must_be_private_visitor.dart';
 
 /// A view model's writable signals must be private fields.
 ///
@@ -17,10 +17,10 @@ import '../visitors/view_model_signals_must_be_private_visitor.dart';
 /// A read-only signal is a different matter and is left alone. A `Computed` or
 /// a `ReadonlySignal` field cannot be written through, so there is nothing to
 /// hide behind a private name.
-class ViewModelSignalsMustBePrivateRule extends AnalysisRule {
-  ViewModelSignalsMustBePrivateRule()
+class ViewModelWritableSignalsMustBePrivateRule extends AnalysisRule {
+  ViewModelWritableSignalsMustBePrivateRule()
     : super(
-        name: RuleKey.viewModelSignalsMustBePrivate.value,
+        name: RuleKey.viewModelWritableSignalsMustBePrivate.value,
         description:
             'Requires every writable signal field of a `ViewModel` subclass '
             'to be private.',
@@ -28,7 +28,7 @@ class ViewModelSignalsMustBePrivateRule extends AnalysisRule {
 
   @override
   LintCode get diagnosticCode => LintCode(
-    RuleKey.viewModelSignalsMustBePrivate.value,
+    RuleKey.viewModelWritableSignalsMustBePrivate.value,
     'A view model\'s writable signals must be private.',
     correctionMessage:
         'Rename the field `_name`, and expose a `ReadonlySignal` getter if the '
@@ -42,7 +42,7 @@ class ViewModelSignalsMustBePrivateRule extends AnalysisRule {
   ) {
     registry.addClassDeclaration(
       this,
-      ViewModelSignalsMustBePrivateVisitor(this),
+      ViewModelWritableSignalsMustBePrivateVisitor(this),
     );
   }
 }

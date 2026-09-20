@@ -54,16 +54,17 @@ rule silently.
 
 ## The rules
 
-| Rule                                  | Reports                                                                                                                          |
-| :------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------- |
-| `layer_dependency_direction`          | A feature layer imports a layer outside it.                                                                                      |
-| `no_cqrs_in_widgets`                  | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                                                          |
-| `no_dispatcher_outside_view_model`    | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`.                                     |
-| `no_get_it_in_ui`                     | A library that declares a widget, or a file under `presentation/`, imports `package:get_it` or calls through a `GetIt` instance. |
-| `view_model_exposes_readonly_signals` | A `ViewModel` getter exposes a writable signal rather than a `ReadonlySignal`.                                                   |
-| `view_model_must_extend_base`         | A class declared under a `view_models/` directory does not extend or implement `ViewModel`.                                      |
-| `view_model_must_be_injectable`       | A concrete `ViewModel` subclass is not annotated `@Injectable`.                                                                  |
-| `view_model_signals_must_be_private`  | A `ViewModel` has a public field whose type is a writable signal.                                                                |
+| Rule                                          | Reports                                                                                                                          |
+| :-------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------- |
+| `layer_dependency_direction`                  | A feature layer imports a layer outside it.                                                                                      |
+| `no_cqrs_in_widgets`                          | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                                                          |
+| `no_context_watch_in_callback`                | `context.watch` is called inside a function literal passed to an `on...` argument.                                               |
+| `no_dispatcher_outside_view_model`            | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`.                                     |
+| `no_get_it_in_ui`                             | A library that declares a widget, or a file under `presentation/`, imports `package:get_it` or calls through a `GetIt` instance. |
+| `view_model_exposes_readonly_signals`         | A `ViewModel` getter exposes a writable signal rather than a `ReadonlySignal`.                                                   |
+| `view_model_must_be_injectable`               | A concrete `ViewModel` subclass is not annotated `@Injectable`.                                                                  |
+| `view_model_must_extend_base`                 | A class declared under a `view_models/` directory does not extend or implement `ViewModel`.                                      |
+| `view_model_writable_signals_must_be_private` | A `ViewModel` has a public field whose type is a writable signal.                                                                |
 
 All are lint rules, so they are **off** until `analysis_options.yaml` turns
 them on — adding a rule to this package never starts failing an existing build.
@@ -125,7 +126,7 @@ It applies to a class that extends or implements `ViewModel`, and to public
 getters only: a `_private` getter is the view model's own business. Reporting at
 the return type keeps the fix to the type — the body still reads `=> _posts`.
 
-### How `view_model_signals_must_be_private` decides
+### How `view_model_writable_signals_must_be_private` decides
 
 A field of a `ViewModel` whose resolved type is a **writable** signal must be
 private. The type is resolved, so an inferred `final posts = asyncSignal(...)`
@@ -145,6 +146,21 @@ builds against, and the view can set it.
 Statics and locals are not part of the view's surface and are left alone.
 Together with `view_model_exposes_readonly_signals` this leaves one way to
 _change_ state from outside a view model: none.
+
+### How `no_context_watch_in_callback` decides
+
+The call must be `watch`, its receiver must resolve to Flutter's
+`BuildContext`, and it must sit inside a function literal handed to an argument
+whose name starts with `on` — `onPressed`, `onTap`, `onChanged`.
+
+The `on` prefix is what separates the two kinds of callback. An `on...` handler
+runs after the build, when `watch` throws; a `builder:` callback runs _during_
+build, where `watch` is exactly right. Matching on "any function literal" would
+have flagged `builder:` too.
+
+Every enclosing literal is checked, so a `watch` buried in a `forEach` inside an
+`onPressed` still counts. A declaration ends the search: a method the handler
+calls is not itself the handler.
 
 ### How `view_model_must_be_injectable` decides
 
@@ -187,13 +203,14 @@ plugins:
     path: packages/flutter_x_lints
     diagnostics:
       layer_dependency_direction: error
+      no_context_watch_in_callback: error
       no_cqrs_in_widgets: error
       no_dispatcher_outside_view_model: error
       no_get_it_in_ui: error
       view_model_exposes_readonly_signals: error
       view_model_must_be_injectable: error
       view_model_must_extend_base: error
-      view_model_signals_must_be_private: error
+      view_model_writable_signals_must_be_private: error
 ```
 
 A relative `path` works, so this is safe to commit.

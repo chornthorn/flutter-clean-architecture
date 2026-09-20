@@ -16,6 +16,9 @@ plugins:
       # A widget that holds a Command or a Query has taken over a decision that
       # belongs to its view model.
       no_cqrs_in_widgets: error
+      # `context.watch` registers a dependency, which the framework only allows
+      # while the widget builds; a handler runs later.
+      no_context_watch_in_callback: error
       # Dispatching outside a view model loses the screen lifecycle: the
       # cancellation and the error state the route is owed.
       no_dispatcher_outside_view_model: error
@@ -31,8 +34,9 @@ plugins:
       # A class that lives in `view_models/` without the base takes on a
       # screen's work without the screen's lifecycle.
       view_model_must_extend_base: error
-      # A signal made public is part of the surface a view builds against.
-      view_model_signals_must_be_private: error
+      # A writable signal made public is part of the surface a view builds
+      # against, and the view can set it.
+      view_model_writable_signals_must_be_private: error
 
 analyzer:
   # Generated sources are not ours to lint: `design_builder` and `injectify`

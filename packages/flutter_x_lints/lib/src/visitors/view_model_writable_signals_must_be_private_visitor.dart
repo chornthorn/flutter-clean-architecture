@@ -6,8 +6,9 @@ import '../utils/signals.dart';
 import '../utils/supertypes.dart';
 
 /// Reports a public writable-signal field on a view model.
-class ViewModelSignalsMustBePrivateVisitor extends SimpleAstVisitor<void> {
-  ViewModelSignalsMustBePrivateVisitor(this.rule);
+class ViewModelWritableSignalsMustBePrivateVisitor
+    extends SimpleAstVisitor<void> {
+  ViewModelWritableSignalsMustBePrivateVisitor(this.rule);
 
   final AnalysisRule rule;
 

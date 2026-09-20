@@ -1,10 +1,10 @@
 import 'package:analyzer_testing/analysis_rule/analysis_rule.dart';
-import 'package:flutter_x_lints/src/rules/view_model_signals_must_be_private_rule.dart';
+import 'package:flutter_x_lints/src/rules/view_model_writable_signals_must_be_private_rule.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 void main() {
   defineReflectiveSuite(() {
-    defineReflectiveTests(ViewModelSignalsMustBePrivateTest);
+    defineReflectiveTests(ViewModelWritableSignalsMustBePrivateTest);
   });
 }
 
@@ -19,10 +19,10 @@ abstract class ViewModel {
 ''';
 
 @reflectiveTest
-class ViewModelSignalsMustBePrivateTest extends AnalysisRuleTest {
+class ViewModelWritableSignalsMustBePrivateTest extends AnalysisRuleTest {
   @override
   void setUp() {
-    rule = ViewModelSignalsMustBePrivateRule();
+    rule = ViewModelWritableSignalsMustBePrivateRule();
     newPackage('preact_signals')..addFile('lib/preact_signals.dart', '''
 abstract class ReadonlySignal<T> {
   T get value;

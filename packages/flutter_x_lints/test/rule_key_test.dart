@@ -9,13 +9,14 @@ void main() {
     // — no diagnostic, no error — so pin the names here.
     expect(RuleKey.values.map((key) => key.value).toList(), [
       'layer_dependency_direction',
+      'no_context_watch_in_callback',
       'no_cqrs_in_widgets',
       'no_dispatcher_outside_view_model',
       'no_get_it_in_ui',
       'view_model_exposes_readonly_signals',
       'view_model_must_be_injectable',
       'view_model_must_extend_base',
-      'view_model_signals_must_be_private',
+      'view_model_writable_signals_must_be_private',
     ]);
   });
 }
