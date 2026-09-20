@@ -13,11 +13,19 @@ class NoDispatcherOutsideViewModelTest extends AnalysisRuleTest {
   @override
   void setUp() {
     rule = NoDispatcherOutsideViewModel();
-    newPackage('cqrs').addFile('lib/cqrs.dart', '''
-class CqrsDispatcher {
-  Future<void> query(Object query) async {}
-  Future<void> command(Object command) async {}
+    // Mirrors the real package: `query` and `command` are declared on the
+    // dispatcher interfaces, and `CqrsDispatcher` only implements them.
+    newPackage('cqrs')..addFile('lib/cqrs.dart', '''
+abstract interface class CommandDispatcher {
+  Future<void> command(Object command);
 }
+
+abstract interface class QueryDispatcher {
+  Future<void> query(Object query);
+}
+
+abstract interface class CqrsDispatcher
+    implements CommandDispatcher, QueryDispatcher {}
 ''');
     super.setUp();
   }
@@ -42,6 +50,28 @@ class PostRepository {
 ''';
 
     const call = 'dispatcher.query(0)';
+    await assertDiagnostics(source, [
+      lint(source.indexOf(call), call.length),
+    ]);
+  }
+
+  void test_dispatch_declared_on_a_dispatcher_interface() async {
+    // `query` is declared on `QueryDispatcher`, not on `CqrsDispatcher`, so a
+    // rule that matches only the concrete name never fires against the real
+    // package.
+    final source = '''
+import 'package:cqrs/cqrs.dart';
+
+class PostRepository {
+  PostRepository(this.dispatcher);
+
+  final CqrsDispatcher dispatcher;
+
+  Future<void> load() async => dispatcher.command(0);
+}
+''';
+
+    const call = 'dispatcher.command(0)';
     await assertDiagnostics(source, [
       lint(source.indexOf(call), call.length),
     ]);

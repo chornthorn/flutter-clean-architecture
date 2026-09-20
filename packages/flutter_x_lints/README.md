@@ -24,9 +24,9 @@ actually refers to instead of matching text.
 
 ## The rules
 
-| Rule | Reports |
-| :--- | :--- |
-| `no_cqrs_in_widgets` | A library that declares a `Widget` (or `State`) imports `package:cqrs`. |
+| Rule                               | Reports                                                                                      |
+| :--------------------------------- | :------------------------------------------------------------------------------------------- |
+| `no_cqrs_in_widgets`               | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                      |
 | `no_dispatcher_outside_view_model` | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`. |
 
 Both are lint rules, so they are **off** until `analysis_options.yaml` turns
@@ -34,7 +34,7 @@ them on — adding a rule to this package never starts failing an existing build
 
 ## Enabling it
 
-In the app's `analysis_options.yaml` (top-level `plugins` key, *not* under
+In the app's `analysis_options.yaml` (top-level `plugins` key, _not_ under
 `analyzer`):
 
 ```yaml
@@ -42,19 +42,36 @@ plugins:
   flutter_x_lints:
     path: packages/flutter_x_lints
     diagnostics:
-      no_cqrs_in_widgets: true
-      no_dispatcher_outside_view_model: true
+      no_cqrs_in_widgets: error
+      no_dispatcher_outside_view_model: error
 ```
 
 A relative `path` works, so this is safe to commit.
+
+### Severity
+
+Each rule takes a severity rather than only on/off, and the value is applied to
+the diagnostic the server publishes:
+
+| Value               | Effect                                                                     |
+| :------------------ | :------------------------------------------------------------------------- |
+| `error`             | Reported as an error; `dart analyze` / `flutter analyze` exit non-zero.    |
+| `warning`           | Reported as a warning; the default `--fatal-warnings` still fails the run. |
+| `info`              | Reported as an info.                                                       |
+| `true`              | Enabled at the severity the rule declares.                                 |
+| `false` / `disable` | Rule off.                                                                  |
+
+So switching a rule between error and warning is a one-word edit. Rules left out
+of `diagnostics` are off: a lint rule is never enabled implicitly.
 
 Two things to know, both verified by hand:
 
 - **Restart the analysis server** after changing the `plugins` section.
 - **The analysis cache does not account for the plugin set.** Results computed
   before the plugin existed are reused, and the plugin's diagnostics are missing
-  from them. If a rule looks silent, clear `~/.dartServer/.analysis-driver`, or
-  confirm with a cold run: `dart analyze --cache /tmp/some-fresh-dir`.
+  from them, even for files that have since changed. If a rule looks silent,
+  clear `~/.dartServer/.analysis-driver` once; to confirm without touching it,
+  run cold: `dart analyze --cache /tmp/some-fresh-dir`.
 
 Suppress a rule like any other diagnostic, qualified by the plugin name:
 

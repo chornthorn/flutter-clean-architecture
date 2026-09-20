@@ -67,11 +67,26 @@ class _Visitor extends SimpleAstVisitor<void> {
   }
 }
 
+/// The dispatcher surface of the `cqrs` package.
+///
+/// `query` and `command` are declared on `QueryDispatcher` and
+/// `CommandDispatcher`, which `CqrsDispatcher` implements, so matching
+/// `CqrsDispatcher` alone would never fire against the real package.
+const _dispatcherTypes = {
+  'CqrsDispatcher',
+  'CommandDispatcher',
+  'QueryDispatcher',
+};
+
 bool _isDispatcherCall(MethodElement element) {
   if (element.name != 'command' && element.name != 'query') return false;
 
   final owner = element.enclosingElement;
-  if (owner is! InterfaceElement || owner.name != 'CqrsDispatcher') return false;
+  if (owner is! InterfaceElement) return false;
+  if (!isInCqrs(owner)) return false;
 
-  return isInCqrs(element);
+  return _dispatcherTypes.contains(owner.name) ||
+      owner.allSupertypes.any(
+        (type) => _dispatcherTypes.contains(type.element.name),
+      );
 }

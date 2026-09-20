@@ -1,5 +1,22 @@
 include: package:flutter_lints/flutter.yaml
 
+# Architectural rules the app enforces on itself, from `packages/flutter_x_lints`.
+#
+# Each rule takes a severity instead of just on/off:
+#   error | warning | info   enable at that severity
+#   true                     enable at the severity the rule declares
+#   false | disable          turn the rule off
+plugins:
+  flutter_x_lints:
+    path: packages/flutter_x_lints
+    diagnostics:
+      # A widget that holds a Command or a Query has taken over a decision that
+      # belongs to its view model.
+      no_cqrs_in_widgets: error
+      # Dispatching outside a view model loses the screen lifecycle: the
+      # cancellation and the error state the route is owed.
+      no_dispatcher_outside_view_model: error
+
 analyzer:
   # Generated sources are not ours to lint: `design_builder` and `injectify`
   # overwrite them wholesale, and their style is the generator's business.
