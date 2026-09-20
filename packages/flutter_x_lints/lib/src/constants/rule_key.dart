@@ -18,6 +18,7 @@ enum RuleKey {
   noDispatcherOutsideViewModel('no_dispatcher_outside_view_model'),
   noFlutterUiInInnerLayers('no_flutter_ui_in_inner_layers'),
   noGetItInUi('no_get_it_in_ui'),
+  usecaseHandlerMustBeInjectable('usecase_handler_must_be_injectable'),
   viewModelExposesReadonlySignals('view_model_exposes_readonly_signals'),
   viewModelMustBeInjectable('view_model_must_be_injectable'),
   viewModelMustExtendBase('view_model_must_extend_base'),

@@ -14,6 +14,7 @@ void main() {
       'no_dispatcher_outside_view_model',
       'no_flutter_ui_in_inner_layers',
       'no_get_it_in_ui',
+      'usecase_handler_must_be_injectable',
       'view_model_exposes_readonly_signals',
       'view_model_must_be_injectable',
       'view_model_must_extend_base',

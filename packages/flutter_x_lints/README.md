@@ -62,6 +62,7 @@ rule silently.
 | `no_dispatcher_outside_view_model`            | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`.                                     |
 | `no_flutter_ui_in_inner_layers`               | `domain` or `infrastructure` imports a Flutter widget package or `dart:ui`.                                                      |
 | `no_get_it_in_ui`                             | A library that declares a widget, or a file under `presentation/`, imports `package:get_it` or calls through a `GetIt` instance. |
+| `usecase_handler_must_be_injectable`          | A concrete `CommandHandler`, `QueryHandler` or `EventHandler` is not annotated `@Injectable`.                                    |
 | `view_model_exposes_readonly_signals`         | A `ViewModel` getter exposes a writable signal rather than a `ReadonlySignal`.                                                   |
 | `view_model_must_be_injectable`               | A concrete `ViewModel` subclass is not annotated `@Injectable`.                                                                  |
 | `view_model_must_extend_base`                 | A class declared under a `view_models/` directory does not extend or implement `ViewModel`.                                      |
@@ -181,6 +182,17 @@ Every enclosing literal is checked, so a `watch` buried in a `forEach` inside an
 `onPressed` still counts. A declaration ends the search: a method the handler
 calls is not itself the handler.
 
+### How `usecase_handler_must_be_injectable` decides
+
+A class is a handler when its resolved supertypes include `CommandHandler`,
+`QueryHandler` or `EventHandler` **from the `cqrs` package**. The contract, not
+the name and not the folder: a handler declared anywhere is covered, and a
+project's own `QueryHandler` look-alike is not.
+
+An `abstract` handler is exempt — the container builds the concrete ones.
+The `@Injectable` check itself is shared with `view_model_must_be_injectable`,
+and resolves the annotation to `injectify`.
+
 ### How `view_model_must_be_injectable` decides
 
 The annotation is resolved to `Injectable` in the `injectify` package, so a
@@ -227,6 +239,7 @@ plugins:
       no_dispatcher_outside_view_model: error
       no_flutter_ui_in_inner_layers: error
       no_get_it_in_ui: error
+      usecase_handler_must_be_injectable: error
       view_model_exposes_readonly_signals: error
       view_model_must_be_injectable: error
       view_model_must_extend_base: error

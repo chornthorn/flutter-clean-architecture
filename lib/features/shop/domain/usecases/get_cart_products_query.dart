@@ -12,8 +12,7 @@ class GetCartProductsQuery extends Query<List<Product>> {
 
 // Spans two aggregates: the cart knows ids, the catalog knows products.
 @Injectable(scope: Scope.factory)
-class GetCartProductsQueryHandler
-    implements QueryHandler<GetCartProductsQuery, List<Product>> {
+class GetCartProductsQueryHandler implements QueryHandler<GetCartProductsQuery, List<Product>> {
   const GetCartProductsQueryHandler(this._cart, this._products);
 
   final CartRepository _cart;

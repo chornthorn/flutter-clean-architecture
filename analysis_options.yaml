@@ -28,6 +28,9 @@ plugins:
       # A widget or UI file that reads the service locator hides the dependency
       # from its signature, its reader, and its test.
       no_get_it_in_ui: error
+      # The registry resolves a handler out of the container, so a handler
+      # without the annotation fails when the message is dispatched.
+      usecase_handler_must_be_injectable: error
       # A view handed a writable signal can set state behind the view model's
       # back, with no cancellation and no error path.
       view_model_exposes_readonly_signals: error
