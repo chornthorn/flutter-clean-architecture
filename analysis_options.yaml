@@ -25,6 +25,9 @@ plugins:
       # A class that lives in `view_models/` without the base takes on a
       # screen's work without the screen's lifecycle.
       view_model_must_extend_base: error
+      # A view handed a writable signal can set state behind the view model's
+      # back, with no cancellation and no error path.
+      view_model_exposes_readonly_signals: error
 
 analyzer:
   # Generated sources are not ours to lint: `design_builder` and `injectify`

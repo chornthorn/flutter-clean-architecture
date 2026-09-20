@@ -16,6 +16,7 @@ enum RuleKey {
   noCqrsInWidgets('no_cqrs_in_widgets'),
   noDispatcherOutsideViewModel('no_dispatcher_outside_view_model'),
   noGetItInUi('no_get_it_in_ui'),
+  viewModelExposesReadonlySignals('view_model_exposes_readonly_signals'),
   viewModelMustExtendBase('view_model_must_extend_base');
 
   const RuleKey(this.value);

@@ -4,13 +4,15 @@ import 'package:analyzer/dart/element/element.dart';
 bool isPackageUri(String? uri, String name) =>
     uri != null && (uri == 'package:$name' || uri.startsWith('package:$name/'));
 
-/// Whether [element] is declared in the package [name].
-///
-/// Resolved rather than matched by name, so a project's own look-alike is not
-/// mistaken for the real thing.
-bool isInPackage(Element element, String name) {
+/// The package [element] is declared in, or `null` when it is not in one.
+String? packageOf(Element element) {
   final uri = element.library?.uri;
-  return uri != null &&
-      uri.scheme == 'package' &&
-      uri.pathSegments.first == name;
+  if (uri == null || uri.scheme != 'package' || uri.pathSegments.isEmpty) {
+    return null;
+  }
+
+  return uri.pathSegments.first;
 }
+
+/// Whether [element] is declared in the package [name].
+bool isInPackage(Element element, String name) => packageOf(element) == name;

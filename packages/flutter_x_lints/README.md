@@ -31,7 +31,8 @@ lib/
     constants/rule_key.dart      every rule name, in one enum
     rules/*_rule.dart            one AnalysisRule per rule: name, LintCode, registration
     visitors/*_visitor.dart      one SimpleAstVisitor per rule: the actual checks
-    utils/                       cqrs, get_it, widgets, supertypes, paths
+    utils/                       one file per concept: cqrs, get_it, signals, widgets,
+                                 supertypes, paths, packages
 ```
 
 A rule file holds only the rule's identity — its `RuleKey`, its `LintCode`, and
@@ -53,13 +54,14 @@ rule silently.
 
 ## The rules
 
-| Rule                               | Reports                                                                                                                          |
-| :--------------------------------- | :------------------------------------------------------------------------------------------------------------------------------- |
-| `layer_dependency_direction`       | A feature layer imports a layer outside it.                                                                                      |
-| `no_cqrs_in_widgets`               | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                                                          |
-| `no_dispatcher_outside_view_model` | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`.                                     |
-| `no_get_it_in_ui`                  | A library that declares a widget, or a file under `presentation/`, imports `package:get_it` or calls through a `GetIt` instance. |
-| `view_model_must_extend_base`      | A class declared under a `view_models/` directory does not extend or implement `ViewModel`.                                      |
+| Rule                                  | Reports                                                                                                                          |
+| :------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------- |
+| `layer_dependency_direction`          | A feature layer imports a layer outside it.                                                                                      |
+| `no_cqrs_in_widgets`                  | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                                                          |
+| `no_dispatcher_outside_view_model`    | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`.                                     |
+| `no_get_it_in_ui`                     | A library that declares a widget, or a file under `presentation/`, imports `package:get_it` or calls through a `GetIt` instance. |
+| `view_model_exposes_readonly_signals` | A `ViewModel` getter exposes a writable signal rather than a `ReadonlySignal`.                                                   |
+| `view_model_must_extend_base`         | A class declared under a `view_models/` directory does not extend or implement `ViewModel`.                                      |
 
 All are lint rules, so they are **off** until `analysis_options.yaml` turns
 them on — adding a rule to this package never starts failing an existing build.
@@ -105,6 +107,22 @@ A feature's module file is out of scope: that is where a route's provider builds
 the screen. So is `test/`, and `domain/` — keeping the locator out of `domain` is
 `test/architecture_test.dart`'s job, which checks that layer by folder.
 
+### How `view_model_exposes_readonly_signals` decides
+
+By the type the getter returns, resolved — not by how the field was built, and
+not by what the body looks like:
+
+| Return type         |                                               |
+| :------------------ | :-------------------------------------------- |
+| `ReadonlySignal<T>` | fine                                          |
+| `Computed<T>`       | fine — it extends `ReadonlySignal`            |
+| `AsyncSignal<T>`    | reported — it extends `Signal<AsyncState<T>>` |
+| `Signal<T>`         | reported                                      |
+
+It applies to a class that extends or implements `ViewModel`, and to public
+getters only: a `_private` getter is the view model's own business. Reporting at
+the return type keeps the fix to the type — the body still reads `=> _posts`.
+
 ### How `view_model_must_extend_base` finds a view model
 
 The directory, not the name: every class in a file under a `view_models/` folder
@@ -136,6 +154,7 @@ plugins:
       no_cqrs_in_widgets: error
       no_dispatcher_outside_view_model: error
       no_get_it_in_ui: error
+      view_model_exposes_readonly_signals: error
       view_model_must_extend_base: error
 ```
 
