@@ -4,6 +4,7 @@ import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../constants/rule_key.dart';
+import '../utils/paths.dart';
 import '../visitors/view_model_must_extend_base_visitor.dart';
 
 /// The directory whose classes are view models, by definition.
@@ -46,12 +47,10 @@ class ViewModelMustExtendBaseRule extends AnalysisRule {
   ) {
     // A test declares mocks and fakes in a `view_models/` directory on purpose.
     if (context.isInTestDirectory) return;
-    if (!_isUnderViewModelDirectory(context.definingUnit.file.path)) return;
+    if (!hasDirectory(context.definingUnit.file.path, _viewModelsDirectory)) {
+      return;
+    }
 
     registry.addClassDeclaration(this, ViewModelMustExtendBaseVisitor(this));
   }
 }
-
-/// Whether [path] has a `view_models` directory segment.
-bool _isUnderViewModelDirectory(String path) =>
-    path.replaceAll(r'\', '/').split('/').contains(_viewModelsDirectory);

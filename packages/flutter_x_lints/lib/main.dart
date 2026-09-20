@@ -10,6 +10,7 @@ import 'package:analysis_server_plugin/registry.dart';
 import 'src/rules/layer_dependency_direction_rule.dart';
 import 'src/rules/no_cqrs_in_widgets_rule.dart';
 import 'src/rules/no_dispatcher_outside_view_model_rule.dart';
+import 'src/rules/no_get_it_in_ui_rule.dart';
 import 'src/rules/view_model_must_extend_base_rule.dart';
 
 final plugin = FlutterXLintsPlugin();
@@ -25,6 +26,7 @@ class FlutterXLintsPlugin extends Plugin {
     registry.registerLintRule(LayerDependencyDirectionRule());
     registry.registerLintRule(NoCqrsInWidgetsRule());
     registry.registerLintRule(NoDispatcherOutsideViewModelRule());
+    registry.registerLintRule(NoGetItInUiRule());
     registry.registerLintRule(ViewModelMustExtendBaseRule());
   }
 }

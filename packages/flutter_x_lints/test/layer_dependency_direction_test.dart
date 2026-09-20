@@ -223,8 +223,12 @@ class PostViewModel {
     );
   }
 
-  void test_presentation_of_one_feature_importing_another_features_domain() async {
-    _library('features/shop/domain/entities/product.dart', 'class Product {}\n');
+  void
+  test_presentation_of_one_feature_importing_another_features_domain() async {
+    _library(
+      'features/shop/domain/entities/product.dart',
+      'class Product {}\n',
+    );
 
     await _assertClean(
       'features/posts/presentation/widgets/product_tile.dart',
@@ -264,14 +268,11 @@ final repository = RemotePostRepository();
       'class RemotePostRepository {}\n',
     );
 
-    await _assertClean(
-      'features/posts/posts_module.dart',
-      '''
+    await _assertClean('features/posts/posts_module.dart', '''
 import 'infrastructure/repositories/remote_post_repository.dart';
 
 final repository = RemotePostRepository();
-''',
-    );
+''');
   }
 
   void test_a_core_file_is_outside_the_layering() async {
@@ -280,13 +281,10 @@ final repository = RemotePostRepository();
       'class RemotePostRepository {}\n',
     );
 
-    await _assertClean(
-      'core/networking/repository.dart',
-      '''
+    await _assertClean('core/networking/repository.dart', '''
 import '../../features/posts/infrastructure/repositories/remote_post_repository.dart';
 
 final repository = RemotePostRepository();
-''',
-    );
+''');
   }
 }

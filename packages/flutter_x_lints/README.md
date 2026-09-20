@@ -31,7 +31,7 @@ lib/
     constants/rule_key.dart      every rule name, in one enum
     rules/*_rule.dart            one AnalysisRule per rule: name, LintCode, registration
     visitors/*_visitor.dart      one SimpleAstVisitor per rule: the actual checks
-    utils/                       what the `cqrs` package looks like; supertypes, resolved
+    utils/                       cqrs, get_it, widgets, supertypes, paths
 ```
 
 A rule file holds only the rule's identity — its `RuleKey`, its `LintCode`, and
@@ -53,12 +53,13 @@ rule silently.
 
 ## The rules
 
-| Rule                               | Reports                                                                                      |
-| :--------------------------------- | :------------------------------------------------------------------------------------------- |
-| `layer_dependency_direction`       | A feature layer imports a layer outside it.                                                  |
-| `no_cqrs_in_widgets`               | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                      |
-| `no_dispatcher_outside_view_model` | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`. |
-| `view_model_must_extend_base`      | A class declared under a `view_models/` directory does not extend or implement `ViewModel`.  |
+| Rule                               | Reports                                                                                                                          |
+| :--------------------------------- | :------------------------------------------------------------------------------------------------------------------------------- |
+| `layer_dependency_direction`       | A feature layer imports a layer outside it.                                                                                      |
+| `no_cqrs_in_widgets`               | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                                                          |
+| `no_dispatcher_outside_view_model` | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`.                                     |
+| `no_get_it_in_ui`                  | A library that declares a widget, or a file under `presentation/`, imports `package:get_it` or calls through a `GetIt` instance. |
+| `view_model_must_extend_base`      | A class declared under a `view_models/` directory does not extend or implement `ViewModel`.                                      |
 
 All are lint rules, so they are **off** until `analysis_options.yaml` turns
 them on — adding a rule to this package never starts failing an existing build.
@@ -79,6 +80,30 @@ are `app/` and a feature's own module file. Both `import` and `export` are
 checked. Tests are exempt: `test/` mirrors the feature layout, and a test wires
 the real layers together on purpose — the view model tests import the
 infrastructure repositories they drive.
+
+### How `no_get_it_in_ui` finds UI
+
+Two signals, because either alone misses something:
+
+- **The library declares a widget.** Catches widgets anywhere, including a
+  design-system component under `core/` that no folder rule would reach.
+- **The file is under a `presentation/` directory.** Catches the UI files that
+  declare no widget — a view model, a form field — where the locator hides a
+  dependency just as well.
+
+Within those, two things are reported:
+
+- **Importing `package:get_it`.** The file is set up to resolve its own
+  dependencies.
+- **Calling through a `GetIt` instance** — `getIt.get<PostViewModel>()` or
+  `getIt<PostViewModel>()`. This is the reach that no import check can see,
+  because `provider.dart` hands the instance out: a presentation file can
+  resolve a screen's dependency without `get_it` appearing anywhere in it. The
+  callee is resolved by type, so a `get` on anything else is left alone.
+
+A feature's module file is out of scope: that is where a route's provider builds
+the screen. So is `test/`, and `domain/` — keeping the locator out of `domain` is
+`test/architecture_test.dart`'s job, which checks that layer by folder.
 
 ### How `view_model_must_extend_base` finds a view model
 
@@ -110,6 +135,7 @@ plugins:
       layer_dependency_direction: error
       no_cqrs_in_widgets: error
       no_dispatcher_outside_view_model: error
+      no_get_it_in_ui: error
       view_model_must_extend_base: error
 ```
 

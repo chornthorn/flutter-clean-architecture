@@ -94,7 +94,8 @@ class PostDetailViewModel extends PostsHomeViewModel {
 
   void test_every_class_in_the_file_is_held_to_the_contract() async {
     final path = '$_viewModelsDir/post_view_model.dart';
-    final source = '''
+    final source =
+        '''
 $_base
 class PostViewModel extends ViewModel {
   PostViewModel(super.dispatcher);
@@ -112,7 +113,8 @@ class PostDraftViewModel {
   }
 
   void test_class_outside_view_models() async {
-    final path = '$testPackageLibPath/features/posts/presentation/post_view_model.dart';
+    final path =
+        '$testPackageLibPath/features/posts/presentation/post_view_model.dart';
     newFile(path, '''
 class PostViewModel {
   const PostViewModel();
@@ -124,7 +126,8 @@ class PostViewModel {
 
   void test_class_in_a_test_directory() async {
     // A mock declared beside the view model tests is not a view model.
-    final path = '$testPackageTestPath/features/posts/presentation/view_models/post_view_model_test.dart';
+    final path =
+        '$testPackageTestPath/features/posts/presentation/view_models/post_view_model_test.dart';
     newFile(path, '''
 class MockPostRepository {
   const MockPostRepository();

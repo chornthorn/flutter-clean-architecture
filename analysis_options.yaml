@@ -19,6 +19,9 @@ plugins:
       # Dispatching outside a view model loses the screen lifecycle: the
       # cancellation and the error state the route is owed.
       no_dispatcher_outside_view_model: error
+      # A widget or UI file that reads the service locator hides the dependency
+      # from its signature, its reader, and its test.
+      no_get_it_in_ui: error
       # A class that lives in `view_models/` without the base takes on a
       # screen's work without the screen's lifecycle.
       view_model_must_extend_base: error

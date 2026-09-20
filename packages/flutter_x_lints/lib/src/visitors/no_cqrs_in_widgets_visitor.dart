@@ -4,11 +4,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 
 import '../utils/cqrs.dart';
-import '../utils/supertypes.dart';
-
-/// The Flutter bases a widget library declares. `State` is included because a
-/// `State` class is where a widget's dispatch would most plausibly hide.
-const _widgetBases = {'Widget', 'State', 'StatefulWidget', 'StatelessWidget'};
+import '../utils/widgets.dart';
 
 /// Reports the CQRS import of a library that declares a widget.
 class NoCqrsInWidgetsVisitor extends SimpleAstVisitor<void> {
@@ -25,12 +21,8 @@ class NoCqrsInWidgetsVisitor extends SimpleAstVisitor<void> {
     // the directive: the widget it would leak into may be declared below it.
     final unit = context.currentUnit?.unit;
     if (unit == null) return;
-    if (!_declaresWidget(unit)) return;
+    if (!declaresWidget(unit)) return;
 
     rule.reportAtNode(node);
   }
 }
-
-bool _declaresWidget(CompilationUnit unit) => unit.declarations
-    .whereType<ClassDeclaration>()
-    .any((declaration) => hasAnySupertype(declaration, _widgetBases));

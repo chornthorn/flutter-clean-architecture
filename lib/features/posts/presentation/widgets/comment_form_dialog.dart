@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_x/features/posts/presentation/view_models/post_view_model.dart';
+import 'package:flutter_x/provider.dart';
 import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/design_system/app_theme.g.dart';
@@ -29,6 +31,9 @@ class CommentFormDialog extends StatelessWidget {
     final result = await formController.submit(onSubmit);
     if (result is ActionSuccess && context.mounted) {
       Navigator.of(context).pop();
+
+     // final model =  getIt.get<PostViewModel>();
+     // print(model);
     }
   }
 

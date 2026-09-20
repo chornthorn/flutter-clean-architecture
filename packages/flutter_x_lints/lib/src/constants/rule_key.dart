@@ -15,6 +15,7 @@ enum RuleKey {
   layerDependencyDirection('layer_dependency_direction'),
   noCqrsInWidgets('no_cqrs_in_widgets'),
   noDispatcherOutsideViewModel('no_dispatcher_outside_view_model'),
+  noGetItInUi('no_get_it_in_ui'),
   viewModelMustExtendBase('view_model_must_extend_base');
 
   const RuleKey(this.value);

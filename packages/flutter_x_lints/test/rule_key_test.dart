@@ -11,6 +11,7 @@ void main() {
       'layer_dependency_direction',
       'no_cqrs_in_widgets',
       'no_dispatcher_outside_view_model',
+      'no_get_it_in_ui',
       'view_model_must_extend_base',
     ]);
   });

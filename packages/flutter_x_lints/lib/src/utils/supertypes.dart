@@ -17,7 +17,11 @@ bool hasAnySupertype(ClassDeclaration declaration, Set<String> baseNames) {
 
 /// The class [node] sits inside, if any.
 ClassDeclaration? enclosingClass(AstNode node) {
-  for (AstNode? current = node.parent; current != null; current = current.parent) {
+  for (
+    AstNode? current = node.parent;
+    current != null;
+    current = current.parent
+  ) {
     if (current is ClassDeclaration) return current;
   }
   return null;

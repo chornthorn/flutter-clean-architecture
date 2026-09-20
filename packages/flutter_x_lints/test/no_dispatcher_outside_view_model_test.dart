@@ -50,9 +50,7 @@ class PostRepository {
 ''';
 
     const call = 'dispatcher.query(0)';
-    await assertDiagnostics(source, [
-      lint(source.indexOf(call), call.length),
-    ]);
+    await assertDiagnostics(source, [lint(source.indexOf(call), call.length)]);
   }
 
   void test_dispatch_declared_on_a_dispatcher_interface() async {
@@ -72,9 +70,7 @@ class PostRepository {
 ''';
 
     const call = 'dispatcher.command(0)';
-    await assertDiagnostics(source, [
-      lint(source.indexOf(call), call.length),
-    ]);
+    await assertDiagnostics(source, [lint(source.indexOf(call), call.length)]);
   }
 
   void test_view_model_that_dispatches() async {
