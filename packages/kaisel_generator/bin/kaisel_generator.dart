@@ -43,7 +43,7 @@ Future<void> main(List<String> args) async {
 
   // The entry point is the composition root: it wires the SPI implementations
   // the bootstrap ships and never names them itself.
-  final generator = const KaiselBootstrap().createGenerator();
+  final generator = const KaiselGenerator();
 
   stdout.writeln('⚡ Kaisel Module Registry Generator');
   final result = await generator.generate(

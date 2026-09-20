@@ -1,14 +1,13 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:spi/spi.dart';
 
 import '../model/init_info.dart';
 import '../model/library_scan.dart';
 import '../model/micro_package.dart';
 import '../model/module_info.dart';
-import '../spi/parser.dart';
-import '../spi/scanner.dart';
+import '../parser/annotation_parser.dart';
+import 'library_scanner.dart';
 
 /// The built-in [LibraryScanner]: walks a package's `lib/` on disk and reads
 /// every annotation it names with the session's [AnnotationParser].
@@ -70,9 +69,6 @@ class DefaultLibraryScanner implements LibraryScanner {
     );
   }
 
-  @override
-  void close() {}
-
   /// Every `.dart` source under [dir], in a stable order.
   ///
   /// Build output, VCS metadata and editor caches are never sources: a manifest
@@ -112,21 +108,3 @@ class DefaultLibraryScanner implements LibraryScanner {
   static const _skippedDirectories = {'build', 'target'};
 }
 
-/// Creates the built-in [LibraryScanner], with the session's [AnnotationParser].
-class DefaultLibraryScannerFactory implements LibraryScannerFactory {
-  const DefaultLibraryScannerFactory();
-
-  @override
-  String get id => 'default';
-
-  @override
-  int get order => defaultProviderOrder;
-
-  @override
-  ProviderScope get scope => ProviderScope.session;
-
-  @override
-  LibraryScanner create(ProviderSession session) => DefaultLibraryScanner(
-        parser: session.provider(AnnotationParserSpi.instance),
-      );
-}

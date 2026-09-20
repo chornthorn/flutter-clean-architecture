@@ -1,26 +1,23 @@
 import 'dart:io';
 
+import '../generation/generation.dart';
+import '../generation/host_registry.dart';
+import '../generation/micro_package.dart';
 import '../model/generation_result.dart';
-import '../spi/generation.dart';
-import '../spi/session.dart';
-import '../spi/session_factory.dart';
+import '../session/generation_run.dart';
 
-/// The generator: open a session for a project, hand what it found to the
-/// generation provider that serves it, deliver the files that provider produced.
+/// The generator: resolve a project, scan it once, hand what it found to the
+/// generation that serves it, deliver the files that generation produced.
 ///
-/// The pipeline is fixed and the output is open: what gets generated for a
-/// project, and where it goes, is the business of a [GenerationProvider]. The
-/// provider itself comes from the session, which creates it through the factory
-/// the entry point registered.
+/// Every stage is a named class the generator builds itself — a project scanner,
+/// a library scanner with its parser, three emitters over one import emitter —
+/// and each has a plain Dart interface, so a test can stand in for any of them.
 ///
 /// This runs on the Dart VM, so the same code generates the registry for
 /// `dart run kaisel_generator`, for a `build_runner` build, and for the
 /// generator's own tests.
 class KaiselGenerator {
-  const KaiselGenerator({required this.sessionFactory});
-
-  /// The sessions this generator runs, wired by a `KaiselBootstrap`.
-  final KaiselSessionFactory sessionFactory;
+  const KaiselGenerator();
 
   /// Generates the output of the project at [root] — the host's `AppRoute`
   /// hierarchy and everything composed into it, or a micro-package's manifest
@@ -32,9 +29,9 @@ class KaiselGenerator {
   ///
   /// Set [write] to `false` to get the output's source back in
   /// [KaiselGenerationResult.code] instead of having it written — what a caller
-  /// that owns generated files (the `build_runner` builder) wants. Side files a
-  /// provider produced are written either way: a registered package's manifest
-  /// belongs to another package, and the registry cannot compile without it.
+  /// that owns generated files (the `build_runner` builder) wants. Side files are
+  /// written either way: a registered package's manifest belongs to another
+  /// package, and the registry cannot compile without it.
   ///
   /// [force] rewrites every generated file, including one whose contents did not
   /// change.
@@ -50,9 +47,9 @@ class KaiselGenerator {
     var filesParsed = 0;
     var modulesCount = 0;
 
-    // One session per run: it resolves the project, scans it once, and owns every
-    // provider the run uses.
-    final session = sessionFactory.createSession(
+    // One run per call: it resolves the project, scans it once, and every file it
+    // writes comes from that one scan.
+    final run = GenerationRun(
       root: root,
       libDir: libDir,
       output: output,
@@ -60,18 +57,22 @@ class KaiselGenerator {
     );
 
     try {
-      final request = session.request;
-      filesScanned = session.scan.filesScanned;
-      filesParsed = session.scan.filesParsed;
+      final request = run.request;
+      filesScanned = run.scan.filesScanned;
+      filesParsed = run.scan.filesParsed;
       modulesCount = request.modules.length;
 
-      final generated = _providerFor(session, request).generate(request);
+      final generated = _generationFor(run).generate(request);
 
       for (final file in generated.sideFiles) {
         _writeIfChanged(File(file.path), file.source, force: force);
       }
       if (write) {
-        _writeIfChanged(File(generated.output.path), generated.output.source, force: force);
+        _writeIfChanged(
+          File(generated.output.path),
+          generated.output.source,
+          force: force,
+        );
       }
 
       return KaiselGenerationResult(
@@ -92,30 +93,14 @@ class KaiselGenerator {
         modulesCount: modulesCount,
         elapsedUs: _elapsedUs(started),
       );
-    } finally {
-      session.close();
     }
   }
 
-  /// The generation provider that serves [request]: the first one the session
-  /// creates for the generation SPI whose `supports` says yes.
-  GenerationProvider _providerFor(KaiselSession session, GenerationRequest request) {
-    for (final provider in session.providers(GenerationSpi.instance)) {
-      if (provider.supports(request)) {
-        return provider;
-      }
-    }
-
-    final registered = session.providerManager
-        .factoriesFor(GenerationSpi.instance)
-        .map((factory) => factory.id)
-        .join(', ');
-    throw KaiselGenerationException(
-      'No Kaisel generation provider serves `${request.root}`: it declares no '
-      '`@KaiselInit`, `kaisel.yaml` or `@KaiselMicroPackage`. '
-      'Registered providers: $registered.',
-    );
-  }
+  /// The generation that serves [run]: a host application, or a package that
+  /// generates its own manifest.
+  Generation _generationFor(GenerationRun run) => run.request.isHost
+      ? HostRegistryGeneration(run)
+      : MicroPackageGeneration(run);
 }
 
 /// Writes [content] to [file] unless it is already exactly there, so a run that
@@ -135,4 +120,5 @@ void _writeIfChanged(File file, String content, {required bool force}) {
   }
 }
 
-int _elapsedUs(DateTime started) => DateTime.now().difference(started).inMicroseconds;
+int _elapsedUs(DateTime started) =>
+    DateTime.now().difference(started).inMicroseconds;

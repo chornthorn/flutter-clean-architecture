@@ -1,9 +1,9 @@
 import 'package:kaisel_generator/src/model/init_info.dart';
 import 'package:kaisel_generator/src/model/micro_package.dart';
 import 'package:kaisel_generator/src/model/module_info.dart';
+import 'package:kaisel_generator/src/parser/annotation_parser.dart';
 import 'package:kaisel_generator/src/parser/default_annotation_parser.dart';
 import 'package:kaisel_generator/src/scanner/default_library_scanner.dart';
-import 'package:kaisel_generator/src/spi/parser.dart';
 import 'package:test/test.dart';
 
 import '../support/temp_project.dart';
@@ -106,9 +106,6 @@ void configureFeatureShop() {}
 }
 
 class _StubParser implements AnnotationParser {
-  @override
-  void close() {}
-
   @override
   List<ModuleInfo> parseModules(String filePath, String source) => [
         ModuleInfo(

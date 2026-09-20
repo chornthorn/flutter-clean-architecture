@@ -1,9 +1,8 @@
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:spi/spi.dart';
 
 import '../model/micro_package.dart';
-import '../spi/parser.dart';
+import 'manifest_parser.dart';
 
 /// The built-in [ManifestParser]: reads the mounts a generated manifest
 /// declares.
@@ -13,9 +12,6 @@ import '../spi/parser.dart';
 /// KaiselMicroMount<...>` field per mount the package contributes.
 class DefaultManifestParser implements ManifestParser {
   const DefaultManifestParser();
-
-  @override
-  void close() {}
 
   @override
   MicroPackageManifest? parse(String source) {
@@ -106,19 +102,3 @@ bool? _boolArgument(Map<String, Expression> arguments, String name) {
   return expression is BooleanLiteral ? expression.value : null;
 }
 
-/// Creates the built-in [ManifestParser].
-class DefaultManifestParserFactory implements ManifestParserFactory {
-  const DefaultManifestParserFactory();
-
-  @override
-  String get id => 'default';
-
-  @override
-  int get order => defaultProviderOrder;
-
-  @override
-  ProviderScope get scope => ProviderScope.session;
-
-  @override
-  ManifestParser create(ProviderSession session) => const DefaultManifestParser();
-}

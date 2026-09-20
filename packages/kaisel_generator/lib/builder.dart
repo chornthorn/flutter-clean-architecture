@@ -35,12 +35,9 @@ import 'package:glob/glob.dart';
 import 'package:kaisel_generator/kaisel_generator.dart';
 import 'package:path/path.dart' as p;
 
-/// Called by `build_runner`: the composition root of a Kaisel build.
-///
-/// The bootstrap constructs every SPI implementation this build runs — the
-/// entry point is the one place that names concrete implementations.
+/// Called by `build_runner`: the entry point of a Kaisel build.
 Builder kaiselBuilder(BuilderOptions options) =>
-    KaiselBuilder(options, generator: const KaiselBootstrap().createGenerator());
+    KaiselBuilder(options, generator: const KaiselGenerator());
 
 class KaiselBuilder implements Builder {
   KaiselBuilder(this.options, {required this.generator});

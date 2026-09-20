@@ -27,7 +27,7 @@ Future<void> main(List<String> args) async {
 
   // The composition root of this tool: the built-in SPI implementations, wired
   // by the bootstrap.
-  final generator = const KaiselBootstrap().createGenerator();
+  final generator = const KaiselGenerator();
 
   if (options.clean) {
     if (Directory(outRoot).existsSync()) {

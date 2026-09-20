@@ -1,38 +1,14 @@
-import 'package:spi/spi.dart';
-
 import '../model/generation_result.dart';
 import '../model/init_info.dart';
 import '../model/kaisel_config.dart';
 import '../model/module_info.dart';
 
-/// SPI: generating the output of a project.
-class GenerationSpi implements Spi<GenerationProvider> {
-  const GenerationSpi();
-
-  /// The SPI as a bootstrap registers it.
-  static const instance = GenerationSpi();
-
-  @override
-  String get name => 'generation';
-
-  @override
-  bool accepts(ProviderFactory<dynamic> factory) => factory is GenerationProviderFactory;
-}
-
 /// Generates the files a project needs from what its scan found.
 ///
-/// One provider serves one kind of project. The generator itself knows only how
-/// to hand a [GenerationRequest] to the first provider that [supports] it and
-/// deliver what that provider produced; everything that decides *what* is
-/// generated and *where* it goes lives behind this interface.
-///
-/// That keeps the pipeline fixed and the output open: a project that needs
-/// another generated file (a shell registry, a route table, a URL manifest)
-/// registers a factory instead of growing the generator.
-abstract interface class GenerationProvider implements Provider {
-  /// Whether this provider serves [request].
-  bool supports(GenerationRequest request);
-
+/// One implementation serves one kind of project: `HostRegistryGeneration` a host
+/// application, `MicroPackageGeneration` a package that generates its own manifest.
+/// `KaiselGenerator` picks between them on [GenerationRequest.isHost].
+abstract interface class Generation {
   /// Produces the files for [request].
   ///
   /// Throws a [KaiselGenerationException] when the request cannot be served; the
@@ -40,11 +16,7 @@ abstract interface class GenerationProvider implements Provider {
   GeneratedOutput generate(GenerationRequest request);
 }
 
-/// Creates one [GenerationProvider] for a session.
-abstract interface class GenerationProviderFactory
-    implements ProviderFactory<GenerationProvider> {}
-
-/// Everything a provider needs: the project it was asked about, and what the
+/// Everything a generation needs: the project it was asked about, and what the
 /// scan of that project found.
 class GenerationRequest {
   const GenerationRequest({
@@ -90,7 +62,7 @@ class GenerationRequest {
   bool get isHost => init != null || config != null;
 }
 
-/// What a provider produced.
+/// What a generation produced.
 class GeneratedOutput {
   const GeneratedOutput({required this.output, this.sideFiles = const []});
 

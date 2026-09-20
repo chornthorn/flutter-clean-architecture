@@ -1,7 +1,5 @@
 import 'package:path/path.dart' as p;
-import 'package:spi/spi.dart';
-
-import '../spi/emitter.dart';
+import 'import_emitter.dart';
 
 /// The built-in [ImportEmitter].
 ///
@@ -13,9 +11,6 @@ import '../spi/emitter.dart';
 /// the order the filesystem handed the files over.
 class DefaultImportEmitter implements ImportEmitter {
   const DefaultImportEmitter();
-
-  @override
-  void close() {}
 
   @override
   Map<String, String> aliasesFor(List<String> keys, String prefix) => {
@@ -56,19 +51,3 @@ class DefaultImportEmitter implements ImportEmitter {
   }
 }
 
-/// Creates the built-in [ImportEmitter].
-class DefaultImportEmitterFactory implements ImportEmitterFactory {
-  const DefaultImportEmitterFactory();
-
-  @override
-  String get id => 'default';
-
-  @override
-  int get order => defaultProviderOrder;
-
-  @override
-  ProviderScope get scope => ProviderScope.session;
-
-  @override
-  ImportEmitter create(ProviderSession session) => const DefaultImportEmitter();
-}

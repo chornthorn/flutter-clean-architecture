@@ -1,16 +1,13 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:spi/spi.dart';
 
+import '../generation/generation.dart';
 import '../model/generation_result.dart';
 import '../model/micro_package.dart';
 import '../model/module_info.dart';
 import '../model/naming.dart';
-import '../spi/emitter.dart';
-import '../spi/generation.dart';
-import '../spi/parser.dart';
-import '../spi/scanner.dart';
+import '../session/generation_run.dart';
 
 /// Serves a host application: the module registry an app runs on, plus the
 /// manifests of the registered packages that live inside the project.
@@ -19,18 +16,12 @@ import '../spi/scanner.dart';
 /// registering it is the only step the app author writes. A package outside the
 /// project must generate (or ship) its own manifest, because its sources are not
 /// this project's to write.
-class HostRegistryProvider implements GenerationProvider {
-  const HostRegistryProvider(this.session);
+class HostRegistryGeneration implements Generation {
+  const HostRegistryGeneration(this.run);
 
-  /// The session this provider was created for; everything it needs — the
-  /// scanners, parsers and emitters — comes from there.
-  final ProviderSession session;
-
-  @override
-  void close() {}
-
-  @override
-  bool supports(GenerationRequest request) => request.isHost;
+  /// The run this serves: the resolved project, its scan, and the stages that
+  /// read and write it.
+  final GenerationRun run;
 
   @override
   GeneratedOutput generate(GenerationRequest request) {
@@ -41,7 +32,7 @@ class HostRegistryProvider implements GenerationProvider {
     final microPackages = qualifyMarkers(resolved.packages, request.modules);
     validateMountNames(request.modules);
 
-    final registry = session.provider(RegistryEmitterSpi.instance).write(
+    final registry = run.registryEmitter.write(
       modules: request.modules,
       routeClass: request.config?.routeClass ?? request.init?.routeClass ?? 'AppRoute',
       initialRouteOverride: request.config?.initialRoute ?? request.init?.initialRoute,
@@ -77,7 +68,7 @@ class HostRegistryProvider implements GenerationProvider {
         );
       }
 
-      final manifestPath = session.provider(ProjectScannerSpi.instance).resolveImportUri(
+      final manifestPath = run.projectScanner.resolveImportUri(
         root: request.root,
         outputDir: p.dirname(request.outputPath),
         importUri: importUri,
@@ -113,7 +104,7 @@ class HostRegistryProvider implements GenerationProvider {
     required List<GeneratedFile> manifests,
   }) {
     final packageRoot = p.dirname(packageLibDir);
-    final scan = session.provider(LibraryScannerSpi.instance).scan(Directory(packageLibDir));
+    final scan = run.libraryScanner.scan(Directory(packageLibDir));
     if (scan.modules.isEmpty) {
       throw KaiselGenerationException(
         '`$packageRoot` is registered as a micro-package but declares no '
@@ -123,10 +114,9 @@ class HostRegistryProvider implements GenerationProvider {
 
     final primary = scan.microPackages.isEmpty ? null : scan.microPackages.first;
     final packageName =
-        session.provider(ProjectScannerSpi.instance).readPackageName(packageRoot) ??
-            p.basename(packageRoot);
+        run.projectScanner.readPackageName(packageRoot) ?? p.basename(packageRoot);
 
-    final source = session.provider(ManifestEmitterSpi.instance).write(
+    final source = run.manifestEmitter.write(
       moduleName: primary?.moduleName ?? toPascalCase(packageName),
       modules: sortModules(scan.modules),
       packageName: packageName,
@@ -170,7 +160,7 @@ class HostRegistryProvider implements GenerationProvider {
     String manifestPath,
     String source,
   ) {
-    final manifest = session.provider(ManifestParserSpi.instance).parse(source);
+    final manifest = run.manifestParser.parse(source);
     if (manifest == null) {
       throw KaiselGenerationException(
         '`$manifestPath` is not a micro-package manifest written by a compatible '
@@ -199,28 +189,11 @@ class HostRegistryProvider implements GenerationProvider {
       return null;
     }
 
-    final libDir = session.provider(ProjectScannerSpi.instance).resolvePackageLibDir(
+    final libDir = run.projectScanner.resolvePackageLibDir(
       root: root,
       package: rest.substring(0, separator),
     );
     final inside = p.isWithin(root, libDir) || p.equals(root, libDir);
     return inside ? libDir : null;
   }
-}
-
-/// Creates the built-in [HostRegistryProvider].
-class HostRegistryProviderFactory implements GenerationProviderFactory {
-  const HostRegistryProviderFactory();
-
-  @override
-  String get id => 'host-registry';
-
-  @override
-  int get order => defaultProviderOrder;
-
-  @override
-  ProviderScope get scope => ProviderScope.session;
-
-  @override
-  GenerationProvider create(ProviderSession session) => HostRegistryProvider(session);
 }

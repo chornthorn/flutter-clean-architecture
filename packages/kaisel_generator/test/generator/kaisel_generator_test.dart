@@ -7,7 +7,7 @@ import '../support/temp_project.dart';
 /// generates its own manifest, and a host app composes it through
 /// `@KaiselInit(externalMicroPackages: [...])`.
 void main() {
-  final generator = const KaiselBootstrap().createGenerator();
+  final generator = const KaiselGenerator();
 
   test('should generate the manifest contract of a standalone micro-package', () async {
     final repo = TempProject.create('standalone');

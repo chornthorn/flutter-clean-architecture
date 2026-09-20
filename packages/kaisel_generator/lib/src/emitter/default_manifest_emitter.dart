@@ -1,8 +1,7 @@
-import 'package:spi/spi.dart';
-
 import '../model/module_info.dart';
 import '../model/naming.dart';
-import '../spi/emitter.dart';
+import 'import_emitter.dart';
+import 'manifest_emitter.dart';
 
 /// The built-in [ManifestEmitter]: one registry class declaring what a
 /// micro-package contributes, for a host to bind to its own marker routes.
@@ -10,9 +9,6 @@ class DefaultManifestEmitter implements ManifestEmitter {
   const DefaultManifestEmitter({required this.imports});
 
   final ImportEmitter imports;
-
-  @override
-  void close() {}
 
   @override
   String write({
@@ -88,23 +84,4 @@ class DefaultManifestEmitter implements ManifestEmitter {
 
   List<String> _uniqueSorted(List<String> values) =>
       values.toSet().toList()..sort();
-}
-
-/// Creates the built-in [ManifestEmitter], with the session's [ImportEmitter].
-class DefaultManifestEmitterFactory implements ManifestEmitterFactory {
-  const DefaultManifestEmitterFactory();
-
-  @override
-  String get id => 'default';
-
-  @override
-  int get order => defaultProviderOrder;
-
-  @override
-  ProviderScope get scope => ProviderScope.session;
-
-  @override
-  ManifestEmitter create(ProviderSession session) => DefaultManifestEmitter(
-        imports: session.provider(ImportEmitterSpi.instance),
-      );
 }

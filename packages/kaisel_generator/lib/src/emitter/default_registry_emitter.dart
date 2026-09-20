@@ -1,8 +1,7 @@
-import 'package:spi/spi.dart';
-
 import '../model/micro_package.dart';
 import '../model/module_info.dart';
-import '../spi/emitter.dart';
+import 'import_emitter.dart';
+import 'registry_emitter.dart';
 
 /// The built-in [RegistryEmitter]: the host's module registry, the sealed route
 /// hierarchy, the page builder, the URL mounts and the router config an app runs
@@ -11,9 +10,6 @@ class DefaultRegistryEmitter implements RegistryEmitter {
   const DefaultRegistryEmitter({required this.imports});
 
   final ImportEmitter imports;
-
-  @override
-  void close() {}
 
   @override
   String write({
@@ -250,23 +246,4 @@ class DefaultRegistryEmitter implements RegistryEmitter {
 
   List<String> _uniqueSorted(List<String> values) =>
       values.toSet().toList()..sort();
-}
-
-/// Creates the built-in [RegistryEmitter], with the session's [ImportEmitter].
-class DefaultRegistryEmitterFactory implements RegistryEmitterFactory {
-  const DefaultRegistryEmitterFactory();
-
-  @override
-  String get id => 'default';
-
-  @override
-  int get order => defaultProviderOrder;
-
-  @override
-  ProviderScope get scope => ProviderScope.session;
-
-  @override
-  RegistryEmitter create(ProviderSession session) => DefaultRegistryEmitter(
-        imports: session.provider(ImportEmitterSpi.instance),
-      );
 }

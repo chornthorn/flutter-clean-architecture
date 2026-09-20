@@ -1,13 +1,12 @@
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
-import 'package:spi/spi.dart';
 
 import '../model/init_info.dart';
 import '../model/micro_package.dart';
 import '../model/module_info.dart';
 import '../model/naming.dart';
-import '../spi/parser.dart';
+import 'annotation_parser.dart';
 
 /// The built-in [AnnotationParser]: reads Kaisel annotations out of Dart source
 /// with the Dart analyzer's own parser.
@@ -19,9 +18,6 @@ import '../spi/parser.dart';
 /// generator is needed. It would also be the expensive part.
 class DefaultAnnotationParser implements AnnotationParser {
   const DefaultAnnotationParser();
-
-  @override
-  void close() {}
 
   @override
   List<ModuleInfo> parseModules(String filePath, String source) {
@@ -286,19 +282,3 @@ bool? _boolArgument(Map<String, Expression> arguments, String name) {
   return expression is BooleanLiteral ? expression.value : null;
 }
 
-/// Creates the built-in [AnnotationParser].
-class DefaultAnnotationParserFactory implements AnnotationParserFactory {
-  const DefaultAnnotationParserFactory();
-
-  @override
-  String get id => 'default';
-
-  @override
-  int get order => defaultProviderOrder;
-
-  @override
-  ProviderScope get scope => ProviderScope.session;
-
-  @override
-  AnnotationParser create(ProviderSession session) => const DefaultAnnotationParser();
-}

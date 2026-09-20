@@ -30,7 +30,6 @@ lib/
 features/profile/                   a micro-package: its own pubspec, its own manifest
   lib/profile.kaisel.dart           generated — ProfileKaiselModule, one typed mount
 packages/
-  spi/                              the SPI framework: Spi, Provider, ProviderFactory, ProviderSession, ProviderManager
   kaisel_generator/                 annotations, generated-code helpers + the build_runner source generator
 ```
 
@@ -69,26 +68,23 @@ Generated kaisel files come back with a build and can be removed with
 `dart run kaisel_generator --clean` (`build_runner clean` leaves
 `build_to: source` outputs in place).
 
-## Extending the generator
+## How the generator is wired
 
-Every stage of the generator — scanning a library, scanning the project around
-it, reading annotations, reading a manifest, emitting imports, the registry and
-the manifests, and generating at all — sits behind a service provider interface,
-and the SPIs run on the framework in `packages/spi` (a Dart take on
-[Keycloak's SPI](https://www.keycloak.org/docs/latest/server_development/#_providers):
-one `Spi` per capability, `Provider`s implementing it, `ProviderFactory`s creating
-them, `ProviderSession`s scoping them).
+Every stage of the generator — scanning a library, scanning the project around it,
+reading annotations, reading a manifest, emitting imports, the registry and the
+manifests, and choosing what to generate — is a plain Dart interface with a
+default implementation beside it: `LibraryScanner`, `ProjectScanner`,
+`AnnotationParser`, `ManifestParser`, `ImportEmitter`, `RegistryEmitter`,
+`ManifestEmitter`, `Generation`.
 
-`KaiselBootstrap` is the composition root: it lists the SPIs and provider
-factories an entry point runs, and the `build_runner` entry (`lib/builder.dart`)
-and the CLI's `main` both start there. A project that needs different output — a
-route table, a URL manifest, a different registry shape — registers a factory
-instead of growing the generator; a factory with a lower `order` is asked first.
+`KaiselGenerator` builds those defaults itself for each run: one run resolves the
+project, scans it once, and writes its output from that scan. The interfaces are
+the seam a test uses (a scanner can be handed a stub parser) and a caller can use
+(a stage built directly), and they are exported from `package:kaisel_generator`.
 
-A package that ships a provider depends on `packages/spi` alone: the SPI
-vocabulary is deliberately not re-exported from `kaisel_generator`, because a
-Flutter host imports that library next to `package:provider`, and a second
-`Provider` in the namespace would make every such import ambiguous.
+A project that needs other output — a route table, a URL manifest, a different
+registry shape — replaces the stage it disagrees with rather than growing the
+generator.
 
 The package declares its mounts as typed `KaiselMicroMount` values. When
 registered, the app declares one marker route per declaration and binds it by

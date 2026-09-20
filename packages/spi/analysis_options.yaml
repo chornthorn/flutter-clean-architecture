@@ -1,4 +1,0 @@
-# The framework package is dependency-free, so `core` lints apply and are what a
-# published package is scored on. `recommended` adds the ones worth having in a
-# package others implement against.
-include: package:lints/recommended.yaml
