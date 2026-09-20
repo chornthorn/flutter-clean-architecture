@@ -28,8 +28,9 @@ actually refers to instead of matching text.
 | :--------------------------------- | :------------------------------------------------------------------------------------------- |
 | `no_cqrs_in_widgets`               | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                      |
 | `no_dispatcher_outside_view_model` | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`. |
+| `view_model_must_extend_base`      | A class named `...ViewModel` does not extend or implement the base `ViewModel`.              |
 
-Both are lint rules, so they are **off** until `analysis_options.yaml` turns
+All are lint rules, so they are **off** until `analysis_options.yaml` turns
 them on — adding a rule to this package never starts failing an existing build.
 
 ## Enabling it
@@ -44,6 +45,7 @@ plugins:
     diagnostics:
       no_cqrs_in_widgets: error
       no_dispatcher_outside_view_model: error
+      view_model_must_extend_base: error
 ```
 
 A relative `path` works, so this is safe to commit.

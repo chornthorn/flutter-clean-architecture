@@ -9,6 +9,7 @@ import 'package:analysis_server_plugin/registry.dart';
 
 import 'src/rules/no_cqrs_in_widgets.dart';
 import 'src/rules/no_dispatcher_outside_view_model.dart';
+import 'src/rules/view_model_must_extend_base.dart';
 
 final plugin = FlutterXLintsPlugin();
 
@@ -22,5 +23,6 @@ class FlutterXLintsPlugin extends Plugin {
     // one here never starts failing somebody else's build.
     registry.registerLintRule(NoCqrsInWidgets());
     registry.registerLintRule(NoDispatcherOutsideViewModel());
+    registry.registerLintRule(ViewModelMustExtendBase());
   }
 }

@@ -61,7 +61,7 @@ class _Visitor extends SimpleAstVisitor<void> {
     if (!_isDispatcherCall(element)) return;
 
     final owner = enclosingClass(node);
-    if (owner != null && extendsAnyBase(owner, const {'ViewModel'})) return;
+    if (owner != null && hasAnySupertype(owner, const {'ViewModel'})) return;
 
     rule.reportAtNode(node);
   }

@@ -16,6 +16,9 @@ plugins:
       # Dispatching outside a view model loses the screen lifecycle: the
       # cancellation and the error state the route is owed.
       no_dispatcher_outside_view_model: error
+      # A class that takes the `...ViewModel` name without the base takes on a
+      # screen's work without the screen's lifecycle.
+      view_model_must_extend_base: error
 
 analyzer:
   # Generated sources are not ours to lint: `design_builder` and `injectify`

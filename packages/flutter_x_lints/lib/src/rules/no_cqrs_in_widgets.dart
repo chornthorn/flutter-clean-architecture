@@ -69,4 +69,4 @@ class _Visitor extends SimpleAstVisitor<void> {
 
 bool _declaresWidget(CompilationUnit unit) => unit.declarations
     .whereType<ClassDeclaration>()
-    .any((declaration) => extendsAnyBase(declaration, _widgetBases));
+    .any((declaration) => hasAnySupertype(declaration, _widgetBases));
