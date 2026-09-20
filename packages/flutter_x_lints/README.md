@@ -57,9 +57,10 @@ rule silently.
 | Rule                                          | Reports                                                                                                                          |
 | :-------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------- |
 | `layer_dependency_direction`                  | A feature layer imports a layer outside it.                                                                                      |
-| `no_cqrs_in_widgets`                          | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                                                          |
 | `no_context_watch_in_callback`                | `context.watch` is called inside a function literal passed to an `on...` argument.                                               |
+| `no_cqrs_in_widgets`                          | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                                                          |
 | `no_dispatcher_outside_view_model`            | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`.                                     |
+| `no_flutter_ui_in_inner_layers`               | `domain` or `infrastructure` imports a Flutter widget package or `dart:ui`.                                                      |
 | `no_get_it_in_ui`                             | A library that declares a widget, or a file under `presentation/`, imports `package:get_it` or calls through a `GetIt` instance. |
 | `view_model_exposes_readonly_signals`         | A `ViewModel` getter exposes a writable signal rather than a `ReadonlySignal`.                                                   |
 | `view_model_must_be_injectable`               | A concrete `ViewModel` subclass is not annotated `@Injectable`.                                                                  |
@@ -85,6 +86,24 @@ are `app/` and a feature's own module file. Both `import` and `export` are
 checked. Tests are exempt: `test/` mirrors the feature layout, and a test wires
 the real layers together on purpose — the view model tests import the
 infrastructure repositories they drive.
+
+### How `no_flutter_ui_in_inner_layers` decides
+
+The file's layer, from its path, must be `domain` or `infrastructure`. In
+there, these are reported:
+
+`package:flutter/widgets.dart`, `material.dart`, `cupertino.dart`,
+`rendering.dart`, `painting.dart`, `animation.dart`, `semantics.dart`,
+`scheduler.dart`, and `dart:ui`.
+
+`dart:ui` counts because it is where `Color`, `Size` and the engine bindings
+live — the same dependency by a shorter name. Imports _and_ exports are checked:
+a layer file that re-exports a widget package has made the same reach.
+
+Out of scope: `presentation/`, `core/` and a feature's module file, none of
+which this rule's layering covers. Note that `test/architecture_test.dart` is
+stricter for `domain`, forbidding all of `package:flutter` there — including
+`foundation.dart`, which this rule allows by omission.
 
 ### How `no_get_it_in_ui` finds UI
 
@@ -206,6 +225,7 @@ plugins:
       no_context_watch_in_callback: error
       no_cqrs_in_widgets: error
       no_dispatcher_outside_view_model: error
+      no_flutter_ui_in_inner_layers: error
       no_get_it_in_ui: error
       view_model_exposes_readonly_signals: error
       view_model_must_be_injectable: error

@@ -11,6 +11,7 @@ import 'src/rules/layer_dependency_direction_rule.dart';
 import 'src/rules/no_context_watch_in_callback_rule.dart';
 import 'src/rules/no_cqrs_in_widgets_rule.dart';
 import 'src/rules/no_dispatcher_outside_view_model_rule.dart';
+import 'src/rules/no_flutter_ui_in_inner_layers_rule.dart';
 import 'src/rules/no_get_it_in_ui_rule.dart';
 import 'src/rules/view_model_exposes_readonly_signals_rule.dart';
 import 'src/rules/view_model_must_be_injectable_rule.dart';
@@ -31,6 +32,7 @@ class FlutterXLintsPlugin extends Plugin {
     registry.registerLintRule(NoContextWatchInCallbackRule());
     registry.registerLintRule(NoCqrsInWidgetsRule());
     registry.registerLintRule(NoDispatcherOutsideViewModelRule());
+    registry.registerLintRule(NoFlutterUiInInnerLayersRule());
     registry.registerLintRule(NoGetItInUiRule());
     registry.registerLintRule(ViewModelExposesReadonlySignalsRule());
     registry.registerLintRule(ViewModelMustBeInjectableRule());

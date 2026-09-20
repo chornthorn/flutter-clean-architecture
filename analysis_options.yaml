@@ -22,6 +22,9 @@ plugins:
       # Dispatching outside a view model loses the screen lifecycle: the
       # cancellation and the error state the route is owed.
       no_dispatcher_outside_view_model: error
+      # `domain` and `infrastructure` draw nothing: a widget package reaches
+      # the framework into layers that should not need a binding.
+      no_flutter_ui_in_inner_layers: error
       # A widget or UI file that reads the service locator hides the dependency
       # from its signature, its reader, and its test.
       no_get_it_in_ui: error

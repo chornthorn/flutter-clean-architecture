@@ -16,6 +16,7 @@ enum RuleKey {
   noContextWatchInCallback('no_context_watch_in_callback'),
   noCqrsInWidgets('no_cqrs_in_widgets'),
   noDispatcherOutsideViewModel('no_dispatcher_outside_view_model'),
+  noFlutterUiInInnerLayers('no_flutter_ui_in_inner_layers'),
   noGetItInUi('no_get_it_in_ui'),
   viewModelExposesReadonlySignals('view_model_exposes_readonly_signals'),
   viewModelMustBeInjectable('view_model_must_be_injectable'),

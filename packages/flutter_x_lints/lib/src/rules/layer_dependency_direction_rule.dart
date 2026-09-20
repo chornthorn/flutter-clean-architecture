@@ -4,6 +4,7 @@ import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
 import 'package:analyzer/error/error.dart';
 
 import '../constants/rule_key.dart';
+import '../utils/layers.dart';
 import '../visitors/layer_dependency_direction_visitor.dart';
 
 /// A layer may not depend on a layer outside it.

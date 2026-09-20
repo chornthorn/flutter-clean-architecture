@@ -12,6 +12,7 @@ void main() {
       'no_context_watch_in_callback',
       'no_cqrs_in_widgets',
       'no_dispatcher_outside_view_model',
+      'no_flutter_ui_in_inner_layers',
       'no_get_it_in_ui',
       'view_model_exposes_readonly_signals',
       'view_model_must_be_injectable',
