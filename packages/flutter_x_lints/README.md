@@ -222,11 +222,13 @@ same-named annotation from elsewhere does not satisfy it — that class register
 nothing. Arguments are not required: `@Injectable()`, `@Injectable(scope: ...)`
 and a constructor tear-off all count.
 
-Two exemptions:
+Three exemptions:
 
 - The base `ViewModel` itself, which does not extend `ViewModel`.
 - An `abstract` view model. The container builds the concrete subclasses, and
   asking injectify to register something it cannot construct fails later.
+- Files in a package's `test/` directory. A test builds a view model by hand on
+  purpose, and a double it declares is not something the container ever builds.
 
 ### How `view_model_must_extend_base` finds a view model
 

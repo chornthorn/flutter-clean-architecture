@@ -1,7 +1,6 @@
 import 'package:injectify/injectify.dart';
 import 'package:signals/signals_flutter.dart';
 
-import '../../../../core/async/cancellation.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/form/app_form_controller.dart';
@@ -34,10 +33,6 @@ class PostViewModel extends ViewModel {
 
   // jsonplaceholder only echoes this back, and the demo has no signed-in user.
   static const _authorId = 1;
-
-  // Doubles as the disposed flag: `dispose` cancels it and nothing else does, so
-  // a cancelled source means the page that started the work is gone.
-  final _cancellation = CancellationSource();
 
   final _posts = asyncSignal<List<Post>>(AsyncState.loading());
   final _post = asyncSignal<Post?>(AsyncState.loading());
@@ -80,11 +75,11 @@ class PostViewModel extends ViewModel {
     _posts.setLoading();
 
     try {
-      final posts = await _getPosts(cancellation: _cancellation.token);
-      if (_cancellation.isCancelled) return;
+      final posts = await _getPosts(cancellation: cancellation);
+      if (!isAlive) return;
       _posts.setValue(posts);
     } catch (error, stackTrace) {
-      if (_cancellation.isCancelled || error is CancelledException) return;
+      if (!isAlive || error is CancelledException) return;
       _posts.setError(error, stackTrace);
     }
   }
@@ -93,11 +88,11 @@ class PostViewModel extends ViewModel {
     _post.setLoading();
 
     try {
-      final post = await _getPost(id, cancellation: _cancellation.token);
-      if (_cancellation.isCancelled) return;
+      final post = await _getPost(id, cancellation: cancellation);
+      if (!isAlive) return;
       _post.setValue(post);
     } catch (error, stackTrace) {
-      if (_cancellation.isCancelled || error is CancelledException) return;
+      if (!isAlive || error is CancelledException) return;
       _post.setError(error, stackTrace);
     }
   }
@@ -115,10 +110,10 @@ class PostViewModel extends ViewModel {
         userId: _authorId,
         title: title,
         body: body,
-        cancellation: _cancellation.token,
+        cancellation: cancellation,
       );
-      final posts = await _getPosts(cancellation: _cancellation.token);
-      if (_cancellation.isCancelled) return const ActionResult.success();
+      final posts = await _getPosts(cancellation: cancellation);
+      if (!isAlive) return const ActionResult.success();
       _posts.setValue(posts);
       _create.setValue(null);
       createFormController.clearAll();
@@ -126,7 +121,7 @@ class PostViewModel extends ViewModel {
     } catch (error, stackTrace) {
       // A write the route walked away from is neither a result nor an error: it
       // never reaches the signal the page is no longer watching.
-      if (_cancellation.isCancelled || error is CancelledException) {
+      if (!isAlive || error is CancelledException) {
         return const ActionResult.failure('Could not create post.');
       }
       _create.setError(error, stackTrace);
@@ -151,10 +146,10 @@ class PostViewModel extends ViewModel {
         id: id,
         title: title,
         body: body,
-        cancellation: _cancellation.token,
+        cancellation: cancellation,
       );
-      final updated = await _getPost(id, cancellation: _cancellation.token);
-      if (_cancellation.isCancelled) return const ActionResult.success();
+      final updated = await _getPost(id, cancellation: cancellation);
+      if (!isAlive) return const ActionResult.success();
       _post.setValue(updated);
       _update.setValue(null);
       updateFormController.clear();
@@ -162,7 +157,7 @@ class PostViewModel extends ViewModel {
     } catch (error, stackTrace) {
       // A write the route walked away from is neither a result nor an error: it
       // never reaches the signal the page is no longer watching.
-      if (_cancellation.isCancelled || error is CancelledException) {
+      if (!isAlive || error is CancelledException) {
         return const ActionResult.failure('Could not update post.');
       }
       _update.setError(error, stackTrace);
@@ -180,14 +175,14 @@ class PostViewModel extends ViewModel {
     _delete.setLoading();
 
     try {
-      await _deletePost(id, cancellation: _cancellation.token);
-      if (_cancellation.isCancelled) return const ActionResult.success();
+      await _deletePost(id, cancellation: cancellation);
+      if (!isAlive) return const ActionResult.success();
       _delete.setValue(null);
       return const ActionResult.success('Post deleted successfully.');
     } catch (error, stackTrace) {
       // A write the route walked away from is neither a result nor an error: it
       // never reaches the signal the page is no longer watching.
-      if (_cancellation.isCancelled || error is CancelledException) {
+      if (!isAlive || error is CancelledException) {
         return const ActionResult.failure('Could not delete post.');
       }
       _delete.setError(error, stackTrace);
@@ -200,11 +195,10 @@ class PostViewModel extends ViewModel {
   String _formValue(AppFormController controller, PostFormField field) =>
       controller.getValue(FormFieldKey(field)) ?? '';
 
-  // The provider calls this when the page unmounts. A disposed signal throws on a
-  // write, which is what the guards above are for.
+  // The base cancels the scope before this runs, so a response still on its way
+  // finds `isAlive` false and the guards above drop it.
   @override
-  void dispose() {
-    _cancellation.cancel();
+  void onDispose() {
     _posts.dispose();
     _post.dispose();
     _create.dispose();

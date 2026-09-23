@@ -23,8 +23,6 @@ class ShopProductViewModel extends ViewModel {
   final GetCartUseCase _getCart;
   final AddProductToCartUseCase _addProductToCart;
 
-  bool _isDisposed = false;
-
   final _product = asyncSignal<Product?>(AsyncState.loading());
 
   // Settled, not loading: no write has run yet.
@@ -44,11 +42,11 @@ class ShopProductViewModel extends ViewModel {
     try {
       final product = await _getProduct(id);
       final cart = await _getCart();
-      if (_isDisposed) return;
+      if (!isAlive) return;
       _product.setValue(product);
       _cartCount.value = cart.itemCount;
     } catch (error, stackTrace) {
-      if (_isDisposed) return;
+      if (!isAlive) return;
       _product.setError(error, stackTrace);
     }
   }
@@ -62,20 +60,19 @@ class ShopProductViewModel extends ViewModel {
     try {
       await _addProductToCart(id);
       final cart = await _getCart();
-      if (_isDisposed) return;
+      if (!isAlive) return;
       _cartCount.value = cart.itemCount;
       _add.setValue(null);
     } catch (error, stackTrace) {
-      if (_isDisposed) return;
+      if (!isAlive) return;
       _add.setError(error, stackTrace);
     }
   }
 
-  // The provider calls this when the page unmounts. A disposed signal throws on a
-  // write, which is what the guards above are for.
+  // The base cancels the scope before this runs, so a read or a write still on
+  // its way finds `isAlive` false and the guards above drop it.
   @override
-  void dispose() {
-    _isDisposed = true;
+  void onDispose() {
     _product.dispose();
     _add.dispose();
     _cartCount.dispose();

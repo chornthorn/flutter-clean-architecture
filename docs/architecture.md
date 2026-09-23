@@ -104,13 +104,27 @@ final class ProfileMount extends AppRoute {
 ## Screen state
 
 A screen's state holder takes the use cases it needs through its constructor, and
-the container builds it. The base carries the lifecycle and nothing else:
+the container builds it. The base owns the scope that ends when the page does,
+and carries nothing else:
 
 ```dart
 abstract class ViewModel {
-  void dispose();
+  @protected
+  Cancellation get cancellation => _scope.token;
+
+  @protected
+  bool get isAlive => !_scope.isCancelled;
+
+  @nonVirtual
+  void dispose() { /* cancels the scope, then calls onDispose() */ }
+
+  @protected
+  void onDispose() {}
 }
 ```
+
+A subclass implements `onDispose`, hands `cancellation` to every use case, and
+reads `isAlive` after every `await` before publishing. See `core/README.md`.
 
 A use case is a pure class in `domain/usecases/` — one call, one responsibility,
 `@Injectable` so the container can build it:

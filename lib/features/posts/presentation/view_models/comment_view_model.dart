@@ -1,7 +1,6 @@
 import 'package:injectify/injectify.dart';
 import 'package:signals/signals_flutter.dart';
 
-import '../../../../core/async/cancellation.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/form/app_form_controller.dart';
@@ -23,10 +22,6 @@ class CommentViewModel extends ViewModel {
   final GetCommentsUseCase _getComments;
   final CreateCommentUseCase _createComment;
 
-  // Doubles as the disposed flag: `dispose` cancels it and nothing else does, so
-  // a cancelled source means the page that started the work is gone.
-  final _cancellation = CancellationSource();
-
   final _comments = asyncSignal<List<Comment>>(AsyncState.loading());
 
   // Settled, not loading: no write has run yet.
@@ -45,14 +40,11 @@ class CommentViewModel extends ViewModel {
     _comments.setLoading();
 
     try {
-      final comments = await _getComments(
-        postId,
-        cancellation: _cancellation.token,
-      );
-      if (_cancellation.isCancelled) return;
+      final comments = await _getComments(postId, cancellation: cancellation);
+      if (!isAlive) return;
       _comments.setValue(comments);
     } catch (error, stackTrace) {
-      if (_cancellation.isCancelled || error is CancelledException) return;
+      if (!isAlive || error is CancelledException) return;
       _comments.setError(error, stackTrace);
     }
   }
@@ -70,9 +62,9 @@ class CommentViewModel extends ViewModel {
         name: name,
         email: email,
         body: body,
-        cancellation: _cancellation.token,
+        cancellation: cancellation,
       );
-      if (_cancellation.isCancelled) return const ActionResult.success();
+      if (!isAlive) return const ActionResult.success();
       // jsonplaceholder answers with the comment it recorded and stores
       // nothing, so the thread keeps the echo rather than re-reading a source
       // that has already forgotten it.
@@ -83,7 +75,7 @@ class CommentViewModel extends ViewModel {
     } catch (error, stackTrace) {
       // A write the route walked away from is neither a result nor an error: it
       // never reaches the signal the page is no longer watching.
-      if (_cancellation.isCancelled || error is CancelledException) {
+      if (!isAlive || error is CancelledException) {
         return const ActionResult.failure('Could not add comment.');
       }
       _create.setError(error, stackTrace);
@@ -103,11 +95,10 @@ class CommentViewModel extends ViewModel {
   String _formValue(CommentFormField field) =>
       commentFormController.getValue(FormFieldKey(field)) ?? '';
 
-  // The provider calls this when the page unmounts. A disposed signal throws on a
-  // write, which is what the guards above are for.
+  // The base cancels the scope before this runs, so a response still on its way
+  // finds `isAlive` false and the guards above drop it.
   @override
-  void dispose() {
-    _cancellation.cancel();
+  void onDispose() {
     _comments.dispose();
     _create.dispose();
     commentFormController.dispose();

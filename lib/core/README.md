@@ -103,9 +103,56 @@ the generated accessor. Never read raw colors or hardcode `EdgeInsets.all(16)`.
 A view model is scoped to its route. When the route is pushed, the container
 creates it; when the route is popped, the container calls `dispose()`.
 
+The base owns the scope and ends it before the subclass releases anything, so a
+response that lands after the page is gone finds `isAlive` false and has nowhere
+to write. A subclass never writes the cancel itself:
+
 ```dart
-abstract interface class ViewModel {
-  void dispose();
+abstract class ViewModel {
+  final _scope = CancellationSource();
+
+  @protected
+  Cancellation get cancellation => _scope.token;
+
+  @protected
+  bool get isAlive => !_scope.isCancelled;
+
+  @nonVirtual
+  void dispose() {
+    if (!isAlive) return;
+    _scope.cancel();
+    onDispose();
+  }
+
+  @protected
+  void onDispose() {}
+}
+```
+
+`cancellation` goes to every use case, so the request is dropped at the
+transport; `isAlive` is read after every `await`, before touching a signal or a
+form controller — a write to a disposed signal throws
+`SignalsWriteAfterDisposeError`, in release as well as debug.
+
+```dart
+@Injectable(scope: Scope.factory)
+class PostViewModel extends ViewModel {
+  final _posts = asyncSignal<List<Post>>(AsyncState.loading());
+
+  Future<void> loadPosts() async {
+    _posts.setLoading();
+    try {
+      final posts = await _getPosts(cancellation: cancellation);
+      if (!isAlive) return;
+      _posts.setValue(posts);
+    } catch (error, stackTrace) {
+      if (!isAlive || error is CancelledException) return;
+      _posts.setError(error, stackTrace);
+    }
+  }
+
+  @override
+  void onDispose() => _posts.dispose();
 }
 ```
 
@@ -115,9 +162,10 @@ a changing signal rebuilds.
 
 ```dart
 // A view model exposes signals:
-class PostViewModel implements ViewModel {
-  final posts = signal<AsyncState<List<Post>>>(const AsyncLoading());
-  ...
+class PostViewModel extends ViewModel {
+  final _posts = asyncSignal<List<Post>>(AsyncState.loading());
+
+  ReadonlySignal<AsyncState<List<Post>>> get posts => _posts;
 }
 
 // The view watches them:
@@ -133,14 +181,15 @@ class PostsHomeView extends StatelessWidget {
     });
   }
 }
+
 ```
 
 A view model never imports Flutter widgets (`package:flutter/material.dart`,
 etc.). It imports only:
 
 - `domain/`: entities and the use cases it was built with.
-- `core/async/cancellation.dart`: for the token it hands to use case calls.
-- `core/presentation/view_model.dart`: the `ViewModel` interface.
+- `core/presentation/view_model.dart`: the `ViewModel` base, which is where the
+  token and `isAlive` come from.
 - `package:signals/signals.dart`: reactive primitives.
 
 This keeps view models testable with plain `test()` without a widget tester.
@@ -150,34 +199,35 @@ This keeps view models testable with plain `test()` without a widget tester.
 When a user leaves a screen, in-flight HTTP requests started by that screen —
 reads and writes alike — are cancelled through `Cancellation`:
 
-1. The `ViewModel` creates a `CancellationSource`.
-2. Every use case call receives `source.token`, and every use case hands it to
+1. The `ViewModel` base creates a `CancellationSource` and exposes its token as
+   `cancellation`.
+2. Every use case call receives `cancellation`, and every use case hands it to
    the repository.
-3. In `dispose()`, the view model calls `source.cancel()`.
+3. `dispose()` cancels the scope first, then calls `onDispose()`.
 4. The repository adapter passes the token to Dio's `CancelToken`.
 
 ```dart
 // In a view model:
-class PostViewModel implements ViewModel {
+class PostViewModel extends ViewModel {
   PostViewModel(this._getPosts);
 
   final GetPostsUseCase _getPosts;
-  final _cancellation = CancellationSource();
 
   Future<void> load() async {
     try {
-      final posts = await _getPosts(cancellation: _cancellation.token);
+      final posts = await _getPosts(cancellation: cancellation);
+      if (!isAlive) return;
       this.posts.value = AsyncData(posts);
     } catch (e) {
-      // If cancelled because the screen was popped, ignore.
-      if (_cancellation.isCancelled) return;
+      // If dropped because the screen was popped, publish nothing.
+      if (!isAlive) return;
       posts.value = AsyncError(e);
     }
   }
 
   @override
-  void dispose() {
-    _cancellation.cancel();
+  void onDispose() {
+    posts.dispose();
   }
 }
 ```

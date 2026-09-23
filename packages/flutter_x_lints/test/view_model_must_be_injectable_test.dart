@@ -116,6 +116,19 @@ abstract class PostsListViewModel extends ViewModel {
     await assertNoDiagnostics(_viewModelBase);
   }
 
+  void test_a_view_model_declared_in_a_test_directory() async {
+    // A test builds its doubles by hand, and the container never builds one.
+    final path = '$testPackageTestPath/post_view_model_test.dart';
+    newFile(path, '''
+$_viewModelBase
+class _TestViewModel extends ViewModel {
+  _TestViewModel();
+}
+''');
+
+    await assertDiagnosticsInFile(path, []);
+  }
+
   void test_a_look_alike_annotation_is_not_the_container_one() async {
     // The annotation resolves to another package's class, which registers
     // nothing, so the view model still cannot be built.

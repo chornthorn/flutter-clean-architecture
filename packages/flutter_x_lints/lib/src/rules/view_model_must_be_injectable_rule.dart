@@ -13,6 +13,9 @@ import '../visitors/view_model_must_be_injectable_visitor.dart';
 /// generates. A view model without it compiles and then fails at the moment the
 /// screen is opened — or worse, is reached for through the service locator
 /// instead, which is the reach `no_get_it_in_ui` forbids.
+///
+/// A test is the one place a view model is built by hand on purpose, so a
+/// package's `test/` directory is exempt.
 class ViewModelMustBeInjectableRule extends AnalysisRule {
   ViewModelMustBeInjectableRule()
     : super(
@@ -36,6 +39,10 @@ class ViewModelMustBeInjectableRule extends AnalysisRule {
     RuleVisitorRegistry registry,
     RuleContext context,
   ) {
+    // A test constructs a view model directly, and a double it declares is not
+    // something the container ever builds.
+    if (context.isInTestDirectory) return;
+
     registry.addClassDeclaration(this, ViewModelMustBeInjectableVisitor(this));
   }
 }
