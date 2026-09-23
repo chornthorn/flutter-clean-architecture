@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/features/shop/domain/entities/cart.dart';
-import 'package:flutter_x/features/shop/presentation/view_models/shop_product_view_model.dart';
 import 'package:flutter_x/features/shop/presentation/views/shop_product_view.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -9,7 +8,7 @@ import '../../../../app/view_host.dart';
 import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_cart_repository.dart';
 import '../../domain/repositories/mock_product_repository.dart';
-import '../../shop_dispatcher_fixture.dart';
+import '../../shop_view_model_fixture.dart';
 
 void main() {
   setUpAll(() => registerFallbackValue(const Cart.empty()));
@@ -22,9 +21,7 @@ void main() {
       when(() => repository.productById('sku-42'))
           .thenAnswer((_) async => product);
 
-      final viewModel = ShopProductViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      final viewModel = shopProductViewModel(repository);
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');
 
@@ -41,9 +38,7 @@ void main() {
       final repository = MockProductRepository();
       when(() => repository.productById('nope')).thenAnswer((_) async => null);
 
-      final viewModel = ShopProductViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      final viewModel = shopProductViewModel(repository);
       addTearDown(viewModel.dispose);
       await viewModel.load('nope');
 
@@ -61,10 +56,8 @@ void main() {
       when(() => repository.productById('sku-42'))
           .thenAnswer((_) async => product);
 
-      // Real cart: the count is the query's answer, not the button's.
-      final viewModel = ShopProductViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      // Real cart: the count is the use case's answer, not the button's.
+      final viewModel = shopProductViewModel(repository);
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');
 
@@ -87,9 +80,7 @@ void main() {
       when(() => cart.cart()).thenAnswer((_) async => const Cart.empty());
       when(() => cart.save(any())).thenAnswer((_) async => throw Exception());
 
-      final viewModel = ShopProductViewModel(
-        dispatcher: shopDispatcher(repository, cart: cart),
-      );
+      final viewModel = shopProductViewModel(repository, cart: cart);
       addTearDown(viewModel.dispose);
       await viewModel.load('sku-42');
 

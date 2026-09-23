@@ -7,16 +7,30 @@ import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/form/app_form_controller.dart';
 import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/post.dart';
-import '../../domain/usecases/create_post_command.dart';
-import '../../domain/usecases/delete_post_command.dart';
-import '../../domain/usecases/get_post_query.dart';
-import '../../domain/usecases/get_posts_query.dart';
-import '../../domain/usecases/update_post_command.dart';
+import '../../domain/usecases/create_post_use_case.dart';
+import '../../domain/usecases/delete_post_use_case.dart';
+import '../../domain/usecases/get_post_use_case.dart';
+import '../../domain/usecases/get_posts_use_case.dart';
+import '../../domain/usecases/update_post_use_case.dart';
 import '../forms/post_form_field.dart';
 
 @Injectable(scope: Scope.factory)
 class PostViewModel extends ViewModel {
-  PostViewModel({required super.dispatcher});
+  PostViewModel({
+    required this._getPosts,
+    required this._getPost,
+    required this._createPost,
+    required this._updatePost,
+    required this._deletePost,
+  });
+
+  // The screen's reads and writes, each one the domain's own entry point rather
+  // than a message the view model has to name.
+  final GetPostsUseCase _getPosts;
+  final GetPostUseCase _getPost;
+  final CreatePostUseCase _createPost;
+  final UpdatePostUseCase _updatePost;
+  final DeletePostUseCase _deletePost;
 
   // jsonplaceholder only echoes this back, and the demo has no signed-in user.
   static const _authorId = 1;
@@ -66,7 +80,7 @@ class PostViewModel extends ViewModel {
     _posts.setLoading();
 
     try {
-      final posts = await dispatcher.query(GetPostsQuery(cancellation: _cancellation.token));
+      final posts = await _getPosts(cancellation: _cancellation.token);
       if (_cancellation.isCancelled) return;
       _posts.setValue(posts);
     } catch (error, stackTrace) {
@@ -79,7 +93,7 @@ class PostViewModel extends ViewModel {
     _post.setLoading();
 
     try {
-      final post = await dispatcher.query(GetPostQuery(id, cancellation: _cancellation.token));
+      final post = await _getPost(id, cancellation: _cancellation.token);
       if (_cancellation.isCancelled) return;
       _post.setValue(post);
     } catch (error, stackTrace) {
@@ -97,8 +111,8 @@ class PostViewModel extends ViewModel {
     _create.setLoading();
 
     try {
-      await dispatcher.command(CreatePostCommand(userId: _authorId, title: title, body: body));
-      final posts = await dispatcher.query(GetPostsQuery(cancellation: _cancellation.token));
+      await _createPost(userId: _authorId, title: title, body: body);
+      final posts = await _getPosts(cancellation: _cancellation.token);
       if (_cancellation.isCancelled) return const ActionResult.success();
       _posts.setValue(posts);
       _create.setValue(null);
@@ -126,8 +140,8 @@ class PostViewModel extends ViewModel {
     _update.setLoading();
 
     try {
-      await dispatcher.command(UpdatePostCommand(id: id, title: title, body: body));
-      final updated = await dispatcher.query(GetPostQuery(id, cancellation: _cancellation.token));
+      await _updatePost(id: id, title: title, body: body);
+      final updated = await _getPost(id, cancellation: _cancellation.token);
       if (_cancellation.isCancelled) return const ActionResult.success();
       _post.setValue(updated);
       _update.setValue(null);
@@ -152,7 +166,7 @@ class PostViewModel extends ViewModel {
     _delete.setLoading();
 
     try {
-      await dispatcher.command(DeletePostCommand(id));
+      await _deletePost(id);
       if (_cancellation.isCancelled) return const ActionResult.success();
       _delete.setValue(null);
       return const ActionResult.success('Post deleted successfully.');

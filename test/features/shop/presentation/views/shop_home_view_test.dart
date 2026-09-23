@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/features/shop/domain/entities/product.dart';
-import 'package:flutter_x/features/shop/presentation/view_models/shop_home_view_model.dart';
 import 'package:flutter_x/features/shop/presentation/views/shop_home_view.dart';
 import 'package:flutter_x/features/shop/presentation/widgets/product_tile.dart';
 import 'package:mocktail/mocktail.dart';
@@ -11,7 +10,7 @@ import 'package:mocktail/mocktail.dart';
 import '../../../../app/view_host.dart';
 import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_product_repository.dart';
-import '../../shop_dispatcher_fixture.dart';
+import '../../shop_view_model_fixture.dart';
 
 void main() {
   group('ShopHomeView', () {
@@ -21,9 +20,7 @@ void main() {
       final repository = MockProductRepository();
       when(() => repository.allProducts())
           .thenAnswer((_) => Completer<List<Product>>().future);
-      final viewModel = ShopHomeViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      final viewModel = shopHomeViewModel(repository);
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
 
@@ -37,9 +34,7 @@ void main() {
       final completer = Completer<List<Product>>();
       final repository = MockProductRepository();
       when(() => repository.allProducts()).thenAnswer((_) => completer.future);
-      final viewModel = ShopHomeViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      final viewModel = shopHomeViewModel(repository);
       addTearDown(viewModel.dispose);
       unawaited(viewModel.load());
 
@@ -57,9 +52,7 @@ void main() {
       final repository = MockProductRepository();
       when(() => repository.allProducts())
           .thenAnswer((_) async => throw Exception('offline'));
-      final viewModel = ShopHomeViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      final viewModel = shopHomeViewModel(repository);
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
@@ -71,9 +64,7 @@ void main() {
     testWidgets('should say so when the catalog is empty', (tester) async {
       final repository = MockProductRepository();
       when(() => repository.allProducts()).thenAnswer((_) async => const []);
-      final viewModel = ShopHomeViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      final viewModel = shopHomeViewModel(repository);
       addTearDown(viewModel.dispose);
       await viewModel.load();
 
@@ -94,9 +85,7 @@ void main() {
         if (attempts == 1) throw Exception('offline');
         return const [product];
       });
-      final viewModel = ShopHomeViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      final viewModel = shopHomeViewModel(repository);
       addTearDown(viewModel.dispose);
       await viewModel.load();
 

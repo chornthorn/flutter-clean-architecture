@@ -58,11 +58,11 @@ rule silently.
 | :-------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------- |
 | `layer_dependency_direction`                  | A feature layer imports a layer outside it.                                                                                      |
 | `no_context_watch_in_callback`                | `context.watch` is called inside a function literal passed to an `on...` argument.                                               |
+| `no_cqrs_dispatch`                            | `CqrsDispatcher.command`/`.query` is called anywhere, or `.publish` outside a `usecases/` directory, outside `test/`.            |
 | `no_cqrs_in_widgets`                          | A library that declares a `Widget` (or `State`) imports `package:cqrs`.                                                          |
-| `no_dispatcher_outside_view_model`            | `CqrsDispatcher.command`/`.query` is called outside a `ViewModel` subclass, outside `test/`.                                     |
 | `no_flutter_ui_in_inner_layers`               | `domain` or `infrastructure` imports a Flutter widget package or `dart:ui`.                                                      |
 | `no_get_it_in_ui`                             | A library that declares a widget, or a file under `presentation/`, imports `package:get_it` or calls through a `GetIt` instance. |
-| `usecase_handler_must_be_injectable`          | A concrete `CommandHandler`, `QueryHandler` or `EventHandler` is not annotated `@Injectable`.                                    |
+| `usecase_must_be_injectable`                  | A concrete `CommandHandler`, `QueryHandler` or `EventHandler`, or a use case under `usecases/`, is not annotated `@Injectable`.  |
 | `view_model_exposes_readonly_signals`         | A `ViewModel` getter exposes a writable signal rather than a `ReadonlySignal`.                                                   |
 | `view_model_must_be_injectable`               | A concrete `ViewModel` subclass is not annotated `@Injectable`.                                                                  |
 | `view_model_must_extend_base`                 | A class declared under a `view_models/` directory does not extend or implement `ViewModel`.                                      |
@@ -182,16 +182,38 @@ Every enclosing literal is checked, so a `watch` buried in a `forEach` inside an
 `onPressed` still counts. A declaration ends the search: a method the handler
 calls is not itself the handler.
 
-### How `usecase_handler_must_be_injectable` decides
+### How `no_cqrs_dispatch` decides
+
+The call is resolved to `command`, `query`, `publish` or `publishAll` on
+`CommandDispatcher`, `QueryDispatcher` or `EventPublisher` **from the `cqrs`
+package** — `CqrsDispatcher` only implements them, so matching the concrete name
+would never fire against the real package.
+
+A read or a write is a use case, so `command` and `query` are reported wherever
+they appear. `publish` is the module-to-module message and is allowed from a file
+under a `usecases/` directory, where the module that raises the event owns it.
+
+Files in a package's `test/` directory are exempt: a test drives the dispatcher
+on purpose, and that is the seam being tested.
+
+### How `usecase_must_be_injectable` decides
+
+Two shapes count, and neither is recognised by its name.
 
 A class is a handler when its resolved supertypes include `CommandHandler`,
 `QueryHandler` or `EventHandler` **from the `cqrs` package**. The contract, not
 the name and not the folder: a handler declared anywhere is covered, and a
 project's own `QueryHandler` look-alike is not.
 
-An `abstract` handler is exempt — the container builds the concrete ones.
-The `@Injectable` check itself is shared with `view_model_must_be_injectable`,
-and resolves the annotation to `injectify`.
+A class is a use case when it is declared under a `usecases/` directory — the
+same folder-is-the-signal reading as `view_model_must_extend_base` — unless it
+extends `Command`, `Query` or `Event` from `cqrs`. A message is the data a
+handler takes, not something the container builds.
+
+An `abstract` class is exempt: the container builds the concrete ones. So is a
+private class, which is the file's own helper. The `@Injectable` check itself is
+shared with `view_model_must_be_injectable`, and resolves the annotation to
+`injectify`.
 
 ### How `view_model_must_be_injectable` decides
 
@@ -235,11 +257,11 @@ plugins:
     diagnostics:
       layer_dependency_direction: error
       no_context_watch_in_callback: error
+      no_cqrs_dispatch: error
       no_cqrs_in_widgets: error
-      no_dispatcher_outside_view_model: error
       no_flutter_ui_in_inner_layers: error
       no_get_it_in_ui: error
-      usecase_handler_must_be_injectable: error
+      usecase_must_be_injectable: error
       view_model_exposes_readonly_signals: error
       view_model_must_be_injectable: error
       view_model_must_extend_base: error

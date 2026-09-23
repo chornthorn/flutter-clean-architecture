@@ -27,7 +27,7 @@ dart run build_runner clean         # ...then this, before the next build
 ```
 
 See `docs/architecture.md` for the architecture, and run codegen again after
-adding a handler, an `@Injectable`, an endpoint, or a design token.
+adding a use case, an `@Injectable`, an endpoint, or a design token.
 
 ## Running
 

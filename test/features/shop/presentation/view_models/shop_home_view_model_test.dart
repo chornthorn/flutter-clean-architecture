@@ -2,13 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/features/shop/domain/entities/product.dart';
-import 'package:flutter_x/features/shop/presentation/view_models/shop_home_view_model.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:signals/signals_flutter.dart';
 
 import '../../domain/entities/product_fixture.dart';
 import '../../domain/repositories/mock_product_repository.dart';
-import '../../shop_dispatcher_fixture.dart';
+import '../../shop_view_model_fixture.dart';
 
 void main() {
   group('ShopHomeViewModel', () {
@@ -17,9 +16,7 @@ void main() {
       final repository = MockProductRepository();
       when(() => repository.allProducts()).thenAnswer((_) => completer.future);
 
-      final viewModel = ShopHomeViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      final viewModel = shopHomeViewModel(repository);
       addTearDown(viewModel.dispose);
 
       final load = viewModel.load();
@@ -39,14 +36,12 @@ void main() {
       expect(viewModel.products.value.isLoading, isFalse);
     });
 
-    test('should expose the catalog read through the query', () async {
+    test('should expose the catalog read through the use case', () async {
       final repository = MockProductRepository();
       when(() => repository.allProducts())
           .thenAnswer((_) async => const [product]);
 
-      final viewModel = ShopHomeViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      final viewModel = shopHomeViewModel(repository);
       addTearDown(viewModel.dispose);
 
       await viewModel.load();
@@ -64,9 +59,7 @@ void main() {
       when(() => repository.allProducts())
           .thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = ShopHomeViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      final viewModel = shopHomeViewModel(repository);
       addTearDown(viewModel.dispose);
 
       await expectLater(viewModel.load(), completes);
@@ -82,9 +75,7 @@ void main() {
       final repository = MockProductRepository();
       when(() => repository.allProducts()).thenAnswer((_) => completer.future);
 
-      final viewModel = ShopHomeViewModel(
-        dispatcher: shopDispatcher(repository),
-      );
+      final viewModel = shopHomeViewModel(repository);
       // Everything the read pushed, checked after the page disposed the signal.
       final pushed = <AsyncState<List<Product>>>[];
       addTearDown(viewModel.products.subscribe(pushed.add));

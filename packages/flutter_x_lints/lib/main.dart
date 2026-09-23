@@ -9,11 +9,11 @@ import 'package:analysis_server_plugin/registry.dart';
 
 import 'src/rules/layer_dependency_direction_rule.dart';
 import 'src/rules/no_context_watch_in_callback_rule.dart';
+import 'src/rules/no_cqrs_dispatch_rule.dart';
 import 'src/rules/no_cqrs_in_widgets_rule.dart';
-import 'src/rules/no_dispatcher_outside_view_model_rule.dart';
 import 'src/rules/no_flutter_ui_in_inner_layers_rule.dart';
 import 'src/rules/no_get_it_in_ui_rule.dart';
-import 'src/rules/usecase_handler_must_be_injectable_rule.dart';
+import 'src/rules/usecase_must_be_injectable_rule.dart';
 import 'src/rules/view_model_exposes_readonly_signals_rule.dart';
 import 'src/rules/view_model_must_be_injectable_rule.dart';
 import 'src/rules/view_model_must_extend_base_rule.dart';
@@ -31,11 +31,11 @@ class FlutterXLintsPlugin extends Plugin {
     // one here never starts failing somebody else's build.
     registry.registerLintRule(LayerDependencyDirectionRule());
     registry.registerLintRule(NoContextWatchInCallbackRule());
+    registry.registerLintRule(NoCqrsDispatchRule());
     registry.registerLintRule(NoCqrsInWidgetsRule());
-    registry.registerLintRule(NoDispatcherOutsideViewModelRule());
     registry.registerLintRule(NoFlutterUiInInnerLayersRule());
     registry.registerLintRule(NoGetItInUiRule());
-    registry.registerLintRule(UsecaseHandlerMustBeInjectableRule());
+    registry.registerLintRule(UsecaseMustBeInjectableRule());
     registry.registerLintRule(ViewModelExposesReadonlySignalsRule());
     registry.registerLintRule(ViewModelMustBeInjectableRule());
     registry.registerLintRule(ViewModelMustExtendBaseRule());

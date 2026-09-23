@@ -8,14 +8,9 @@ void main() {
   });
 }
 
-/// The base as the app declares it: a dispatcher and the lifecycle the route
-/// calls on unmount.
+/// The base as the app declares it: the lifecycle the route calls on unmount.
 const _base = '''
 abstract class ViewModel {
-  ViewModel(this.dispatcher);
-
-  final Object dispatcher;
-
   void dispose() {}
 }
 ''';
@@ -51,7 +46,7 @@ class PostViewModel {
     newFile(path, '''
 $_base
 class PostViewModel extends ViewModel {
-  PostViewModel(super.dispatcher);
+  PostViewModel();
 }
 ''');
 
@@ -63,11 +58,6 @@ class PostViewModel extends ViewModel {
     newFile(path, '''
 $_base
 class PostViewModel implements ViewModel {
-  PostViewModel(this.dispatcher);
-
-  @override
-  final Object dispatcher;
-
   @override
   void dispose() {}
 }
@@ -81,11 +71,11 @@ class PostViewModel implements ViewModel {
     newFile(path, '''
 $_base
 class PostsHomeViewModel extends ViewModel {
-  PostsHomeViewModel(super.dispatcher);
+  PostsHomeViewModel();
 }
 
 class PostDetailViewModel extends PostsHomeViewModel {
-  PostDetailViewModel(super.dispatcher);
+  PostDetailViewModel();
 }
 ''');
 
@@ -98,7 +88,7 @@ class PostDetailViewModel extends PostsHomeViewModel {
         '''
 $_base
 class PostViewModel extends ViewModel {
-  PostViewModel(super.dispatcher);
+  PostViewModel();
 }
 
 class PostDraftViewModel {

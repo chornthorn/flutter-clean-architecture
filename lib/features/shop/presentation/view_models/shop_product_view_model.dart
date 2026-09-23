@@ -3,15 +3,25 @@ import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/product.dart';
-import '../../domain/usecases/add_product_to_cart_command.dart';
-import '../../domain/usecases/get_cart_query.dart';
-import '../../domain/usecases/get_product_query.dart';
+import '../../domain/usecases/add_product_to_cart_use_case.dart';
+import '../../domain/usecases/get_cart_use_case.dart';
+import '../../domain/usecases/get_product_use_case.dart';
 
 // State for the single-product screen: one signal per use case, per
 // `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
 class ShopProductViewModel extends ViewModel {
-  ShopProductViewModel({required super.dispatcher});
+  ShopProductViewModel({
+    required this._getProduct,
+    required this._getCart,
+    required this._addProductToCart,
+  });
+
+  // The screen's reads and its one write, each one the domain's own entry point
+  // rather than a message the view model has to name.
+  final GetProductUseCase _getProduct;
+  final GetCartUseCase _getCart;
+  final AddProductToCartUseCase _addProductToCart;
 
   bool _isDisposed = false;
 
@@ -27,13 +37,13 @@ class ShopProductViewModel extends ViewModel {
   ReadonlySignal<AsyncState<void>> get add => _add;
   ReadonlySignal<int> get cartCount => _cartCount;
 
-  // The page's one load, over the two queries it needs.
+  // The page's one load, over the two reads it needs.
   Future<void> load(String id) async {
     _product.setLoading();
 
     try {
-      final product = await dispatcher.query(GetProductQuery(id));
-      final cart = await dispatcher.query(const GetCartQuery());
+      final product = await _getProduct(id);
+      final cart = await _getCart();
       if (_isDisposed) return;
       _product.setValue(product);
       _cartCount.value = cart.itemCount;
@@ -50,8 +60,8 @@ class ShopProductViewModel extends ViewModel {
     _add.setLoading();
 
     try {
-      await dispatcher.command(AddProductToCartCommand(id));
-      final cart = await dispatcher.query(const GetCartQuery());
+      await _addProductToCart(id);
+      final cart = await _getCart();
       if (_isDisposed) return;
       _cartCount.value = cart.itemCount;
       _add.setValue(null);

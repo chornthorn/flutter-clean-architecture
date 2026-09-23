@@ -1,9 +1,8 @@
-import 'package:cqrs/cqrs.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/features/posts/domain/repositories/comment_repository.dart';
 import 'package:flutter_x/features/posts/domain/repositories/post_repository.dart';
-import 'package:flutter_x/features/posts/domain/usecases/get_comments_query.dart';
-import 'package:flutter_x/features/posts/domain/usecases/get_posts_query.dart';
+import 'package:flutter_x/features/posts/domain/usecases/get_comments_use_case.dart';
+import 'package:flutter_x/features/posts/domain/usecases/get_posts_use_case.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_comment_repository.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_post_repository.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/remote_comment_repository.dart';
@@ -43,7 +42,7 @@ void main() {
     () async {
       await configureDependencies(environment: Environment.test);
 
-      final posts = await getIt<CqrsDispatcher>().query(const GetPostsQuery());
+      final posts = await getIt<GetPostsUseCase>()();
 
       expect(posts, contains(post));
     },
@@ -76,9 +75,7 @@ void main() {
     () async {
       await configureDependencies(environment: Environment.test);
 
-      final comments = await getIt<CqrsDispatcher>().query(
-        const GetCommentsQuery(1),
-      );
+      final comments = await getIt<GetCommentsUseCase>()(1);
 
       expect(comments, contains(comment));
     },

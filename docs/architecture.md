@@ -23,8 +23,8 @@ lib/
   features/
     <name>/
       <name>_module.dart        routes + RouteModule + URL codec + DI module
-      <name>_handler.dart       the feature's CQRS module, where it has handlers
-      domain/                   entities, queries and their handlers, contracts
+      <name>_handler.dart       the feature's CQRS module, where it has events
+      domain/                   entities, use cases, contracts
       infrastructure/           adapters implementing the contracts
       presentation/             views, view models, widgets
 features/profile/                   a micro-package: its own pubspec, its own manifest
@@ -101,6 +101,64 @@ final class ProfileMount extends AppRoute {
 // URL:    ProfileMount() => _mp1.ProfileKaiselModule.profileMount.url,
 ```
 
+## Screen state
+
+A screen's state holder takes the use cases it needs through its constructor, and
+the container builds it. The base carries the lifecycle and nothing else:
+
+```dart
+abstract class ViewModel {
+  void dispose();
+}
+```
+
+A use case is a pure class in `domain/usecases/` — one call, one responsibility,
+`@Injectable` so the container can build it:
+
+```dart
+@Injectable(scope: Scope.factory)
+class GetPostsUseCase {
+  const GetPostsUseCase(this._posts);
+
+  final PostRepository _posts;
+
+  Future<List<Post>> call({Cancellation? cancellation}) =>
+      _posts.allPosts(cancellation: cancellation);
+}
+```
+
+```dart
+@Injectable(scope: Scope.factory)
+class PostViewModel extends ViewModel {
+  PostViewModel({required GetPostsUseCase getPosts, ...}) : _getPosts = getPosts;
+
+  final GetPostsUseCase _getPosts;
+}
+```
+
+A view model holds one `AsyncSignal` per use case, exposes each as a
+`ReadonlySignal`, and is disposed by the route's provider when the page unmounts.
+
+## CQRS
+
+The dispatcher is not how a feature reaches the domain. A read or a write is a
+use case; dispatching one hands the decision to whoever holds the dispatcher, and
+with it the cancellation and the error state the view model owes the route.
+`no_cqrs_dispatch` enforces that, and it leaves exactly one call in place.
+
+What the dispatcher is kept for is the module-to-module message: an event a use
+case publishes for whoever cares, with no caller waiting on an answer. The shop
+is the app's one example — `AddProductToCartUseCase` is the only place a feature
+holds a dispatcher:
+
+```dart
+await _dispatcher.publish(
+  ProductAddedToCartEvent(product.id, updated.itemCount),
+);
+```
+
+`ProductAddedToCartAuditHandler` is the listener. Everything else is a use case.
+
 ## Mapping from the iOS reference
 
 | iOS (CRMApp)                         | Flutter here                                                       | Notes                                                                                                                                                                                                                                                                                                                                                   |
@@ -114,4 +172,4 @@ final class ProfileMount extends AppRoute {
 | `Features/Leads/Presentation/Views/` | `features/<name>/presentation/views/`                              | `LeadListView.swift` → `shop_home_view.dart`.                                                                                                                                                                                                                                                                                                           |
 | `.../Presentation/ViewModels/`       | `presentation/view_models/`                                        | One per view — a page with a self-contained section holds one for the section too, as the post detail holds the post's and its thread's — each holding one `AsyncSignal` per use case. See [Screen state](#screen-state).                                                                                                                               |
 | `.../Domain/Entities/`               | `domain/entities/`                                                 |                                                                                                                                                                                                                                                                                                                                                         |
-| `.../Domain/UseCases/`               | `domain/usecases/`                                                 | A use case is a query (or command) plus its handler, in one file. Both live in Domain — there is no separate application layer.                                                                                                                                                                                                                         |
+| `.../Domain/UseCases/`               | `domain/usecases/`                                                 | A use case is a pure class: one call, one responsibility, `@Injectable` so the container can build it. All of it lives in Domain — there is no separate application layer. See [Screen state](#screen-state).                                                                                                                                           |

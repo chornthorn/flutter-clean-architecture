@@ -3,7 +3,6 @@ import 'package:dio/dio.dart';
 import 'package:injectify/injectify.dart';
 
 import 'core/networking/network_client.dart';
-import 'features/posts/posts_handler.dart';
 import 'features/shop/shop_handler.dart';
 import 'provider.config.dart';
 import 'provider.cqrs.dart';
@@ -23,11 +22,15 @@ Future<void> configureDependencies({required String environment}) async {
 }
 
 // The app's CQRS entry point: a compositor over each feature's handler module.
+//
+// Only the module that still carries a message appears here. Both features
+// reach the domain through the use cases their view models are built with;
+// shop keeps one event, which is the module-to-module traffic CQRS is here for.
 @CqrsInit(
   moduleName: 'App',
   useMicroPackage: true,
   generateInjectable: true,
-  modules: [ShopCqrsModule, PostsCqrsModule],
+  modules: [ShopCqrsModule],
 )
 void configureCqrs() {}
 

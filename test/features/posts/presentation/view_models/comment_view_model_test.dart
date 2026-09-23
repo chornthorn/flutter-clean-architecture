@@ -6,13 +6,12 @@ import 'package:flutter_x/core/presentation/form/app_form_controller.dart';
 import 'package:flutter_x/features/posts/domain/entities/comment.dart';
 import 'package:flutter_x/features/posts/infrastructure/repositories/in_memory_comment_repository.dart';
 import 'package:flutter_x/features/posts/presentation/forms/comment_form_field.dart';
-import 'package:flutter_x/features/posts/presentation/view_models/comment_view_model.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:signals/signals_flutter.dart';
 
 import '../../domain/entities/comment_fixture.dart';
 import '../../domain/repositories/mock_comment_repository.dart';
-import '../../posts_dispatcher_fixture.dart';
+import '../../posts_view_model_fixture.dart';
 
 void main() {
   group('CommentViewModel', () {
@@ -25,9 +24,7 @@ void main() {
         ),
       ).thenAnswer((_) async => const [comment]);
 
-      final viewModel = CommentViewModel(
-        dispatcher: commentsDispatcher(repository),
-      );
+      final viewModel = commentsViewModel(repository);
       addTearDown(viewModel.dispose);
 
       expect(viewModel.comments.value.isLoading, isTrue);
@@ -47,9 +44,7 @@ void main() {
         ),
       ).thenAnswer((_) async => const []);
 
-      final viewModel = CommentViewModel(
-        dispatcher: commentsDispatcher(repository),
-      );
+      final viewModel = commentsViewModel(repository);
       addTearDown(viewModel.dispose);
 
       await viewModel.load(2);
@@ -67,9 +62,7 @@ void main() {
         ),
       ).thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = CommentViewModel(
-        dispatcher: commentsDispatcher(repository),
-      );
+      final viewModel = commentsViewModel(repository);
       addTearDown(viewModel.dispose);
 
       await viewModel.load(1);
@@ -81,9 +74,7 @@ void main() {
     test(
       'should start the write settled, so the page does not read it in flight',
       () {
-        final viewModel = CommentViewModel(
-          dispatcher: commentsDispatcher(InMemoryCommentRepository()),
-        );
+        final viewModel = commentsViewModel(InMemoryCommentRepository());
         addTearDown(viewModel.dispose);
 
         expect(viewModel.create.value.isLoading, isFalse);
@@ -94,9 +85,7 @@ void main() {
     test(
       'should add the comment the store records to the thread it holds',
       () async {
-        final viewModel = CommentViewModel(
-          dispatcher: commentsDispatcher(InMemoryCommentRepository()),
-        );
+        final viewModel = commentsViewModel(InMemoryCommentRepository());
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
 
@@ -137,9 +126,7 @@ void main() {
     test(
       'should keep the thread off the post a comment was added to',
       () async {
-        final viewModel = CommentViewModel(
-          dispatcher: commentsDispatcher(InMemoryCommentRepository()),
-        );
+        final viewModel = commentsViewModel(InMemoryCommentRepository());
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
 
@@ -157,9 +144,7 @@ void main() {
     );
 
     test('should return ActionFailure with field errors and bind to commentFormController when validation fails', () async {
-      final viewModel = CommentViewModel(
-        dispatcher: commentsDispatcher(InMemoryCommentRepository()),
-      );
+      final viewModel = commentsViewModel(InMemoryCommentRepository());
       addTearDown(viewModel.dispose);
 
       viewModel.commentFormController.setValues({
@@ -201,9 +186,7 @@ void main() {
           ),
         ).thenAnswer((_) async => throw Exception('offline'));
 
-        final viewModel = CommentViewModel(
-          dispatcher: commentsDispatcher(repository),
-        );
+        final viewModel = commentsViewModel(repository);
         addTearDown(viewModel.dispose);
         await viewModel.load(1);
 
@@ -232,9 +215,7 @@ void main() {
         ),
       ).thenAnswer((_) => completer.future);
 
-      final viewModel = CommentViewModel(
-        dispatcher: commentsDispatcher(repository),
-      );
+      final viewModel = commentsViewModel(repository);
       final pushed = <AsyncState<List<Comment>>>[];
       addTearDown(viewModel.comments.subscribe(pushed.add));
 

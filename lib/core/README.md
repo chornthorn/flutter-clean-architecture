@@ -62,7 +62,7 @@ The architecture separates error responsibilities cleanly across layers without 
 4. **Domain Validation (`core/error/app_exception.dart`)**:
    Domain business rules throw `ValidationException(message: ..., fieldErrors: ...)`. Because this class is pure Dart, Domain remains isolated from Flutter or IO.
 5. **Action Outcomes (`core/presentation/action_result.dart`)**:
-   Commands and ViewModels return `ActionResult` (`ActionSuccess`, `ActionFailure`), encapsulating user-facing messages and field error maps.
+   ViewModels return `ActionResult` (`ActionSuccess`, `ActionFailure`), encapsulating user-facing messages and field error maps. Use cases throw; the view model is what turns a throw into a result the page can render.
 6. **Scoped Form Errors (`core/presentation/form/` & `core/design_system/components/app_text_field.dart`)**:
    - `AppFormScope`: wraps Flutter's `Form` with all parameters bundled under `options: AppFormOptions` and bridges server errors via `AppFormProvider`. Automatically defaults `Form.key` to `controller.formKey`.
    - `AppFormController`: reactive state holding field-level error messages and owning `formKey` (`GlobalKey<FormState>`). Provides convenience methods `validate()`, `save()`, and `reset()`.
@@ -138,8 +138,8 @@ class PostsHomeView extends StatelessWidget {
 A view model never imports Flutter widgets (`package:flutter/material.dart`,
 etc.). It imports only:
 
-- `domain/`: entities, use cases, repository contracts.
-- `core/async/cancellation.dart`: for the token it hands to repository calls.
+- `domain/`: entities and the use cases it was built with.
+- `core/async/cancellation.dart`: for the token it hands to use case calls.
 - `core/presentation/view_model.dart`: the `ViewModel` interface.
 - `package:signals/signals.dart`: reactive primitives.
 
@@ -158,11 +158,14 @@ cancelled through `Cancellation`:
 ```dart
 // In a view model:
 class PostViewModel implements ViewModel {
+  PostViewModel(this._getPosts);
+
+  final GetPostsUseCase _getPosts;
   final _cancellation = CancellationSource();
 
   Future<void> load() async {
     try {
-      final posts = await _repository.allPosts(cancellation: _cancellation.token);
+      final posts = await _getPosts(cancellation: _cancellation.token);
       this.posts.value = AsyncData(posts);
     } catch (e) {
       // If cancelled because the screen was popped, ignore.

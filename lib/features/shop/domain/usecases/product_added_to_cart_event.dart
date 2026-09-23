@@ -3,6 +3,9 @@ import 'package:injectify/injectify.dart';
 
 import '../repositories/audit_log.dart';
 
+// The one message the app still sends through `cqrs`: an event a module raises
+// for whoever cares, rather than a read or a write aimed at a handler.
+//
 // Raised once a product is in the cart.
 class ProductAddedToCartEvent extends Event {
   const ProductAddedToCartEvent(this.productId, this.itemCount);
@@ -11,7 +14,8 @@ class ProductAddedToCartEvent extends Event {
   final int itemCount;
 }
 
-// The audit reaction to the event.
+// The audit reaction to the event. A listener is free to ignore it, which is
+// what makes this a module boundary rather than a call.
 @Injectable(scope: Scope.factory)
 class ProductAddedToCartAuditHandler
     implements EventHandler<ProductAddedToCartEvent> {

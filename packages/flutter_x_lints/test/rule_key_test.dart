@@ -10,11 +10,11 @@ void main() {
     expect(RuleKey.values.map((key) => key.value).toList(), [
       'layer_dependency_direction',
       'no_context_watch_in_callback',
+      'no_cqrs_dispatch',
       'no_cqrs_in_widgets',
-      'no_dispatcher_outside_view_model',
       'no_flutter_ui_in_inner_layers',
       'no_get_it_in_ui',
-      'usecase_handler_must_be_injectable',
+      'usecase_must_be_injectable',
       'view_model_exposes_readonly_signals',
       'view_model_must_be_injectable',
       'view_model_must_extend_base',

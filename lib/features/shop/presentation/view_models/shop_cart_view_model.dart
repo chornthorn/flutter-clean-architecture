@@ -3,12 +3,14 @@ import 'package:signals/signals_flutter.dart';
 
 import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/product.dart';
-import '../../domain/usecases/get_cart_products_query.dart';
+import '../../domain/usecases/get_cart_products_use_case.dart';
 
 // State for the cart screen: one signal per use case, per `docs/architecture.md`.
 @Injectable(scope: Scope.factory)
 class ShopCartViewModel extends ViewModel {
-  ShopCartViewModel({required super.dispatcher});
+  ShopCartViewModel({required this._getCartProducts});
+
+  final GetCartProductsUseCase _getCartProducts;
 
   bool _isDisposed = false;
 
@@ -30,7 +32,7 @@ class ShopCartViewModel extends ViewModel {
     _products.setLoading();
 
     try {
-      final products = await dispatcher.query(const GetCartProductsQuery());
+      final products = await _getCartProducts();
       if (_isDisposed) return;
       _products.setValue(products);
     } catch (error, stackTrace) {

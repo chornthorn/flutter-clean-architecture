@@ -19,7 +19,7 @@ import '../../domain/entities/comment_fixture.dart';
 import '../../domain/entities/post_fixture.dart';
 import '../../domain/repositories/mock_comment_repository.dart';
 import '../../domain/repositories/mock_post_repository.dart';
-import '../../posts_dispatcher_fixture.dart';
+import '../../posts_view_model_fixture.dart';
 
 void main() {
   // The detail page reads two view models: the post's, and the thread's.
@@ -37,8 +37,8 @@ void main() {
     int postId = 1,
     CommentRepository? repository,
   }) async {
-    final viewModel = CommentViewModel(
-      dispatcher: commentsDispatcher(repository ?? InMemoryCommentRepository()),
+    final viewModel = commentsViewModel(
+      repository ?? InMemoryCommentRepository(),
     );
     addTearDown(viewModel.dispose);
     await viewModel.load(postId);
@@ -52,7 +52,7 @@ void main() {
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => post);
 
-      final viewModel = PostViewModel(dispatcher: postsDispatcher(repository));
+      final viewModel = postsViewModel(repository);
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
       final comments = await loadedComments();
@@ -73,7 +73,7 @@ void main() {
             repository.postById(999, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => null);
 
-      final viewModel = PostViewModel(dispatcher: postsDispatcher(repository));
+      final viewModel = postsViewModel(repository);
       addTearDown(viewModel.dispose);
       await viewModel.load(999);
       final comments = await loadedComments(postId: 999);
@@ -93,7 +93,7 @@ void main() {
         () => repository.postById(1, cancellation: any(named: 'cancellation')),
       ).thenAnswer((_) async => throw Exception('offline'));
 
-      final viewModel = PostViewModel(dispatcher: postsDispatcher(repository));
+      final viewModel = postsViewModel(repository);
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
       final comments = await loadedComments();
@@ -107,9 +107,7 @@ void main() {
     });
 
     testWidgets('should edit the post through the dialog', (tester) async {
-      final viewModel = PostViewModel(
-        dispatcher: postsDispatcher(InMemoryPostRepository()),
-      );
+      final viewModel = postsViewModel(InMemoryPostRepository());
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
       final comments = await loadedComments();
@@ -140,7 +138,7 @@ void main() {
       tester,
     ) async {
       final store = InMemoryPostRepository();
-      final viewModel = PostViewModel(dispatcher: postsDispatcher(store));
+      final viewModel = postsViewModel(store);
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
       final comments = await loadedComments();
@@ -171,7 +169,7 @@ void main() {
       final inFlight = Completer<void>();
       when(() => store.deletePost(any())).thenAnswer((_) => inFlight.future);
 
-      final viewModel = PostViewModel(dispatcher: postsDispatcher(store));
+      final viewModel = postsViewModel(store);
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
       final comments = await loadedComments();
@@ -207,9 +205,7 @@ void main() {
     testWidgets('should render the comments the post already has', (
       tester,
     ) async {
-      final viewModel = PostViewModel(
-        dispatcher: postsDispatcher(InMemoryPostRepository()),
-      );
+      final viewModel = postsViewModel(InMemoryPostRepository());
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
       final comments = await loadedComments();
@@ -230,9 +226,7 @@ void main() {
     testWidgets('should say so when the post has no comments yet', (
       tester,
     ) async {
-      final viewModel = PostViewModel(
-        dispatcher: postsDispatcher(InMemoryPostRepository()),
-      );
+      final viewModel = postsViewModel(InMemoryPostRepository());
       addTearDown(viewModel.dispose);
       await viewModel.load(3);
       final comments = await loadedComments(postId: 3);
@@ -245,9 +239,7 @@ void main() {
     });
 
     testWidgets('should add a comment through the dialog', (tester) async {
-      final viewModel = PostViewModel(
-        dispatcher: postsDispatcher(InMemoryPostRepository()),
-      );
+      final viewModel = postsViewModel(InMemoryPostRepository());
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
       final comments = await loadedComments();
@@ -299,9 +291,7 @@ void main() {
         return const [comment];
       });
 
-      final viewModel = PostViewModel(
-        dispatcher: postsDispatcher(InMemoryPostRepository()),
-      );
+      final viewModel = postsViewModel(InMemoryPostRepository());
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
       final comments = await loadedComments(repository: repository);
@@ -340,9 +330,7 @@ void main() {
         ),
       ).thenAnswer((_) => inFlight.future);
 
-      final viewModel = PostViewModel(
-        dispatcher: postsDispatcher(InMemoryPostRepository()),
-      );
+      final viewModel = postsViewModel(InMemoryPostRepository());
       addTearDown(viewModel.dispose);
       await viewModel.load(1);
       final comments = await loadedComments(repository: repository);

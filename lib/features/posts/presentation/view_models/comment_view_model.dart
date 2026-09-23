@@ -7,15 +7,21 @@ import '../../../../core/presentation/action_result.dart';
 import '../../../../core/presentation/form/app_form_controller.dart';
 import '../../../../core/presentation/view_model.dart';
 import '../../domain/entities/comment.dart';
-import '../../domain/usecases/create_comment_command.dart';
-import '../../domain/usecases/get_comments_query.dart';
+import '../../domain/usecases/create_comment_use_case.dart';
+import '../../domain/usecases/get_comments_use_case.dart';
 import '../forms/comment_form_field.dart';
 
 // The comments on one post. Scoped to the post detail route, beside the post's
 // own view model, so a page that never opens a thread never reads one.
 @Injectable(scope: Scope.factory)
 class CommentViewModel extends ViewModel {
-  CommentViewModel({required super.dispatcher});
+  CommentViewModel({
+    required this._getComments,
+    required this._createComment,
+  });
+
+  final GetCommentsUseCase _getComments;
+  final CreateCommentUseCase _createComment;
 
   // Doubles as the disposed flag: `dispose` cancels it and nothing else does, so
   // a cancelled source means the page that started the work is gone.
@@ -39,8 +45,9 @@ class CommentViewModel extends ViewModel {
     _comments.setLoading();
 
     try {
-      final comments = await dispatcher.query(
-        GetCommentsQuery(postId, cancellation: _cancellation.token),
+      final comments = await _getComments(
+        postId,
+        cancellation: _cancellation.token,
       );
       if (_cancellation.isCancelled) return;
       _comments.setValue(comments);
@@ -58,13 +65,11 @@ class CommentViewModel extends ViewModel {
     _create.setLoading();
 
     try {
-      final created = await dispatcher.command(
-        CreateCommentCommand(
-          postId: postId,
-          name: name,
-          email: email,
-          body: body,
-        ),
+      final created = await _createComment(
+        postId: postId,
+        name: name,
+        email: email,
+        body: body,
       );
       if (_cancellation.isCancelled) return const ActionResult.success();
       // jsonplaceholder answers with the comment it recorded and stores
