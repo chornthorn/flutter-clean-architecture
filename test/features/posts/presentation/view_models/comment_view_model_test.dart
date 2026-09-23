@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/core/error/app_exception.dart';
 import 'package:flutter_x/core/presentation/action_result.dart';
 import 'package:flutter_x/core/presentation/form/app_form_controller.dart';
 import 'package:flutter_x/features/posts/domain/entities/comment.dart';
@@ -183,6 +184,7 @@ void main() {
             name: any(named: 'name'),
             email: any(named: 'email'),
             body: any(named: 'body'),
+            cancellation: any(named: 'cancellation'),
           ),
         ).thenAnswer((_) async => throw Exception('offline'));
 
@@ -227,6 +229,51 @@ void main() {
 
       expect(pushed, isNotEmpty);
       expect(pushed.every((state) => state.isLoading), isTrue);
+    });
+
+    test('should stay silent when an add is dropped with its view', () async {
+      final repository = MockCommentRepository();
+      when(
+        () => repository.commentsForPost(
+          1,
+          cancellation: any(named: 'cancellation'),
+        ),
+      ).thenAnswer((_) async => const [comment]);
+      when(
+        () => repository.createComment(
+          postId: any(named: 'postId'),
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
+        ),
+      ).thenAnswer((invocation) async {
+        // What a real adapter does with the token: the write is dropped when the
+        // screen that started it goes away.
+        await invocation.namedArguments[#cancellation] as Future<void>;
+        throw const CancelledException();
+      });
+
+      final viewModel = commentsViewModel(repository);
+      final pushed = <AsyncState<void>>[];
+      addTearDown(viewModel.create.subscribe(pushed.add));
+      await viewModel.load(1);
+
+      viewModel.commentFormController.setValues({
+        CommentFormField.name: 'Ada Lovelace',
+        CommentFormField.email: 'ada@example.com',
+        CommentFormField.body: 'A new comment',
+      });
+
+      final create = viewModel.createComment(1);
+      viewModel.dispose();
+
+      final result = await create;
+
+      // A dropped write is not a failed one: nothing reaches the signal the page
+      // is no longer watching.
+      expect(result.isFailure, isTrue);
+      expect(pushed.every((state) => !state.hasError), isTrue);
     });
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/error/app_exception.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
@@ -18,6 +20,7 @@ void main() {
           userId: any(named: 'userId'),
           title: any(named: 'title'),
           body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
         ),
       ).thenAnswer(
         (invocation) async => Post(
@@ -39,7 +42,12 @@ void main() {
 
       expect(created.id, 101);
       verify(
-        () => posts.createPost(userId: 1, title: 'A title', body: 'A body'),
+        () => posts.createPost(
+          userId: 1,
+          title: 'A title',
+          body: 'A body',
+          cancellation: any(named: 'cancellation'),
+        ),
       ).called(1);
     });
 
@@ -47,7 +55,34 @@ void main() {
       await createPost(userId: 1, title: '  A title  ', body: '  A body  ');
 
       verify(
-        () => posts.createPost(userId: 1, title: 'A title', body: 'A body'),
+        () => posts.createPost(
+          userId: 1,
+          title: 'A title',
+          body: 'A body',
+          cancellation: any(named: 'cancellation'),
+        ),
+      ).called(1);
+    });
+
+    test('should carry the writer\'s way out down to the repository', () async {
+      final walkedAway = Completer<void>();
+
+      await createPost(
+        userId: 1,
+        title: 'A title',
+        body: 'A body',
+        cancellation: walkedAway.future,
+      );
+
+      // The token the screen handed the use case is the one the adapter is given,
+      // so a write the page walked away from is dropped on the wire too.
+      verify(
+        () => posts.createPost(
+          userId: 1,
+          title: 'A title',
+          body: 'A body',
+          cancellation: walkedAway.future,
+        ),
       ).called(1);
     });
 
@@ -62,6 +97,7 @@ void main() {
           userId: any(named: 'userId'),
           title: any(named: 'title'),
           body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
         ),
       );
     });
@@ -85,6 +121,7 @@ void main() {
           userId: any(named: 'userId'),
           title: any(named: 'title'),
           body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
         ),
       );
     });

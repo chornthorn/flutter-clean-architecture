@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/error/app_exception.dart';
 import 'package:flutter_x/features/posts/domain/entities/comment.dart';
@@ -19,6 +21,7 @@ void main() {
           name: any(named: 'name'),
           email: any(named: 'email'),
           body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
         ),
       ).thenAnswer(
         (invocation) async => Comment(
@@ -47,6 +50,7 @@ void main() {
           name: 'Ada Lovelace',
           email: 'ada@example.com',
           body: 'A comment',
+          cancellation: any(named: 'cancellation'),
         ),
       ).called(1);
     });
@@ -65,6 +69,29 @@ void main() {
           name: 'Ada Lovelace',
           email: 'ada@example.com',
           body: 'A comment',
+          cancellation: any(named: 'cancellation'),
+        ),
+      ).called(1);
+    });
+
+    test('should carry the writer\'s way out down to the repository', () async {
+      final walkedAway = Completer<void>();
+
+      await createComment(
+        postId: 1,
+        name: 'Ada Lovelace',
+        email: 'ada@example.com',
+        body: 'A comment',
+        cancellation: walkedAway.future,
+      );
+
+      verify(
+        () => comments.createComment(
+          postId: 1,
+          name: 'Ada Lovelace',
+          email: 'ada@example.com',
+          body: 'A comment',
+          cancellation: walkedAway.future,
         ),
       ).called(1);
     });
@@ -86,6 +113,7 @@ void main() {
           name: any(named: 'name'),
           email: any(named: 'email'),
           body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
         ),
       );
     });
@@ -113,6 +141,7 @@ void main() {
           name: any(named: 'name'),
           email: any(named: 'email'),
           body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
         ),
       );
     });
@@ -140,6 +169,7 @@ void main() {
           name: any(named: 'name'),
           email: any(named: 'email'),
           body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
         ),
       );
     });

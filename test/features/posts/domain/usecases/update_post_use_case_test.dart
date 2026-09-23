@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_x/core/error/app_exception.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
@@ -18,6 +20,7 @@ void main() {
           id: any(named: 'id'),
           title: any(named: 'title'),
           body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
         ),
       ).thenAnswer(
         (invocation) async => Post(
@@ -43,6 +46,27 @@ void main() {
           id: 3,
           title: 'An edited title',
           body: 'An edited body',
+          cancellation: any(named: 'cancellation'),
+        ),
+      ).called(1);
+    });
+
+    test('should carry the writer\'s way out down to the repository', () async {
+      final walkedAway = Completer<void>();
+
+      await updatePost(
+        id: 3,
+        title: 'A title',
+        body: 'A body',
+        cancellation: walkedAway.future,
+      );
+
+      verify(
+        () => posts.updatePost(
+          id: 3,
+          title: 'A title',
+          body: 'A body',
+          cancellation: walkedAway.future,
         ),
       ).called(1);
     });
@@ -59,6 +83,7 @@ void main() {
           id: any(named: 'id'),
           title: any(named: 'title'),
           body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
         ),
       );
     });
@@ -69,6 +94,7 @@ void main() {
           id: any(named: 'id'),
           title: any(named: 'title'),
           body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
         ),
       ).thenAnswer((_) async => throw Exception('offline'));
 

@@ -70,6 +70,7 @@ class CommentViewModel extends ViewModel {
         name: name,
         email: email,
         body: body,
+        cancellation: _cancellation.token,
       );
       if (_cancellation.isCancelled) return const ActionResult.success();
       // jsonplaceholder answers with the comment it recorded and stores
@@ -80,7 +81,9 @@ class CommentViewModel extends ViewModel {
       commentFormController.clearAll();
       return const ActionResult.success('Comment added successfully.');
     } catch (error, stackTrace) {
-      if (_cancellation.isCancelled) {
+      // A write the route walked away from is neither a result nor an error: it
+      // never reaches the signal the page is no longer watching.
+      if (_cancellation.isCancelled || error is CancelledException) {
         return const ActionResult.failure('Could not add comment.');
       }
       _create.setError(error, stackTrace);

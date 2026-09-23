@@ -111,7 +111,12 @@ class PostViewModel extends ViewModel {
     _create.setLoading();
 
     try {
-      await _createPost(userId: _authorId, title: title, body: body);
+      await _createPost(
+        userId: _authorId,
+        title: title,
+        body: body,
+        cancellation: _cancellation.token,
+      );
       final posts = await _getPosts(cancellation: _cancellation.token);
       if (_cancellation.isCancelled) return const ActionResult.success();
       _posts.setValue(posts);
@@ -119,7 +124,9 @@ class PostViewModel extends ViewModel {
       createFormController.clearAll();
       return const ActionResult.success('Post created successfully.');
     } catch (error, stackTrace) {
-      if (_cancellation.isCancelled) {
+      // A write the route walked away from is neither a result nor an error: it
+      // never reaches the signal the page is no longer watching.
+      if (_cancellation.isCancelled || error is CancelledException) {
         return const ActionResult.failure('Could not create post.');
       }
       _create.setError(error, stackTrace);
@@ -140,7 +147,12 @@ class PostViewModel extends ViewModel {
     _update.setLoading();
 
     try {
-      await _updatePost(id: id, title: title, body: body);
+      await _updatePost(
+        id: id,
+        title: title,
+        body: body,
+        cancellation: _cancellation.token,
+      );
       final updated = await _getPost(id, cancellation: _cancellation.token);
       if (_cancellation.isCancelled) return const ActionResult.success();
       _post.setValue(updated);
@@ -148,7 +160,9 @@ class PostViewModel extends ViewModel {
       updateFormController.clear();
       return const ActionResult.success('Post updated successfully.');
     } catch (error, stackTrace) {
-      if (_cancellation.isCancelled) {
+      // A write the route walked away from is neither a result nor an error: it
+      // never reaches the signal the page is no longer watching.
+      if (_cancellation.isCancelled || error is CancelledException) {
         return const ActionResult.failure('Could not update post.');
       }
       _update.setError(error, stackTrace);
@@ -166,12 +180,14 @@ class PostViewModel extends ViewModel {
     _delete.setLoading();
 
     try {
-      await _deletePost(id);
+      await _deletePost(id, cancellation: _cancellation.token);
       if (_cancellation.isCancelled) return const ActionResult.success();
       _delete.setValue(null);
       return const ActionResult.success('Post deleted successfully.');
     } catch (error, stackTrace) {
-      if (_cancellation.isCancelled) {
+      // A write the route walked away from is neither a result nor an error: it
+      // never reaches the signal the page is no longer watching.
+      if (_cancellation.isCancelled || error is CancelledException) {
         return const ActionResult.failure('Could not delete post.');
       }
       _delete.setError(error, stackTrace);

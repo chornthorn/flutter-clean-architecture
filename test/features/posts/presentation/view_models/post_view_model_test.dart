@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_x/core/error/app_exception.dart';
 import 'package:flutter_x/core/presentation/action_result.dart';
 import 'package:flutter_x/core/presentation/form/app_form_controller.dart';
 import 'package:flutter_x/features/posts/domain/entities/post.dart';
@@ -150,6 +151,7 @@ void main() {
             userId: any(named: 'userId'),
             title: any(named: 'title'),
             body: any(named: 'body'),
+            cancellation: any(named: 'cancellation'),
           ),
         ).thenAnswer((_) async => throw Exception('offline'));
 
@@ -188,6 +190,45 @@ void main() {
 
       expect(pushed, isNotEmpty);
       expect(pushed.every((state) => state.isLoading), isTrue);
+    });
+
+    test('should stay silent when a create is dropped with its view', () async {
+      final store = MockPostRepository();
+      when(() => store.allPosts(cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) async => const [post]);
+      when(
+        () => store.createPost(
+          userId: any(named: 'userId'),
+          title: any(named: 'title'),
+          body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
+        ),
+      ).thenAnswer((invocation) async {
+        // What a real adapter does with the token: the write is dropped when the
+        // screen that started it goes away.
+        await invocation.namedArguments[#cancellation] as Future<void>;
+        throw const CancelledException();
+      });
+
+      final viewModel = postsViewModel(store);
+      final pushed = <AsyncState<void>>[];
+      addTearDown(viewModel.create.subscribe(pushed.add));
+      await viewModel.load();
+
+      viewModel.createFormController.setValues({
+        PostFormField.title: 'A new post',
+        PostFormField.body: 'A new body',
+      });
+
+      final create = viewModel.createPost();
+      viewModel.dispose();
+
+      final result = await create;
+
+      // A dropped write is not a failed one: nothing reaches the signal the page
+      // is no longer watching.
+      expect(result.isFailure, isTrue);
+      expect(pushed.every((state) => !state.hasError), isTrue);
     });
   });
 
@@ -327,6 +368,7 @@ void main() {
             id: 1,
             title: any(named: 'title'),
             body: any(named: 'body'),
+            cancellation: any(named: 'cancellation'),
           ),
         ).thenAnswer((_) async => throw Exception('offline'));
 
@@ -358,7 +400,7 @@ void main() {
       'should keep the failure and answer failure when a delete fails',
       () async {
         final store = MockPostRepository();
-        when(() => store.deletePost(1))
+        when(() => store.deletePost(1, cancellation: any(named: 'cancellation')))
             .thenAnswer((_) async => throw Exception('offline'));
 
         final viewModel = postsViewModel(store);

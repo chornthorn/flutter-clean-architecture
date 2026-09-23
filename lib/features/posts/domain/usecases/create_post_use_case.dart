@@ -1,5 +1,6 @@
 import 'package:injectify/injectify.dart';
 
+import '../../../../core/async/cancellation.dart';
 import '../../../../core/error/app_exception.dart';
 import '../entities/post.dart';
 import '../repositories/post_repository.dart';
@@ -17,6 +18,7 @@ class CreatePostUseCase {
     required int userId,
     required String title,
     required String body,
+    Cancellation? cancellation,
   }) async {
     final cleaned = cleanedTitle(title);
     if (cleaned.length < 5) {
@@ -29,6 +31,7 @@ class CreatePostUseCase {
       userId: userId,
       title: cleaned,
       body: body.trim(),
+      cancellation: cancellation,
     );
   }
 }

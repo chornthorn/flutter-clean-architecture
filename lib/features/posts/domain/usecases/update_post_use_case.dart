@@ -1,5 +1,6 @@
 import 'package:injectify/injectify.dart';
 
+import '../../../../core/async/cancellation.dart';
 import '../entities/post.dart';
 import '../repositories/post_repository.dart';
 
@@ -15,9 +16,11 @@ class UpdatePostUseCase {
     required int id,
     required String title,
     required String body,
+    Cancellation? cancellation,
   }) async => _posts.updatePost(
     id: id,
     title: cleanedTitle(title),
     body: body.trim(),
+    cancellation: cancellation,
   );
 }

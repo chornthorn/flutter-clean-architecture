@@ -147,11 +147,12 @@ This keeps view models testable with plain `test()` without a widget tester.
 
 ## Cancellation
 
-When a user leaves a screen, in-flight HTTP requests started by that screen are
-cancelled through `Cancellation`:
+When a user leaves a screen, in-flight HTTP requests started by that screen —
+reads and writes alike — are cancelled through `Cancellation`:
 
 1. The `ViewModel` creates a `CancellationSource`.
-2. Every repository call receives `source.token`.
+2. Every use case call receives `source.token`, and every use case hands it to
+   the repository.
 3. In `dispose()`, the view model calls `source.cancel()`.
 4. The repository adapter passes the token to Dio's `CancelToken`.
 

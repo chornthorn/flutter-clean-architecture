@@ -167,7 +167,8 @@ void main() {
           .thenAnswer((_) async => post);
       // The delete never answers, so the page stays on the in-flight state.
       final inFlight = Completer<void>();
-      when(() => store.deletePost(any())).thenAnswer((_) => inFlight.future);
+      when(() => store.deletePost(any(), cancellation: any(named: 'cancellation')))
+          .thenAnswer((_) => inFlight.future);
 
       final viewModel = postsViewModel(store);
       addTearDown(viewModel.dispose);
@@ -327,6 +328,7 @@ void main() {
           name: any(named: 'name'),
           email: any(named: 'email'),
           body: any(named: 'body'),
+          cancellation: any(named: 'cancellation'),
         ),
       ).thenAnswer((_) => inFlight.future);
 

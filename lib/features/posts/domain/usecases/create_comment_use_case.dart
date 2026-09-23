@@ -1,5 +1,6 @@
 import 'package:injectify/injectify.dart';
 
+import '../../../../core/async/cancellation.dart';
 import '../entities/comment.dart';
 import '../repositories/comment_repository.dart';
 
@@ -17,10 +18,12 @@ class CreateCommentUseCase {
     required String name,
     required String email,
     required String body,
+    Cancellation? cancellation,
   }) async => _comments.createComment(
     postId: postId,
     name: cleanedCommentName(name),
     email: cleanedCommentEmail(email),
     body: cleanedCommentBody(body),
+    cancellation: cancellation,
   );
 }
