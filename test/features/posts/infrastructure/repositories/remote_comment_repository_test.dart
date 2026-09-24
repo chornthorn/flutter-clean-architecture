@@ -38,7 +38,7 @@ void main() {
     ResponseBody Function(RequestOptions options) respond, {
     HttpClientAdapter? adapter,
   }) {
-    final dio = createNetworkClient(
+    final dio = NetworkClient(
       baseUrl: 'https://posts.test',
       logRequests: false,
     )..httpClientAdapter = adapter ?? RecordingAdapter(respond);

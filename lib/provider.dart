@@ -43,7 +43,7 @@ abstract class AppModule {
       ..registry.registerModule(AppCqrsModule.fromLocator(getIt.get));
   }
 
-  // One client for every feature: timeouts and interceptors configured once.
+  // One client for every feature: timeouts and error mapping configured once.
   @Injectable(scope: Scope.lazySingleton)
-  Dio dio() => createNetworkClient();
+  Dio dio() => NetworkClient();
 }

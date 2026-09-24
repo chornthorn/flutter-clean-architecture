@@ -6,12 +6,10 @@ it — one feature's code belongs inside that feature.
 ```
 lib/core/
   networking/
-    network_client.dart    the Dio every feature's endpoints shares, with its
-                           timeouts and base URL. Bound in `provider.dart` —
-                           features take it from the container, not from here.
-    interceptors.dart      the cross-cutting layer: error mapping, logging.
-                           Nothing per-endpoint belongs here.
-    error_interceptor.dart transforms HTTP errors and responses into typed AppExceptions.
+    network_client.dart    NetworkClient, the Dio every feature's endpoints
+                           shares: timeouts, logging, and error mapping.
+                           Bound in `provider.dart` — features take it from
+                           the container, not from here.
     try_safe_call.dart     Future<T>.guard() extension unwrapping DioException.
     repository.dart        abstract base class for network repositories, bridging
                            cancellation and executing guarded API calls.
@@ -44,7 +42,7 @@ lib/core/
 The architecture separates error responsibilities cleanly across layers without `throw mapDioErrorToFailure(error)` boilerplate:
 
 ```
-[Dio / Network] -> [ErrorInterceptor] -> [AppException]
+[Dio / Network] -> [NetworkClient] -> [AppException]
                           |
                    [Repository (.execute())] -> Domain Entities / AppException
                           |
@@ -53,7 +51,7 @@ The architecture separates error responsibilities cleanly across layers without 
                    [UI View / Dialog] -> AppFormScope / AppTextField / AppToast
 ```
 
-1. **Dio ErrorInterceptor (`core/networking/error_interceptor.dart`)**:
+1. **NetworkClient (`core/networking/network_client.dart`)**:
    Intercepts network errors, timeouts, and HTTP status codes (400, 401, 403, 404, 422, 5xx), parses backend error envelopes (e.g. `{"message": "...", "errors": {...}}`), and attaches a strongly typed `AppException` to `DioException.error`.
 2. **Safe Call Extension (`core/networking/try_safe_call.dart`)**:
    Extension on `Future<T>.guard()` that unboxes `DioException` and re-throws the attached `AppException`.

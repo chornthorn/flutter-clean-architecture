@@ -25,7 +25,7 @@ void main() {
     ResponseBody Function(RequestOptions options) respond, {
     HttpClientAdapter? adapter,
   }) {
-    final dio = createNetworkClient(
+    final dio = NetworkClient(
       baseUrl: 'https://posts.test',
       logRequests: false,
     )..httpClientAdapter = adapter ?? RecordingAdapter(respond);
@@ -34,7 +34,7 @@ void main() {
 
   group('RemotePostRepository', () {
     test('should ask the endpoint the annotation declares', () async {
-      final dio = createNetworkClient(
+      final dio = NetworkClient(
         baseUrl: 'https://posts.test',
         logRequests: false,
       );
